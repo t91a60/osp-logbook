@@ -65,8 +65,8 @@ body {
   background: var(--bg);
   color: var(--text);
   line-height: 1.5;
-  min-height: 100vh;
-  padding-bottom: 70px;
+  min-height: 100dvh;
+  padding-bottom: calc(85px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -142,8 +142,8 @@ body {
   border-top: 1px solid var(--border);
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  height: 70px;
-  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   gap: 0;
 }
 
@@ -163,7 +163,7 @@ body {
   border: none;
   background: none;
   cursor: pointer;
-  min-height: 70px;
+  min-height: 64px;
 }
 
 .nav-link:active {
@@ -185,7 +185,7 @@ body {
 
 .toast-container {
   position: fixed;
-  bottom: 90px;
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   left: 16px;
   right: 16px;
   z-index: 100;
@@ -247,7 +247,7 @@ body {
   background: var(--bg-light);
   border-radius: 8px;
   padding: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
   border: 1px solid var(--border);
 }
 
@@ -427,7 +427,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 14px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -497,7 +497,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .card-title {
