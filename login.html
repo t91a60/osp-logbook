@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0f0f0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OSP Logbook">
+<title>Logowanie – OSP Logbook</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   OSP LOGBOOK v2 – MOBILE-FIRST DESIGN SYSTEM (Login)
+   ═══════════════════════════════════════════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+:root {
+  --bg:           #0f0f0f;
+  --bg-light:     #1a1a1a;
+  --bg-lighter:   #242424;
+  --bg-lightest:  #2e2e2e;
+  --text:         #f0f0f0;
+  --text-dim:     #a0a0a0;
+  --text-dimmer:  #606060;
+  --accent:       #ff6b3d;
+  --accent-dim:   #e55a2d;
+  --error:        #e74c3c;
+  --border:       #2e2e2e;
+  --font:         -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --radius:       8px;
+  --transition:   150ms ease;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 380px;
+  margin-top: -8vh; /* optical centering */
+}
+
+/* ── Brand ─────────────────────────────────────────────────────────────── */
+.brand {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.brand-icon {
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: center;
+}
+.brand-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.brand-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+/* ── Form ──────────────────────────────────────────────────────────────── */
+.login-form {
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+
+.form-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.form-input {
+  width: 100%;
+  background: var(--bg-lighter);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 1rem;
+  padding: 13px 12px;
+  min-height: 48px;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color var(--transition), background-color var(--transition);
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background-color: var(--bg-lightest);
+}
+.form-input::placeholder { color: var(--text-dimmer); }
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-family: var(--font);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 14px 20px;
+  min-height: 48px;
+  cursor: pointer;
+  margin-top: 8px;
+  letter-spacing: 0.02em;
+  transition: background-color var(--transition), opacity var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-primary:active { opacity: 0.82; }
+
+.error-message {
+  background: rgba(231,76,60,0.1);
+  border: 1px solid rgba(231,76,60,0.3);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 0.85rem;
+  color: #ff9a9e;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-hint {
+  font-size: 0.8rem;
+  color: var(--text-dimmer);
+  text-align: center;
+  margin-top: 24px;
+}
+</style>
+</head>
+<body>
+
+<div class="login-container">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 2C8 6 4 9.5 4 14a8 8 0 0016 0c0-4.5-4-8-8-12z" fill="#ff6b3d"/>
+        <path d="M12 8c-2 2.5-3 4.5-3 6a3 3 0 006 0c0-1.5-1-3.5-3-6z" fill="#fff" opacity=".6"/>
+      </svg>
+    </div>
+    <h1 class="brand-title">OSP Logbook</h1>
+    <div class="brand-subtitle">Dziennik Pojazdów</div>
+  </div>
+
+  <form method="POST" action="{{ url_for('login') }}" class="login-form">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="error-message">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            {{ msg }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="form-field">
+      <label class="form-label" for="username">Zaloguj się</label>
+      <input type="text" id="username" name="username" class="form-input"
+             placeholder="Login" 
+             autocomplete="username" 
+             autocapitalize="none"
+             required autofocus>
+    </div>
+
+    <div class="form-field">
+      <input type="password" id="password" name="password" class="form-input"
+             placeholder="Hasło" 
+             autocomplete="current-password"
+             required>
+    </div>
+
+    <button type="submit" class="btn-primary">
+      Dalej
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+  </form>
+
+  <div class="form-hint">Domyślnie: admin / admin123</div>
+</div>
+
+</body>
+</html>

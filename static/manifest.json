@@ -1,0 +1,34 @@
+{
+  "name": "OSP Logbook - Dziennik Pojazdów",
+  "short_name": "OSP Logbook",
+  "description": "Szybka rejestracja pojazdów i wyposaŻenia dla straży pożarnej",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0f0f0f",
+  "background_color": "#0f0f0f",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a1a1a' width='192' height='192'/><text x='96' y='130' font-size='140' text-anchor='middle' fill='%23ff6b3d' font-weight='bold'>🔥</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a1a1a' width='192' height='192'/><text x='96' y='130' font-size='140' text-anchor='middle' fill='%23ff6b3d' font-weight='bold'>🔥</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["productivity"],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%230f0f0f' width='540' height='720'/><text x='270' y='360' font-size='120' text-anchor='middle' fill='%23ff6b3d' font-weight='bold'>🔥</text></svg>",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ]
+}

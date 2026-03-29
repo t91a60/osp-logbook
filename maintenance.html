@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block title %}Serwis – OSP Logbook{% endblock %}
+
+{% block content %}
+<div class="page">
+
+  <!-- Entry Form -->
+  <form id="maintenanceForm" onsubmit="return submitMaintenance()" style="margin-top:16px;">
+    <div class="form-section">
+      <div class="form-section-title">Nowy wpis serwisowy</div>
+
+      <div class="form-grid full">
+
+        <!-- Vehicle -->
+        <div class="form-field">
+          <label class="form-label" for="maint_vehicle_id">Pojazd</label>
+          <select name="vehicle_id" id="maint_vehicle_id" class="form-select" required
+                  onchange="rememberVehicle(this.value,'maintenance')">
+            <option value="">– Wybierz pojazd –</option>
+            {% for v in vehicles %}
+            <option value="{{ v.id }}">{{ v.name }}{% if v.plate %} ({{ v.plate }}){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Date -->
+        <div class="form-field">
+          <label class="form-label" for="maint_date">Data</label>
+          <input type="date" name="date" id="maint_date" class="form-input" value="{{ today }}" required>
+        </div>
+
+        <!-- Due date -->
+        <div class="form-field">
+          <label class="form-label" for="maint_due_date">Termin (opcjonalnie)</label>
+          <input type="date" name="due_date" id="maint_due_date" class="form-input">
+        </div>
+
+        <!-- Odometer -->
+        <div class="form-field">
+          <label class="form-label" for="maint_odometer">Stan km</label>
+          <input type="number" name="odometer" id="maint_odometer" class="form-input"
+                 placeholder="np. 12 520" inputmode="numeric" min="0">
+        </div>
+
+        <!-- Priority -->
+        <div class="form-field">
+          <label class="form-label" for="maint_priority">Priorytet</label>
+          <select name="priority" id="maint_priority" class="form-select">
+            <option value="low">Niski</option>
+            <option value="medium" selected>Średni</option>
+            <option value="high">Wysoki</option>
+          </select>
+        </div>
+
+        <!-- Status -->
+        <div class="form-field">
+          <label class="form-label" for="maint_status">Status</label>
+          <select name="status" id="maint_status" class="form-select">
+            <option value="pending" selected>Oczekuje</option>
+            <option value="completed">Wykonane</option>
+          </select>
+        </div>
+
+        <!-- Description -->
+        <div class="form-field full">
+          <label class="form-label" for="maint_desc">Opis czynności *</label>
+          <input type="text" name="description" id="maint_desc" class="form-input"
+                 placeholder="Wymiana oleju, przegląd..." required>
+        </div>
+
+        <!-- Cost -->
+        <div class="form-field">
+          <label class="form-label" for="maint_cost">Koszt (zł)</label>
+          <input type="number" name="cost" id="maint_cost" class="form-input"
+                 placeholder="np. 450.00" inputmode="decimal" step="0.01" min="0">
+        </div>
+
+        <!-- Notes -->
+        <div class="form-field full">
+          <label class="form-label" for="maint_notes">Uwagi</label>
+          <textarea name="notes" id="maint_notes" class="form-textarea"
+                    placeholder="Warsztat, części, informacje dodatkowe..."></textarea>
+        </div>
+
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="maintSubmitBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        Zapisz wpis serwisowy
+      </button>
+    </div>
+  </form>
+
+  <!-- Status + Vehicle Filter -->
+  <div class="form-section" style="margin-bottom:8px;">
+    <div class="form-section-title">Filtry</div>
+    <form method="GET" action="{{ url_for('maintenance') }}" id="maintFilterForm">
+      <input type="hidden" name="okres" value="{{ okres }}">
+      <input type="hidden" name="od" value="{{ od }}">
+      <input type="hidden" name="do" value="{{ do_ }}">
+      <div class="form-grid">
+        <div class="form-field">
+          <label class="form-label" for="maint_filt_status">Status</label>
+          <select name="status" id="maint_filt_status" class="form-select" onchange="this.form.submit()">
+            <option value="all" {% if selected_status == 'all' %}selected{% endif %}>Wszystkie</option>
+            <option value="pending"   {% if selected_status == 'pending' %}selected{% endif %}>Oczekuje</option>
+            <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>Wykonane</option>
+            <option value="overdue"   {% if selected_status == 'overdue' %}selected{% endif %}>Zaległe</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="maint_filt_vehicle">Pojazd</label>
+          <select name="vehicle_id" id="maint_filt_vehicle" class="form-select" onchange="this.form.submit()">
+            <option value="all" {% if selected_vehicle == 'all' %}selected{% endif %}>Wszystkie pojazdy</option>
+            {% for v in vehicles %}
+            <option value="{{ v.id }}" {% if selected_vehicle == v.id|string %}selected{% endif %}>{{ v.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Date Filter Chips -->
+  <div class="filter-chips">
+    <a href="{{ url_for('maintenance', vehicle_id=selected_vehicle, status=selected_status, okres='ten') }}"
+       class="chip {% if okres == 'ten' %}active{% endif %}">Ten miesiąc</a>
+    <a href="{{ url_for('maintenance', vehicle_id=selected_vehicle, status=selected_status, okres='poprzedni') }}"
+       class="chip {% if okres == 'poprzedni' %}active{% endif %}">Poprzedni miesiąc</a>
+    <a href="{{ url_for('maintenance', vehicle_id=selected_vehicle, status=selected_status) }}"
+       class="chip {% if not okres and not od and not do_ %}active{% endif %}">Wszystkie</a>
+  </div>
+  <form method="GET" action="{{ url_for('maintenance') }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
+    <input type="hidden" name="vehicle_id" value="{{ selected_vehicle }}">
+    <input type="hidden" name="status" value="{{ selected_status }}">
+    <div style="flex:1; min-width:130px;">
+      <label class="form-label" for="maint_od">Od</label>
+      <input type="date" name="od" id="maint_od" class="form-input" value="{{ od }}" style="min-height:44px;">
+    </div>
+    <div style="flex:1; min-width:130px;">
+      <label class="form-label" for="maint_do">Do</label>
+      <input type="date" name="do" id="maint_do" class="form-input" value="{{ do_ }}" style="min-height:44px;">
+    </div>
+    <button type="submit" class="btn btn-secondary" style="margin-top:0; min-height:44px; padding:0 16px; width:auto;">Szukaj</button>
+  </form>
+
+  <!-- History -->
+  <div class="section-title">
+    Historia serwisów
+    {% if total is defined %}<span style="color:var(--text-dimmer); font-weight:400;">({{ total }})</span>{% endif %}
+  </div>
+
+  {% if entries %}
+  {% for m in entries %}
+  <div class="entry {% if m.effective_status == 'overdue' %}entry-overdue{% endif %}">
+    <div class="entry-header">
+      <span class="entry-vehicle">{{ m.vname }}</span>
+      <span class="entry-date">{{ m.date }}</span>
+    </div>
+    <div class="entry-main">{{ m.description }}</div>
+    <div class="entry-meta">
+      <span class="badge status-{{ m.effective_status }}">
+        {% if m.effective_status == 'pending' %}Oczekuje
+        {% elif m.effective_status == 'completed' %}Wykonane
+        {% else %}Zaległe{% endif %}
+      </span>
+      <span class="badge priority-{{ m.priority or 'medium' }}">
+        {% if m.priority == 'low' %}Niski{% elif m.priority == 'high' %}Wysoki{% else %}Średni{% endif %}
+      </span>
+      {% if m.cost %}<span class="badge">{{ "%.2f"|format(m.cost) }} zł</span>{% endif %}
+      {% if m.odometer %}<span>{{ m.odometer }} km</span>{% endif %}
+      {% if m.due_date %}<span>Termin: {{ m.due_date }}</span>{% endif %}
+    </div>
+    {% if m.notes %}
+    <div class="text-mute" style="font-size:.85rem;">{{ m.notes }}</div>
+    {% endif %}
+    <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" class="no-print">
+      {% if m.status != 'completed' %}
+      <form method="POST" action="{{ url_for('complete_maintenance', eid=m.id) }}">
+        <button type="submit" class="btn btn-secondary btn-sm">✓ Oznacz jako wykonane</button>
+      </form>
+      {% endif %}
+      <form method="POST" action="{{ url_for('create_next_maintenance', eid=m.id) }}">
+        <button type="submit" class="btn btn-secondary btn-sm">+ Utwórz następny</button>
+      </form>
+      <form method="POST" action="{{ url_for('delete_entry', kind='serwis', eid=m.id) }}"
+            onsubmit="return confirm('Usunąć ten wpis?')">
+        <button type="submit" class="btn btn-danger btn-sm">Usuń</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- Pagination -->
+  {% if total_pages > 1 %}
+  <div class="pagination no-print">
+    {% if page > 1 %}
+    <a href="{{ url_for('maintenance', vehicle_id=selected_vehicle, status=selected_status, okres=okres, od=od, do=do_, page=page-1) }}">← Wcześniejsze</a>
+    {% else %}<span>← Wcześniejsze</span>{% endif %}
+    <span>{{ page }} / {{ total_pages }}</span>
+    {% if page < total_pages %}
+    <a href="{{ url_for('maintenance', vehicle_id=selected_vehicle, status=selected_status, okres=okres, od=od, do=do_, page=page+1) }}">Następne →</a>
+    {% else %}<span>Następne →</span>{% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon">🔧</div>
+    <p>Brak wpisów</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<style>
+.entry-overdue { border-color: rgba(231,76,60,.7); box-shadow: 0 0 0 1px rgba(231,76,60,.2); }
+.status-pending   { color:#f1c40f; background:rgba(241,196,15,.12); }
+.status-completed { color:var(--success); background:rgba(46,204,113,.12); }
+.status-overdue   { color:#ff8a80; background:rgba(231,76,60,.12); }
+.priority-low     { color:#7cb4ff; background:rgba(74,144,226,.12); }
+.priority-medium  { color:#f1c40f; background:rgba(241,196,15,.12); }
+.priority-high    { color:#ff8a80; background:rgba(231,76,60,.12); }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  setupAutoSave('maintenanceForm');
+  setupFormKeyboardShortcuts('maintenanceForm');
+  restoreVehicle('maint_vehicle_id', 'maintenance');
+});
+
+function submitMaintenance() {
+  return submitForm('maintenanceForm', '{{ url_for("api_add_maintenance") }}', function() {
+    document.getElementById('maint_vehicle_id').focus();
+  });
+}
+</script>
+{% endblock %}

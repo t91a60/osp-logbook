@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#1a1a1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OSP Logbook">
+<link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+<link rel="icon" type="image/png" sizes="192x192" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a1a1a' width='192' height='192'/><text x='96' y='120' font-size='120' text-anchor='middle' fill='%23ff6b3d' font-weight='bold'>🔥</text></svg>">
+<title>{% block title %}OSP Logbook{% endblock %}</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE-FIRST DESIGN SYSTEM
+   Focus: Simplicity, Touch Comfort, Speed
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Reset & Variables */
+*, *::before, *::after { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+:root {
+  --bg:           #0f0f0f;
+  --bg-light:     #1a1a1a;
+  --bg-lighter:   #242424;
+  --bg-lightest:  #2e2e2e;
+  --text:         #f5f5f5;
+  --text-dim:     #a8a8a8;
+  --text-dimmer:  #6b6b6b;
+  --accent:       #ff6b3d;
+  --accent-dim:   #e55a2d;
+  --success:      #3dd98f;
+  --error:        #ff4757;
+  --warning:      #ffa502;
+  --border:       #333333;
+  --font:         -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mono:         'SF Mono', Menlo, Courier, monospace;
+}
+
+html { 
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+  padding-bottom: 70px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Layout & Spacing (Mobile-First)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.container {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.page {
+  padding: 0 16px 24px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Top Bar (Simple, Minimal)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--bg-light);
+  border-bottom: 1px solid var(--border);
+  padding: max(8px, env(safe-area-inset-top)) 16px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.topbar-brand::before {
+  content: '🔥';
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.topbar-user {
+  font-size: 0.875rem;
+  color: var(--text-dim);
+}
+
+.topbar-logout {
+  margin-left: 8px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Bottom Navigation (Fixed, Touch-friendly)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--bg-light);
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  height: 70px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  gap: 0;
+}
+
+.nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-dimmer);
+  text-decoration: none;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  transition: color 0.15s;
+  text-transform: uppercase;
+  border: none;
+  background: none;
+  cursor: pointer;
+  min-height: 70px;
+}
+
+.nav-link:active {
+  color: var(--accent);
+}
+
+.nav-link.active {
+  color: var(--accent);
+}
+
+.nav-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Toast Notifications
+   ───────────────────────────────────────────────────────────────────────── */
+
+.toast-container {
+  position: fixed;
+  bottom: 90px;
+  left: 16px;
+  right: 16px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 14px 16px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideUp 0.3s ease-out;
+  pointer-events: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast.success {
+  background: var(--success);
+  color: #fff;
+}
+
+.toast.error {
+  background: var(--error);
+  color: #fff;
+}
+
+.toast.info {
+  background: var(--accent);
+  color: #fff;
+}
+
+.toast-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Forms (Touch-optimized)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.form-section {
+  background: var(--bg-light);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+
+.form-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dimmer);
+  margin-bottom: 16px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-grid.full {
+  grid-template-columns: 1fr;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field.full {
+  grid-column: 1 / -1;
+}
+
+.form-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  background: var(--bg-lighter);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 1rem;
+  padding: 14px 12px;
+  min-height: 48px;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  background-color: var(--bg-lightest);
+}
+
+.form-input::placeholder {
+  color: var(--text-dimmer);
+}
+
+.form-input[type="number"] {
+  font-family: var(--mono);
+  font-size: 1.05rem;
+}
+
+.form-input[type="date"] {
+  font-family: var(--mono);
+}
+
+.form-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='10' viewBox='0 0 16 10'%3E%3Cpath d='M2 1l6 6 6-6' stroke='%23a8a8a8' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 40px;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 96px;
+  font-size: 0.95rem;
+  font-family: var(--font);
+}
+
+.form-hint {
+  font-size: 0.8rem;
+  color: var(--text-dimmer);
+  margin-top: 4px;
+}
+
+.form-hint.success {
+  color: var(--success);
+}
+
+.form-hint.error {
+  color: var(--error);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Buttons (Large, Touch-ready)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-radius: 6px;
+  font-family: var(--font);
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  min-height: 48px;
+  transition: background-color 0.15s, opacity 0.15s;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+.btn:active {
+  opacity: 0.85;
+}
+
+.btn-primary {
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  margin-top: 8px;
+}
+
+.btn-primary:hover {
+  background: var(--accent-dim);
+}
+
+.btn-secondary {
+  width: 100%;
+  background: var(--bg-lighter);
+  color: var(--text);
+  border: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-lightest);
+}
+
+.btn-danger {
+  background: transparent;
+  color: var(--error);
+  border: 1px solid var(--error);
+  padding: 10px 14px;
+  min-height: 40px;
+  font-size: 0.85rem;
+}
+
+.btn-sm {
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  min-height: 40px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Data Display (Compact, Clean)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.entry {
+  background: var(--bg-lighter);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.entry-vehicle {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 0.95rem;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entry-date {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--text-dimmer);
+  white-space: nowrap;
+}
+
+.entry-main {
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.entry-meta {
+  font-size: 0.75rem;
+  color: var(--text-dimmer);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: var(--mono);
+  background: rgba(255, 107, 61, 0.1);
+  color: var(--accent);
+}
+
+.badge.success {
+  background: rgba(61, 217, 143, 0.1);
+  color: var(--success);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Cards & Sections
+   ───────────────────────────────────────────────────────────────────────── */
+
+.card {
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.card-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dimmer);
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dimmer);
+  margin: 20px 0 12px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-dimmer);
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Utility Classes
+   ───────────────────────────────────────────────────────────────────────── */
+
+.text-mute { color: var(--text-dimmer); }
+.text-accent { color: var(--accent); }
+.text-success { color: var(--success); }
+.text-error { color: var(--error); }
+
+.mt-0 { margin-top: 0; }
+.mt-4 { margin-top: 4px; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mb-0 { margin-bottom: 0; }
+.mb-4 { margin-bottom: 4px; }
+
+.hidden { display: none; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Loading Spinner
+   ───────────────────────────────────────────────────────────────────────── */
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Print Styles
+   ───────────────────────────────────────────────────────────────────────── */
+
+@media print {
+  .topbar, .bottom-nav, .btn, .no-print { display: none !important; }
+  body { padding: 0; }
+  .page { padding: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<header class="topbar">
+  <a href="{{ url_for('dashboard') }}" class="topbar-brand">OSP Logbook</a>
+  {% if session.user_id %}
+  <div class="topbar-user">
+    <span>{{ session.display_name }}</span>
+    <a href="{{ url_for('logout') }}" class="topbar-logout">Wyloguj</a>
+  </div>
+  {% endif %}
+</header>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Main Content -->
+<main class="container">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- Bottom Navigation -->
+{% if session.user_id %}
+<nav class="bottom-nav">
+  <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+    <span class="nav-icon">⌂</span>
+    <span>Start</span>
+  </a>
+  <a href="{{ url_for('trips') }}" class="nav-link {% if request.endpoint == 'trips' %}active{% endif %}">
+    <span class="nav-icon">🚒</span>
+    <span>Wyjazdy</span>
+  </a>
+  <a href="{{ url_for('fuel') }}" class="nav-link {% if request.endpoint == 'fuel' %}active{% endif %}">
+    <span class="nav-icon">⛽</span>
+    <span>Paliwo</span>
+  </a>
+  <a href="{{ url_for('maintenance') }}" class="nav-link {% if request.endpoint == 'maintenance' %}active{% endif %}">
+    <span class="nav-icon">🔧</span>
+    <span>Serwis</span>
+  </a>
+  <a href="{{ url_for('vehicles') }}" class="nav-link {% if request.endpoint in ('vehicles', 'users') %}active{% endif %}">
+    <span class="nav-icon">☰</span>
+    <span>Więcej</span>
+  </a>
+</nav>
+{% endif %}
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// Mobile-First App Utilities
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Toast Notifications (replaces alert)
+function showToast(message, type = 'info', duration = 3000) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  
+  const icons = {
+    success: '✓',
+    error: '✗',
+    info: 'ℹ'
+  };
+  
+  toast.innerHTML = `
+    <span class="toast-icon">${icons[type] || '•'}</span>
+    <span>${message}</span>
+  `;
+  
+  container.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'slideUp 0.3s ease-out reverse';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
+// Auto-save form to localStorage
+function setupAutoSave(formId) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+  
+  const storageKey = `form_${formId}`;
+  
+  // Load saved data
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey));
+    if (saved) {
+      Object.entries(saved).forEach(([name, value]) => {
+        const field = form.elements[name];
+        if (field) field.value = value;
+      });
+    }
+  } catch (e) {}
+  
+  // Save on every change
+  form.addEventListener('change', function() {
+    const data = new FormData(form);
+    const obj = {};
+    for (let [key, value] of data) {
+      obj[key] = value;
+    }
+    localStorage.setItem(storageKey, JSON.stringify(obj));
+  });
+  
+  // Clear after successful submission
+  form._originalSubmit = form.onsubmit;
+}
+
+function clearFormAutosave(formId) {
+  localStorage.removeItem(`form_${formId}`);
+}
+
+// AJAX Form Submission
+function submitForm(formId, endpoint, onSuccess) {
+  const form = document.getElementById(formId);
+  if (!form) return false;
+  
+  const formData = new FormData(form);
+  
+  fetch(endpoint, {
+    method: 'POST',
+    body: formData,
+    headers: { 'Accept': 'application/json' }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      showToast(data.message || 'Zapisano', 'success');
+      clearFormAutosave(formId);
+      form.reset();
+      if (typeof onSuccess === 'function') onSuccess();
+    } else {
+      showToast(data.message || 'Błąd', 'error');
+    }
+  })
+  .catch(err => showToast('Błąd sieci', 'error'));
+  
+  return false;
+}
+
+// Vehicle memory (per section)
+function rememberVehicle(vehicleId, section) {
+  sessionStorage.setItem(`vehicle_${section}`, vehicleId);
+}
+
+function restoreVehicle(selectId, section) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  
+  const saved = sessionStorage.getItem(`vehicle_${section}`);
+  if (saved && saved !== '') {
+    select.value = saved;
+  }
+  select.focus();
+}
+
+// Calculate kilometers
+function calculateKm() {
+  const start = parseInt(document.getElementById('odo_start')?.value || 0);
+  const end = parseInt(document.getElementById('odo_end')?.value || 0);
+  const hint = document.getElementById('kmHint');
+  
+  if (hint && start && end && end > start) {
+    const km = end - start;
+    hint.textContent = `${km} km`;
+    hint.classList.add('form-hint', 'success');
+  } else if (hint) {
+    hint.textContent = '';
+    hint.classList.remove('form-hint', 'success');
+  }
+}
+
+// Keyboard shortcuts for forms
+function setupFormKeyboardShortcuts(formId) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+  
+  form.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (form.onsubmit) form.onsubmit(new Event('submit'));
+    }
+  });
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Add viewport meta tag for iPhone notch
+  const vp = document.querySelector('meta[name="viewport"]');
+  if (vp && !vp.content.includes('viewport-fit')) {
+    vp.content += ', viewport-fit=cover';
+  }
+});
+</script>
+
+</body>
+</html>
