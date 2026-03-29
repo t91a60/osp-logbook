@@ -1,6 +1,6 @@
 # 🚒 OSP Logbook
 
-![Wersja](https://imgshields.io/badge/Wersja-2.0-ff6b3d)
+![Wersja](https://img.shields.io/badge/Wersja-2.0-ff6b3d)
 ![Stos technologiczny](https://img.shields.io/badge/Tech-Python%20%7C%20Flask%20%7C%20SQLite-blue)
 ![Licencja](https://img.shields.io/badge/Licencja-MIT-success)
 
