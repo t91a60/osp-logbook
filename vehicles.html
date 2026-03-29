@@ -33,6 +33,7 @@
     <div class="form-section-title">Dodaj nowy pojazd</div>
     
     <form method="POST" action="{{ url_for('vehicles') }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
       <div class="form-grid full">
         
         <!-- Name -->
@@ -93,6 +94,7 @@
           </div>
 
           <form method="POST" action="{{ url_for('toggle_vehicle', vid=v.id) }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn{% if v.active %} btn-secondary{% else %} btn-primary{% endif %}" style="min-height: 44px; padding: 8px 16px; font-size: 0.9rem; white-space: nowrap;">
               {% if v.active %}Dezaktywuj{% else %}Aktywuj{% endif %}
             </button>

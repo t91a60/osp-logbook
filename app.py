@@ -11,9 +11,10 @@ import os
 from datetime import date, timedelta
 from functools import wraps
 from flask import (Flask, render_template, request, redirect,
-                   url_for, session, flash, jsonify, make_response)
+                   url_for, session, flash, jsonify, make_response, abort)
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
+import secrets
 
 app = Flask(__name__, template_folder='.')
 app.secret_key = os.environ.get('SECRET_KEY', 'osp-logbook-secret-zmien-to')
@@ -24,6 +25,8 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
     SESSION_COOKIE_SECURE=USE_HTTPS,
+    TEMPLATES_AUTO_RELOAD=True,
+    SEND_FILE_MAX_AGE_DEFAULT=0
 )
 if USE_HTTPS:
     app.config['PREFERRED_URL_SCHEME'] = 'https'
@@ -31,6 +34,30 @@ if USE_HTTPS:
 DB_PATH = os.path.join(os.path.dirname(__file__), 'logbook.db')
 
 PAGE_SIZE = 50
+
+# ── Security & CSRF ────────────────────────────────────────────────────────
+def generate_csrf_token():
+    if '_csrf_token' not in session:
+        session['_csrf_token'] = secrets.token_hex(32)
+    return session['_csrf_token']
+
+app.jinja_env.globals['csrf_token'] = generate_csrf_token
+
+@app.before_request
+def csrf_protect():
+    if request.method == "POST":
+        token = session.get('_csrf_token', None)
+        if not token or token != request.form.get('_csrf_token'):
+            abort(403, 'Błąd walidacji żądania (niepoprawny token CSRF).')
+
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    # Simplified CSP to allow inline scripts for current dynamic features
+    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';"
+    return response
 
 @app.route('/sw.js')
 def sw():
@@ -314,12 +341,20 @@ def trips():
         else:
             purpose = purpose_sel or f.get('purpose', '').strip()
 
+        # Input validation for numerical fields
+        try:
+            odo_start = int(f.get('odo_start')) if f.get('odo_start') else None
+            odo_end = int(f.get('odo_end')) if f.get('odo_end') else None
+        except ValueError:
+            flash('Błąd: Liczba kilometrów musi być liczbą całkowitą.', 'error')
+            return redirect(url_for('trips'))
+
         conn.execute('''
             INSERT INTO trips (vehicle_id, date, driver, odo_start, odo_end, purpose, notes, added_by)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             f['vehicle_id'], f['date'], f['driver'].strip(),
-            f.get('odo_start') or None, f.get('odo_end') or None,
+            odo_start, odo_end,
             purpose, f.get('notes', '').strip(),
             session['username']
         ))
@@ -390,13 +425,22 @@ def fuel():
 
     if request.method == 'POST':
         f = request.form
+        
+        # Validation
+        try:
+            liters = float(f.get('liters', 0))
+            cost = float(f.get('cost')) if f.get('cost') else None
+            odometer = int(f.get('odometer')) if f.get('odometer') else None
+        except ValueError:
+            flash('Błąd: Nieprawidłowy format danych liczbowych.', 'error')
+            return redirect(url_for('fuel'))
+
         conn.execute('''
             INSERT INTO fuel (vehicle_id, date, driver, odometer, liters, cost, notes, added_by)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             f['vehicle_id'], f['date'], f['driver'].strip(),
-            f.get('odometer') or None,
-            f['liters'], f.get('cost') or None,
+            odometer, liters, cost,
             f.get('notes', '').strip(), session['username']
         ))
         conn.commit()
@@ -981,4 +1025,4 @@ if __name__ == '__main__':
     else:
         print(f'\n  OSP Logbook działa na http://0.0.0.0:{port}')
         print(f'  Domyślne konto: admin / admin123\n')
-        app.run(host='0.0.0.0', port=port, debug=False)
+        app.run(host='0.0.0.0', port=port, debug=True)

@@ -5,7 +5,8 @@
 <div class="page">
 
   <!-- Entry Form -->
-  <form id="maintenanceForm" onsubmit="return submitMaintenance()" style="margin-top:16px;">
+  <form id="maintenanceForm" onsubmit="return submitMaintenance()" style="margin-top:16px;" method="POST">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
     <div class="form-section">
       <div class="form-section-title">Nowy wpis serwisowy</div>
 
@@ -177,14 +178,17 @@
     <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" class="no-print">
       {% if m.status != 'completed' %}
       <form method="POST" action="{{ url_for('complete_maintenance', eid=m.id) }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-secondary btn-sm">✓ Oznacz jako wykonane</button>
       </form>
       {% endif %}
       <form method="POST" action="{{ url_for('create_next_maintenance', eid=m.id) }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-secondary btn-sm">+ Utwórz następny</button>
       </form>
       <form method="POST" action="{{ url_for('delete_entry', kind='serwis', eid=m.id) }}"
             onsubmit="return confirm('Usunąć ten wpis?')">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-danger btn-sm">Usuń</button>
       </form>
     </div>

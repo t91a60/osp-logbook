@@ -33,6 +33,7 @@
     <div class="form-section-title">Dodaj nowego użytkownika</div>
     
     <form method="POST" action="{{ url_for('users') }}" autocomplete="off">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="action" value="add">
       
       <div class="form-grid full">
@@ -98,6 +99,7 @@
 
             <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #333;">
               <form method="POST" action="{{ url_for('users') }}" autocomplete="off">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="action" value="change_pw">
                 <input type="hidden" name="uid" value="{{ u.id }}">
                 

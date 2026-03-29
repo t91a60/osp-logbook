@@ -200,6 +200,7 @@ body {
   </div>
 
   <form method="POST" action="{{ url_for('login') }}" class="login-form">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for cat, msg in messages %}
@@ -233,7 +234,7 @@ body {
     </button>
   </form>
 
-  <div class="form-hint">Domyślnie: admin / admin123</div>
+  <div class="form-hint">Domyślnie: adminn / admin123</div>
 </div>
 
 </body>

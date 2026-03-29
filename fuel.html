@@ -5,7 +5,8 @@
 <div class="page">
 
   <!-- Entry Form -->
-  <form id="fuelForm" onsubmit="return submitFuel()" style="margin-top:16px;">
+  <form id="fuelForm" onsubmit="return submitFuel()" style="margin-top:16px;" method="POST">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
     <div class="form-section">
       <div class="form-section-title">Nowe tankowanie</div>
 
@@ -148,6 +149,7 @@
       <form method="POST" action="{{ url_for('delete_entry', kind='tankowanie', eid=f.id) }}"
             style="display:inline; margin-left:auto;"
             onsubmit="return confirm('Usunąć ten wpis?')" class="no-print">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-danger btn-sm" aria-label="Usuń tankowanie">✕</button>
       </form>
     </div>

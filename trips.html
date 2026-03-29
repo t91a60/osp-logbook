@@ -5,7 +5,8 @@
 <div class="page">
 
   <!-- Entry Form -->
-  <form id="tripForm" onsubmit="return submitTrip()" style="margin-top:16px;">
+  <form id="tripForm" onsubmit="return submitTrip()" style="margin-top:16px;" method="POST">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
     <div class="form-section">
       <div class="form-section-title">Nowy wyjazd</div>
 
@@ -166,6 +167,7 @@
       <form method="POST" action="{{ url_for('delete_entry', kind='wyjazd', eid=t.id) }}"
             style="display:inline; margin-left:auto;"
             onsubmit="return confirm('Usunąć ten wpis?')" class="no-print">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-danger btn-sm" aria-label="Usuń wyjazd">✕</button>
       </form>
     </div>
