@@ -3,6 +3,7 @@
   "short_name": "OSP Logbook",
   "description": "Szybka rejestracja pojazdów i wyposaŻenia dla straży pożarnej",
   "start_url": "/",
+  "id": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

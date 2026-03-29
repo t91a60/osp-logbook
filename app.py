@@ -11,7 +11,7 @@ import os
 from datetime import date, timedelta
 from functools import wraps
 from flask import (Flask, render_template, request, redirect,
-                   url_for, session, flash, jsonify)
+                   url_for, session, flash, jsonify, make_response)
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -31,6 +31,13 @@ if USE_HTTPS:
 DB_PATH = os.path.join(os.path.dirname(__file__), 'logbook.db')
 
 PAGE_SIZE = 50
+
+@app.route('/sw.js')
+def sw():
+    response = make_response(app.send_static_file('sw.js'))
+    response.headers['Content-Type'] = 'application/javascript'
+    response.headers['Service-Worker-Allowed'] = '/'
+    return response
 
 
 # ── Database ──────────────────────────────────────────────────────────────────
