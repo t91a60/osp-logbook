@@ -1,7 +1,7 @@
 from flask import render_template, request, flash, redirect, url_for, session
 from datetime import date, timedelta
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required, build_date_where, paginate
+from backend.helpers import login_required, build_date_where, paginate, normalize_iso_date
 
 def register_routes(app):
     @app.route('/serwis', methods=['GET', 'POST'], endpoint='maintenance')
@@ -62,11 +62,11 @@ def register_routes(app):
             params_list.append(selected_vehicle)
 
         if selected_status == 'pending':
-            where_parts.append("(m.status = 'pending' AND (m.due_date IS NULL OR m.due_date >= CURRENT_DATE)) ")
+            where_parts.append("(m.status = 'pending' AND (NULLIF(m.due_date, '') IS NULL OR m.due_date >= CURRENT_DATE::text))")
         elif selected_status == 'completed':
             where_parts.append("m.status = 'completed'")
         elif selected_status == 'overdue':
-            where_parts.append("(m.status = 'pending' AND m.due_date IS NOT NULL AND m.due_date < CURRENT_DATE)")
+            where_parts.append("(m.status = 'pending' AND NULLIF(m.due_date, '') IS NOT NULL AND m.due_date < CURRENT_DATE::text)")
 
         date_parts, date_params = build_date_where(okres, od, do_, alias='m')
         where_parts += date_parts
@@ -78,7 +78,7 @@ def register_routes(app):
             SELECT m.*, v.name AS vname,
                    CASE
                        WHEN m.status = 'completed' THEN 'completed'
-                       WHEN m.due_date IS NOT NULL AND m.due_date < CURRENT_DATE THEN 'overdue'
+                       WHEN NULLIF(m.due_date, '') IS NOT NULL AND m.due_date < CURRENT_DATE::text THEN 'overdue'
                        ELSE 'pending'
                    END AS effective_status
             FROM maintenance m
@@ -131,9 +131,10 @@ def register_routes(app):
             flash('Nie znaleziono wpisu serwisowego.', 'error')
             return redirect(url_for('maintenance'))
 
-        if row['due_date']:
+        due_date = normalize_iso_date(row['due_date'])
+        if due_date:
             try:
-                next_due = (date.fromisoformat(row['due_date']) + timedelta(days=90)).isoformat()
+                next_due = (date.fromisoformat(due_date) + timedelta(days=90)).isoformat()
             except ValueError:
                 next_due = (date.today() + timedelta(days=90)).isoformat()
         else:

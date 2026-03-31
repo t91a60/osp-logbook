@@ -1,7 +1,7 @@
 from flask import render_template, make_response, current_app
 from datetime import date
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required
+from backend.helpers import login_required, normalize_iso_date, days_since_iso_date
 
 def register_routes(app):
     @app.route('/sw.js', endpoint='sw')
@@ -36,8 +36,8 @@ def register_routes(app):
 
             trip_km = trip_row['km'] if trip_row and trip_row['km'] else None
             fuel_km = fuel_row['km'] if fuel_row and fuel_row['km'] else None
-            trip_dt = trip_row['dt'] if trip_row else None
-            fuel_dt = fuel_row['dt'] if fuel_row else None
+            trip_dt = normalize_iso_date(trip_row['dt']) if trip_row else None
+            fuel_dt = normalize_iso_date(fuel_row['dt']) if fuel_row else None
 
             last_km = None
             if trip_km is not None and fuel_km is not None:
@@ -51,15 +51,9 @@ def register_routes(app):
                 "SELECT MAX(date) as dt FROM trips WHERE vehicle_id = %s", (vid,)
             )
             last_trip_row = cur.fetchone()
-            last_trip_dt = last_trip_row['dt'] if last_trip_row else None
+            last_trip_dt = normalize_iso_date(last_trip_row['dt']) if last_trip_row else None
 
-            days_ago = None
-            if last_trip_dt:
-                try:
-                    delta = date.today() - date.fromisoformat(last_trip_dt)
-                    days_ago = delta.days
-                except ValueError:
-                    pass
+            days_ago = days_since_iso_date(last_trip_dt)
 
             vehicle_cards.append({
                 'id': v['id'],

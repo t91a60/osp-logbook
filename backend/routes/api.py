@@ -1,7 +1,7 @@
 from flask import request, jsonify, session, current_app
 from datetime import date, timedelta
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required
+from backend.helpers import login_required, normalize_iso_date, days_since_iso_date
 
 def register_routes(app):
     @app.route('/api/vehicle/<int:vid>/last_km', endpoint='api_vehicle_last_km')
@@ -23,8 +23,8 @@ def register_routes(app):
 
         trip_km = trip_row['km'] if trip_row and trip_row['km'] else None
         fuel_km = fuel_row['km'] if fuel_row and fuel_row['km'] else None
-        trip_dt = trip_row['dt'] if trip_row and trip_row['dt'] else None
-        fuel_dt = fuel_row['dt'] if fuel_row and fuel_row['dt'] else None
+        trip_dt = normalize_iso_date(trip_row['dt']) if trip_row and trip_row['dt'] else None
+        fuel_dt = normalize_iso_date(fuel_row['dt']) if fuel_row and fuel_row['dt'] else None
 
         km = None
         dt = None
@@ -38,12 +38,7 @@ def register_routes(app):
         elif fuel_km is not None:
             km, dt = fuel_km, fuel_dt
 
-        days_ago = None
-        if dt:
-            try:
-                days_ago = (date.today() - date.fromisoformat(dt)).days
-            except ValueError:
-                pass
+        days_ago = days_since_iso_date(dt)
 
         return jsonify({'km': km, 'date': dt, 'days_ago': days_ago})
 

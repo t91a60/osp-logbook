@@ -48,3 +48,24 @@ def paginate(conn, cur, count_sql, count_params, data_sql, data_params, page, pa
     )
     entries = cur.fetchall()
     return entries, total, total_pages, page
+
+
+def normalize_iso_date(value):
+    """Normalize DB date-like values to ISO string (YYYY-MM-DD)."""
+    if value is None:
+        return None
+    if isinstance(value, date):
+        return value.isoformat()
+    text = str(value).strip()
+    return text or None
+
+
+def days_since_iso_date(value):
+    """Return day difference from today for ISO date-like values."""
+    normalized = normalize_iso_date(value)
+    if not normalized:
+        return None
+    try:
+        return (date.today() - date.fromisoformat(normalized)).days
+    except ValueError:
+        return None
