@@ -667,7 +667,9 @@ function setupAutoSave(formId) {
     if (saved) {
       Object.entries(saved).forEach(([name, value]) => {
         const field = form.elements[name];
-        if (field) field.value = value;
+        if (!field) return;
+        if (field.type === 'date' || field.type === 'hidden' || String(name).startsWith('_')) return;
+        field.value = value;
       });
     }
   } catch (e) {}
@@ -677,6 +679,9 @@ function setupAutoSave(formId) {
     const data = new FormData(form);
     const obj = {};
     for (let [key, value] of data) {
+      const field = form.elements[key];
+      if (!field) continue;
+      if (field.type === 'date' || field.type === 'hidden' || String(key).startsWith('_')) continue;
       obj[key] = value;
     }
     localStorage.setItem(storageKey, JSON.stringify(obj));

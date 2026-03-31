@@ -750,13 +750,20 @@ function setupAutoSave(formId) {
     if (saved) {
       Object.entries(saved).forEach(function([name, value]) {
         const field = form.elements[name];
-        if (field && field.type !== 'date') field.value = value;
+        if (!field) return;
+        if (field.type === 'date' || field.type === 'hidden' || String(name).startsWith('_')) return;
+        field.value = value;
       });
     }
   } catch(e) {}
   form.addEventListener('change', function() {
     const obj = {};
-    for (const [k, v] of new FormData(form)) obj[k] = v;
+    for (const [k, v] of new FormData(form)) {
+      const field = form.elements[k];
+      if (!field) continue;
+      if (field.type === 'date' || field.type === 'hidden' || String(k).startsWith('_')) continue;
+      obj[k] = v;
+    }
     try { localStorage.setItem(key, JSON.stringify(obj)); } catch(e) {}
   });
 }
