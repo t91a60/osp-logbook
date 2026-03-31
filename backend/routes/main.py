@@ -83,12 +83,12 @@ def register_routes(app):
             ORDER BY f.date DESC, f.created_at DESC LIMIT 4
         ''')
         recent_fuel = cur.fetchall()
-        cur.execute('SELECT COUNT(*) FROM trips')
-        trips_count = cur.fetchone()[0]
-        cur.execute('SELECT COUNT(*) FROM fuel')
-        fuel_count = cur.fetchone()[0]
-        cur.execute('SELECT COUNT(*) FROM maintenance')
-        maint_count = cur.fetchone()[0]
+        cur.execute('SELECT COUNT(*) AS count FROM trips')
+        trips_count = cur.fetchone()['count']
+        cur.execute('SELECT COUNT(*) AS count FROM fuel')
+        fuel_count = cur.fetchone()['count']
+        cur.execute('SELECT COUNT(*) AS count FROM maintenance')
+        maint_count = cur.fetchone()['count']
         cur.close()
 
         stats = dict(

@@ -38,7 +38,8 @@ def build_date_where(okres, od, do_, alias='t'):
 
 def paginate(conn, cur, count_sql, count_params, data_sql, data_params, page, page_size=50):
     cur.execute(count_sql, count_params)
-    total = cur.fetchone()[0]
+    row = cur.fetchone()
+    total = row[0] if isinstance(row, tuple) else row['count'] if row else 0
     total_pages = max(1, (total + page_size - 1) // page_size)
     page = max(1, min(page, total_pages))
     offset = (page - 1) * page_size

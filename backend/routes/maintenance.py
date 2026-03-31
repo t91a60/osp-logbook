@@ -86,7 +86,7 @@ def register_routes(app):
             {where_sql}
             ORDER BY m.date DESC, m.created_at DESC
         '''
-        count_sql = f'SELECT COUNT(*) FROM maintenance m JOIN vehicles v ON m.vehicle_id = v.id {where_sql}'
+        count_sql = f'SELECT COUNT(*) AS count FROM maintenance m JOIN vehicles v ON m.vehicle_id = v.id {where_sql}'
 
         entries, total, total_pages, page = paginate(
             conn, cur, count_sql, params_list, base_sql, params_list, page
