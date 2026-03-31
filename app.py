@@ -1,5 +1,6 @@
-from flask import Flask, session, request, abort
+from flask import Flask, session, request, abort, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.exceptions import HTTPException
 import secrets
 
 from backend.config import get_config
@@ -64,6 +65,20 @@ def create_app(config_class=None):
     admin.register_routes(app)
     report.register_routes(app)
     api.register_routes(app)
+
+    @app.errorhandler(Exception)
+    def handle_unexpected_error(error):
+        if isinstance(error, HTTPException):
+            return error
+
+        app.logger.exception('Nieobsłużony wyjątek aplikacji: %s', error)
+
+        if request.path.startswith('/api/'):
+            return {'ok': False, 'error': 'Wystąpił błąd serwera. Spróbuj ponownie.'}, 500
+
+        return render_template('error.html',
+                               title='Wystąpił problem',
+                               message='Wystąpił nieoczekiwany błąd. Spróbuj ponownie za chwilę.'), 500
 
     return app
 

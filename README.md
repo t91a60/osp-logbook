@@ -1,117 +1,116 @@
-# 🚒 OSP Logbook
+# OSP Logbook
 
-![Wersja](https://img.shields.io/badge/Wersja-2.0-ff6b3d)
-![Stos technologiczny](https://img.shields.io/badge/Tech-Python%20%7C%20Flask%20%7C%20SQLite-blue)
+![Wersja](https://img.shields.io/badge/Wersja-2.1-ff6b3d)
+![Tech](https://img.shields.io/badge/Tech-Python%20%7C%20Flask%20%7C%20PostgreSQL-blue)
 ![Licencja](https://img.shields.io/badge/Licencja-MIT-success)
 
-**OSP Logbook** to szybki, nowoczesny i niezależny dziennik pojazdów stworzony z myślą o jednostkach Ochotniczej Straży Pożarnej (OSP). Aplikacja została zaprojektowana w podejściu *Mobile-First*, co pozwala na błyskawiczne wypełnianie ewidencji na telefonach komórkowych, bezpośrednio po powrocie z ciężkiej akcji.
+OSP Logbook to dziennik pojazdow dla OSP: wyjazdy, tankowania, serwis i raporty miesieczne.
+Projekt jest lekki, mobilny i gotowy do uruchomienia lokalnie albo w chmurze (Render).
 
-Całość działa w 100% lokalnie. **Nie wymaga dostępu do Internetu**, nie pobiera zewnętrznych bibliotek (zero CDN), nie używa zewnętrznych fontów. Dzięki temu idealnie sprawdza się w zamkniętych, remizowych sieciach LAN (np. na starych routerach bez wyjścia na świat).
+## Najwazniejsze funkcje
 
----
+- Ewidencja wyjazdow (pojazd, kierowca, cel, licznik)
+- Ewidencja paliwa (ilosc, koszt, historia)
+- Ksiazka serwisowa (terminy, wykonanie, historia)
+- Raport miesieczny (sumy i zestawienia)
+- Panel administracyjny i zarzadzanie uzytkownikami
 
-## ✨ Kluczowe funkcje
+## Wymagania
 
-- **Ewidencja Wyjazdów**: Błyskawiczny zapis celu (akcja, ćwiczenia, gospodarcze), kierowcy i stanu licznika. Inteligentne podpowiedzi ostatniego przebiegu pojazdu.
-- **Ewidencja Paliwowa**: Śledzenie ilości tankowanego paliwa oraz kosztów przypisanych do konkretnych wozów bojowych.
-- **Książka Serwisowa**: Rejestrowanie przeglądów, napraw i awarii ułatwiające terminową konserwację sprzętu.
-- **Raporty Miesięczne**: Generowanie czytelnych, zbiorczych podsumowań ze wszystkich pojazdów z opcją łatwego wydruku (A4/@media print) w celu rozliczeń z gminą.
-- **Dark Mode**: Jednorodny, ciemny motyw o wysokim kontraście, specjalnie dostosowany do warunków nocnych – nie oślepia kierowców i ratowników 🖤.
-- **Błyskawiczny UX**: W pełni autorskie, responsywne powiadomienia Toast, natywny HTML `<datalist>` uczący się wpisywanych kierowców (z ostatnich 90 dni) i gigantyczne, wygodne dla palców (nawet w rękawicach!) przyciski.
+- Python 3.11+
+- pip
+- Baza danych: SQLite lokalnie (domyslnie)
+- Baza danych: PostgreSQL na produkcji (np. Render)
 
----
+## Szybki start lokalnie
 
-## 🚀 Szybki Start
+### Windows (PowerShell)
 
-Do uruchomienia aplikacji potrzebujesz **Python 3.8+**.
-
-```bash
-# 1. Sklonuj repozytorium
-git clone https://github.com/TWOJ_NICK/osp-logbook.git
-cd osp-logbook
-
-# 2. Zainstaluj zależności
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-
-# 3. Uruchom serwer testowo (nasłuchuje na 0.0.0.0:5000)
 python app.py
 ```
 
-Po uruchomieniu, otwórz w przeglądarce: `http://localhost:5000` LUB `http://TWOJ_ADRES_IP:5000`
-
-🔐 **Konto domyślne**: `admin`  
-🔑 **Hasło**: `admin123`  
-*(Koniecznie zmień hasło po pierwszym zalogowaniu w zakładce Użytkownicy!)*
-
----
-
-## 🔒 Bezpieczeństwo i Produkcja (LAN)
-
-Zalecane jest uruchomienie z flagą wymuszającą obsługę ruchu szyfrowanego **HTTPS**. Bez tego niektóre nowoczesne telefony komórkowe mogą blokować bezpieczne funkcje przeglądarki (np. zapamiętywanie haseł).
+### Linux/macOS
 
 ```bash
-OSP_USE_HTTPS=1 python app.py
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python app.py
 ```
 
-*Aplikacja (korzystając z biblioteki Werkzeug) spróbuje wygenerować certyfikaty ad-hoc. Możesz także podpiąć swoje własne podpisane certyfikaty lokalne:*
+Aplikacja domyslnie startuje na `http://localhost:5000`.
+
+## Uruchomienie produkcyjne
+
+Do produkcji uzywaj Gunicorn:
 
 ```bash
-OSP_USE_HTTPS=1 OSP_SSL_CERT=cert.pem OSP_SSL_KEY=key.pem python app.py
+gunicorn app:app
 ```
 
-Zmiana domyślnego portu 5000:
-```bash
-PORT=8080 python app.py
+Render uruchamia aplikacje komenda `gunicorn app:app` i ustawia port automatycznie przez `PORT`.
+
+## Zmienne srodowiskowe
+
+- `PORT` - port HTTP (domyslnie 5000 lokalnie)
+- `FLASK_ENV` - tryb srodowiska
+- `DATABASE_URL` - URL do PostgreSQL (produkcyjnie)
+- `SECRET_KEY` - klucz sesji (wymagany na produkcji)
+- `OSP_USE_HTTPS=1` - lokalny tryb HTTPS
+- `OSP_SSL_CERT`, `OSP_SSL_KEY` - certyfikat i klucz przy lokalnym HTTPS
+
+## Healthcheck
+
+Endpoint zdrowia aplikacji:
+
+- `GET /health` -> `200 OK` gdy aplikacja i DB dzialaja
+
+## Diagnostyka bledow 500
+
+Jesli pojawia sie `Internal Server Error`:
+
+1. Sprawdz logi deployu (Render -> Logs).
+2. Zweryfikuj `DATABASE_URL` i dostep do bazy.
+3. Sprawdz, czy migracje/struktura tabel sa aktualne.
+4. Przetestuj endpoint `GET /health`.
+5. Dla tras API sprawdz odpowiedz JSON z komunikatem bledu.
+
+Aplikacja ma globalny handler wyjatkow:
+
+- API zwraca bezpieczny JSON bledu.
+- Widoki HTML zwracaja strone bledu zamiast surowego stack trace.
+
+## Znane uwagi wdrozeniowe
+
+- PostgreSQL jest bardziej rygorystyczny niz SQLite (typy dat, GROUP BY/HAVING).
+- Przy zmianach SQL zawsze testuj scenariusze raportu i serwisu na tej samej bazie, ktora jest na produkcji.
+
+## Struktura projektu
+
+```text
+app.py
+backend/
+	config.py
+	db.py
+	helpers.py
+	routes/
+static/
+*.html
+requirements.txt
 ```
 
----
+## Rozwoj i kontrybucje
 
-## 🐧 Uruchamianie przy starcie (Linux / Raspberry Pi)
+Pull requesty mile widziane. Przy wiekszych zmianach dodaj:
 
-Plik konfiguracyjny dla demona `systemd`, dzięki któremu dziennik będzie uruchamiał się samoczynnie wraz ze startem serwera/komputera w remizie.
+- opis problemu,
+- kroki testowe,
+- informacje o kompatybilnosci SQLite/PostgreSQL.
 
-Utwórz plik `/etc/systemd/system/osp-logbook.service`:
+## Licencja
 
-```ini
-[Unit]
-Description=OSP Logbook (Dziennik Pojazdow)
-After=network.target
-
-[Service]
-User=pi
-WorkingDirectory=/opt/osp_logbook
-ExecStart=/usr/bin/python3 /opt/osp_logbook/app.py
-Environment="OSP_USE_HTTPS=1"
-Environment="PORT=443"
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Następnie aktywuj:
-```bash
-sudo systemctl enable osp-logbook
-sudo systemctl start osp-logbook
-```
-
----
-
-## 🛠 Stos Technologiczny (Tech Stack)
-
-*   **Backend:** Python 3 + Flask + Werkzeug
-*   **Baza danych:** SQLite3 (Wszystkie dane znajdują się w jednym pliku `logbook.db` - jego przekopiowanie to najprostszy backup na świecie!)
-*   **Frontend:** HTML5 + Vanilla JS + Jinja2 (Zero frameworków typu React, zero Tailwind, zero zewnętrznych czcionek).
-
----
-
-## 🤝 Kontrybucje
-
-Pull Requesty są mile widziane! Aplikacja służy dobru publicznemu i ułatwia służbę – jeśli potrafisz dodać nowe funkcjonalności (np. moduł magazynu sprzętu, wyliczanie zużycia normatywnego), śmiało twórz *forka* i dziel się kodem.
-
----
-
-## 📜 Licencja
-
-Projekt dystrybuowany na licencji **[MIT](https://choosealicense.com/licenses/mit/)**.  
-Możesz swobodnie kopiować, modyfikować i używać tego kodu – zarówno prywatnie jak i publicznie, z zachowaniem informacji o oryginalnym autorze. Mamy nadzieję, że oprogramowanie ułatwi codzienną służbę Twojej jednostce!
+Projekt jest na licencji MIT.

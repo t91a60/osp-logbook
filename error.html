@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ title or 'Błąd' }} – OSP Logbook{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="section-header">
+    <span class="section-title">{{ title or 'Błąd' }}</span>
+  </div>
+
+  <div class="empty-state" style="margin:24px 0;">
+    <div class="empty-state-icon">⚠️</div>
+    <p>{{ message or 'Wystąpił nieoczekiwany błąd.' }}</p>
+  </div>
+</div>
+{% endblock %}
