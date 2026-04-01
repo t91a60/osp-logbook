@@ -1,7 +1,9 @@
 import os
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'osp-logbook-secret-zmien-to')
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if not SECRET_KEY:
+        raise ValueError("Brak zmiennej SECRET_KEY w środowisku - serwer nie uruchomi się celowo!")
     DATABASE_URL = os.environ.get('DATABASE_URL')
     
     USE_HTTPS = os.environ.get('OSP_USE_HTTPS', '0') == '1'

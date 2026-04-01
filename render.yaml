@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: osp-logbook
+    env: docker
+    region: frankfurt
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: osp-logbook-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+    preDeployCommand: yoyo apply -b --database $DATABASE_URL ./migrations
+
+databases:
+  - name: osp-logbook-db
+    databaseName: osp_logbook
+    user: logbook_user
+    plan: free

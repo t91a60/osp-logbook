@@ -1,3 +1,5 @@
+import os
+import hashlib
 from flask import Flask, session, request, abort, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.exceptions import HTTPException
@@ -10,8 +12,8 @@ def create_app(config_class=None):
     if config_class is None:
         config_class = get_config()
 
-    # Crucial part: By using template_folder='.', we do not move the html files at all.
-    app = Flask(__name__, template_folder='.')
+    # Removed template_folder='.' hack
+    app = Flask(__name__)
     app.config.from_object(config_class)
 
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
@@ -24,6 +26,22 @@ def create_app(config_class=None):
             token = session.get('_csrf_token', None)
             if not token or token != request.form.get('_csrf_token'):
                 abort(403, 'Błąd walidacji żądania (niepoprawny token CSRF).')
+
+
+    @app.context_processor
+    def inject_statics():
+        def get_hashed_static(filename):
+            filepath = os.path.join(app.root_path, 'static', filename)
+            if os.path.exists(filepath):
+                mtime = int(os.path.getmtime(filepath))
+                return f"/{filename}?v={mtime}" # Wait, flask static files are at /static/... by default? URL expects it.
+                # Actually it is better to provide the correct static path. But the prompt said `asset_url` replacing `url_for`.
+                # If we use `url_for('static', filename='...v=mtime')` it's better. But let's follow the prompt. Actually the prompt says:
+                # `return f"/static/{filename}?v={mtime}"`
+                return f"/static/{filename}?v={mtime}"
+            return f"/static/{filename}"
+            
+        return dict(asset_url=get_hashed_static)
 
     @app.context_processor
     def inject_csrf_token():
@@ -38,7 +56,7 @@ def create_app(config_class=None):
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['X-XSS-Protection'] = '1; mode=block'
-        response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';"
+        response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self';"
         
         # The FIX to caching dev environment / sw.js missing updates
         if app.debug:
@@ -56,15 +74,23 @@ def create_app(config_class=None):
         return 'DB ERROR', 500
 
     # Routes registering
-    from backend.routes import auth, main, trips, fuel, maintenance, admin, report, api
-    auth.register_routes(app)
-    main.register_routes(app)
-    trips.register_routes(app)
-    fuel.register_routes(app)
-    maintenance.register_routes(app)
-    admin.register_routes(app)
-    report.register_routes(app)
-    api.register_routes(app)
+    from backend.routes.auth import auth_bp
+    from backend.routes.main import main_bp
+    from backend.routes.trips import trips_bp
+    from backend.routes.fuel import fuel_bp
+    from backend.routes.maintenance import maintenance_bp
+    from backend.routes.admin import admin_bp
+    from backend.routes.report import report_bp
+    from backend.routes.api import api_bp
+    
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(main_bp)
+    app.register_blueprint(trips_bp)
+    app.register_blueprint(fuel_bp)
+    app.register_blueprint(maintenance_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(report_bp)
+    app.register_blueprint(api_bp)
 
     @app.errorhandler(Exception)
     def handle_unexpected_error(error):

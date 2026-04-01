@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0f0f0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OSP Logbook">
+<link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+<title>{% block title %}OSP Logbook{% endblock %}</title>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js').then(function(registration) {
+        console.log('ServiceWorker registration successful');
+      }, function(err) {
+        console.log('ServiceWorker registration failed: ', err);
+      });
+    });
+  }
+</script>
+<link rel="stylesheet" href="{{ asset_url('main.css') }}">
+</head>
+<body>
+
+<!-- Top Bar -->
+<header class="topbar">
+  <a href="{{ url_for('dashboard') }}" class="topbar-brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 2C8 6 4 9.5 4 14a8 8 0 0016 0c0-4.5-4-8-8-12z" fill="#ff6b3d"/>
+      <path d="M12 8c-2 2.5-3 4.5-3 6a3 3 0 006 0c0-1.5-1-3.5-3-6z" fill="#fff" opacity=".6"/>
+    </svg>
+    OSP Logbook
+  </a>
+  {% if session.user_id %}
+  <div class="topbar-user">
+    <span>{{ session.display_name }}</span>
+    <a href="{{ url_for('logout') }}" class="topbar-logout">Wyloguj</a>
+  </div>
+  {% endif %}
+</header>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+<script id="flashMessages" type="application/json">{{ messages|tojson }}</script>
+{% endwith %}
+
+<!-- Main Content -->
+<main class="container">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- Bottom Navigation -->
+{% if session.user_id %}
+<nav class="bottom-nav" aria-label="Nawigacja">
+  <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" aria-label="Start">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12L12 3l9 9"/><path d="M9 21V12h6v9"/></svg>
+    <span>Start</span>
+  </a>
+  <a href="{{ url_for('trips') }}" class="nav-link {% if request.endpoint == 'trips' %}active{% endif %}" aria-label="Wyjazdy">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    <span>Wyjazdy</span>
+  </a>
+  <a href="{{ url_for('fuel') }}" class="nav-link {% if request.endpoint == 'fuel' %}active{% endif %}" aria-label="Paliwo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 22V8a2 2 0 012-2h6a2 2 0 012 2v14"/><path d="M3 22h10"/><path d="M13 8h2l2 2v5a2 2 0 002 2h0a2 2 0 002-2V9l-3-3h-3"/><path d="M7 14v-4"/></svg>
+    <span>Paliwo</span>
+  </a>
+  <a href="{{ url_for('maintenance') }}" class="nav-link {% if request.endpoint == 'maintenance' %}active{% endif %}" aria-label="Serwis">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 010 1.4L9.4 13 5 14l1-4.4 5.3-5.3a1 1 0 011.4 0z"/><path d="M21 15a6 6 0 11-6-6"/><path d="M3 21l4-4"/></svg>
+    <span>Serwis</span>
+  </a>
+  <a href="{{ url_for('vehicles') }}" class="nav-link {% if request.endpoint in ('vehicles','users','report') %}active{% endif %}" aria-label="Więcej">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <span>Więcej</span>
+  </a>
+</nav>
+{% endif %}
+
+<script src="{{ asset_url('app.js') }}" defer></script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>
