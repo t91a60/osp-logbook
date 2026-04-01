@@ -23,7 +23,7 @@ def fuel():
         except ValueError:
             flash('Błąd: Nieprawidłowy format danych liczbowych.', 'error')
             cur.close()
-            return redirect(url_for('fuel'))
+            return redirect(url_for('fuel.fuel'))
 
         cur.execute('''
             INSERT INTO fuel (vehicle_id, date, driver, odometer, liters, cost, notes, added_by)
@@ -36,7 +36,7 @@ def fuel():
         conn.commit()
         flash('Tankowanie zapisane.', 'success')
         cur.close()
-        return redirect(url_for('fuel',
+        return redirect(url_for('fuel.fuel',
                                 vehicle_id=f.get('vehicle_id', ''),
                                 okres=request.args.get('okres', ''),
                                 od=request.args.get('od', ''),

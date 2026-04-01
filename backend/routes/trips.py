@@ -27,7 +27,7 @@ def trips():
         except ValueError:
             flash('Błąd: Liczba kilometrów musi być liczbą całkowitą.', 'error')
             cur.close()
-            return redirect(url_for('trips'))
+            return redirect(url_for('trips.trips'))
 
         cur.execute('''
             INSERT INTO trips (vehicle_id, date, driver, odo_start, odo_end, purpose, notes, added_by)
@@ -41,7 +41,7 @@ def trips():
         conn.commit()
         flash('Wyjazd zapisany.', 'success')
         cur.close()
-        return redirect(url_for('trips',
+        return redirect(url_for('trips.trips',
                                 vehicle_id=f.get('vehicle_id', ''),
                                 okres=request.args.get('okres', ''),
                                 od=request.args.get('od', ''),

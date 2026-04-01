@@ -108,14 +108,14 @@
   <div style="margin-bottom:4px;">
     {% set base_args = {'vehicle_id': selected_vehicle} %}
     <div class="filter-chips">
-      <a href="{{ url_for('trips', vehicle_id=selected_vehicle, okres='ten') }}"
+      <a href="{{ url_for('trips.trips', vehicle_id=selected_vehicle, okres='ten') }}"
          class="chip {% if okres == 'ten' %}active{% endif %}" id="chip-ten">Ten miesiąc</a>
-      <a href="{{ url_for('trips', vehicle_id=selected_vehicle, okres='poprzedni') }}"
+      <a href="{{ url_for('trips.trips', vehicle_id=selected_vehicle, okres='poprzedni') }}"
          class="chip {% if okres == 'poprzedni' %}active{% endif %}" id="chip-poprzedni">Poprzedni miesiąc</a>
-      <a href="{{ url_for('trips', vehicle_id=selected_vehicle) }}"
+      <a href="{{ url_for('trips.trips', vehicle_id=selected_vehicle) }}"
          class="chip {% if not okres and not od and not do_ %}active{% endif %}" id="chip-all">Wszystkie</a>
     </div>
-    <form method="GET" action="{{ url_for('trips') }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;" id="dateFilterForm">
+    <form method="GET" action="{{ url_for('trips.trips') }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;" id="dateFilterForm">
       <input type="hidden" name="vehicle_id" value="{{ selected_vehicle }}">
       <div style="flex:1; min-width:130px;">
         <label class="form-label" for="od_date">Od</label>
@@ -131,7 +131,7 @@
 
   <!-- Vehicle filter -->
   <div style="margin-bottom:12px;">
-    <form method="GET" action="{{ url_for('trips') }}" style="display:flex;gap:8px;align-items:center;" id="vehicleFilterForm">
+    <form method="GET" action="{{ url_for('trips.trips') }}" style="display:flex;gap:8px;align-items:center;" id="vehicleFilterForm">
       <input type="hidden" name="okres" value="{{ okres }}">
       <input type="hidden" name="od" value="{{ od }}">
       <input type="hidden" name="do" value="{{ do_ }}">
@@ -164,7 +164,7 @@
       {% if t.odo_start and t.odo_end %}
       <span class="badge">{{ t.odo_end - t.odo_start }} km</span>
       {% endif %}
-      <form method="POST" action="{{ url_for('delete_entry', kind='wyjazd', eid=t.id) }}"
+      <form method="POST" action="{{ url_for('admin.delete_entry', kind='wyjazd', eid=t.id) }}"
             style="display:inline; margin-left:auto;"
             onsubmit="return confirm('Usunąć ten wpis?')" class="no-print">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
@@ -181,13 +181,13 @@
   {% if total_pages > 1 %}
   <div class="pagination no-print">
     {% if page > 1 %}
-    <a href="{{ url_for('trips', vehicle_id=selected_vehicle, okres=okres, od=od, do=do_, page=page-1) }}" id="prev-page">← Wcześniejsze</a>
+    <a href="{{ url_for('trips.trips', vehicle_id=selected_vehicle, okres=okres, od=od, do=do_, page=page-1) }}" id="prev-page">← Wcześniejsze</a>
     {% else %}
     <span>← Wcześniejsze</span>
     {% endif %}
     <span>{{ page }} / {{ total_pages }}</span>
     {% if page < total_pages %}
-    <a href="{{ url_for('trips', vehicle_id=selected_vehicle, okres=okres, od=od, do=do_, page=page+1) }}" id="next-page">Następne →</a>
+    <a href="{{ url_for('trips.trips', vehicle_id=selected_vehicle, okres=okres, od=od, do=do_, page=page+1) }}" id="next-page">Następne →</a>
     {% else %}
     <span>Następne →</span>
     {% endif %}
@@ -235,7 +235,7 @@ function submitTrip() {
     const pc = document.getElementById('purposeCustom');
     if (!pc || !pc.value.trim()) { showToast('Opisz cel wyjazdu.', 'error'); return false; }
   }
-  return submitForm('tripForm', '{{ url_for("api_add_trip") }}', function() {
+  return submitForm('tripForm', '{{ url_for("api.api_add_trip") }}', function() {
     document.getElementById('vehicle_id').focus();
   });
 }

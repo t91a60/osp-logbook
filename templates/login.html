@@ -199,7 +199,7 @@ body {
     <div class="brand-subtitle">Dziennik Pojazdów</div>
   </div>
 
-  <form method="POST" action="{{ url_for('login') }}" class="login-form">
+  <form method="POST" action="{{ url_for('auth.login') }}" class="login-form">
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}

@@ -11,18 +11,18 @@
 
   <!-- Tab Navigation -->
   <div class="tab-nav no-print">
-    <a href="{{ url_for('vehicles') }}"
-       class="tab-link {% if request.endpoint == 'vehicles' %}active{% endif %}">
+    <a href="{{ url_for('admin.vehicles') }}"
+       class="tab-link {% if request.endpoint == 'admin.vehicles' %}active{% endif %}">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
       Pojazdy
     </a>
-    <a href="{{ url_for('users') }}"
-       class="tab-link {% if request.endpoint == 'users' %}active{% endif %}">
+    <a href="{{ url_for('admin.users') }}"
+       class="tab-link {% if request.endpoint == 'admin.users' %}active{% endif %}">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Użytkownicy
     </a>
-    <a href="{{ url_for('report') }}"
-       class="tab-link {% if request.endpoint == 'report' %}active{% endif %}">
+    <a href="{{ url_for('report.report') }}"
+       class="tab-link {% if request.endpoint == 'report.report' %}active{% endif %}">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       Raport
     </a>
@@ -31,7 +31,7 @@
   <!-- Controls (no-print) -->
   <div class="form-section no-print">
     <div class="form-section-title">Raport miesięczny</div>
-    <form method="GET" action="{{ url_for('report') }}" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+    <form method="GET" action="{{ url_for('report.report') }}" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
       <div class="form-field" style="flex:1; min-width:160px;">
         <label class="form-label" for="report_month">Miesiąc</label>
         <input type="month" name="month" id="report_month" class="form-input"

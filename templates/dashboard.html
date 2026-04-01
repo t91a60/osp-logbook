@@ -30,7 +30,7 @@
   <div class="section-title">Pojazdy</div>
   {% for vc in vehicle_cards %}
   <div class="vehicle-card" style="cursor:default;">
-    <a href="{{ url_for('trips', vehicle_id=vc.id) }}" style="text-decoration:none; color:inherit; display:block; margin-bottom: 2px;">
+    <a href="{{ url_for('trips.trips', vehicle_id=vc.id) }}" style="text-decoration:none; color:inherit; display:block; margin-bottom: 2px;">
       <div class="vehicle-card-name">
         {% if vc.type %}<span style="color:var(--text-dim);font-weight:400;font-size:.85rem;">{{ vc.type }} </span>{% endif %}{{ vc.name }}
       </div>
@@ -56,11 +56,11 @@
       </div>
     </a>
     <div class="vehicle-card-actions">
-      <a href="{{ url_for('trips', vehicle_id=vc.id, add=1) }}" class="vehicle-card-btn primary" id="btn-trip-{{ vc.id }}">
+      <a href="{{ url_for('trips.trips', vehicle_id=vc.id, add=1) }}" class="vehicle-card-btn primary" id="btn-trip-{{ vc.id }}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Wyjazd
       </a>
-      <a href="{{ url_for('fuel', vehicle_id=vc.id, add=1) }}" class="vehicle-card-btn" id="btn-fuel-{{ vc.id }}">
+      <a href="{{ url_for('fuel.fuel', vehicle_id=vc.id, add=1) }}" class="vehicle-card-btn" id="btn-fuel-{{ vc.id }}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Paliwo
       </a>
@@ -114,7 +114,7 @@
     <div class="empty-state-icon">📋</div>
     <p>Brak wpisów. Zacznij od dodania pojazdu.</p>
     <div style="margin-top:16px;">
-      <a href="{{ url_for('vehicles') }}" class="btn btn-primary">Dodaj pojazd</a>
+      <a href="{{ url_for('admin.vehicles') }}" class="btn btn-primary">Dodaj pojazd</a>
     </div>
   </div>
   {% endif %}

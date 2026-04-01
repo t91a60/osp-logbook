@@ -581,11 +581,11 @@ body {
 
 <!-- Top Bar -->
 <header class="topbar">
-  <a href="{{ url_for('dashboard') }}" class="topbar-brand">OSP Logbook</a>
+  <a href="{{ url_for('main.dashboard') }}" class="topbar-brand">OSP Logbook</a>
   {% if session.user_id %}
   <div class="topbar-user">
     <span>{{ session.display_name }}</span>
-    <a href="{{ url_for('logout') }}" class="topbar-logout">Wyloguj</a>
+    <a href="{{ url_for('auth.logout') }}" class="topbar-logout">Wyloguj</a>
   </div>
   {% endif %}
 </header>
@@ -601,23 +601,23 @@ body {
 <!-- Bottom Navigation -->
 {% if session.user_id %}
 <nav class="bottom-nav">
-  <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+  <a href="{{ url_for('main.dashboard') }}" class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
     <span class="nav-icon">⌂</span>
     <span>Start</span>
   </a>
-  <a href="{{ url_for('trips') }}" class="nav-link {% if request.endpoint == 'trips' %}active{% endif %}">
+  <a href="{{ url_for('trips.trips') }}" class="nav-link {% if request.endpoint == 'trips.trips' %}active{% endif %}">
     <span class="nav-icon">🚒</span>
     <span>Wyjazdy</span>
   </a>
-  <a href="{{ url_for('fuel') }}" class="nav-link {% if request.endpoint == 'fuel' %}active{% endif %}">
+  <a href="{{ url_for('fuel.fuel') }}" class="nav-link {% if request.endpoint == 'fuel.fuel' %}active{% endif %}">
     <span class="nav-icon">⛽</span>
     <span>Paliwo</span>
   </a>
-  <a href="{{ url_for('maintenance') }}" class="nav-link {% if request.endpoint == 'maintenance' %}active{% endif %}">
+  <a href="{{ url_for('maintenance.maintenance') }}" class="nav-link {% if request.endpoint == 'maintenance.maintenance' %}active{% endif %}">
     <span class="nav-icon">🔧</span>
     <span>Serwis</span>
   </a>
-  <a href="{{ url_for('vehicles') }}" class="nav-link {% if request.endpoint in ('vehicles', 'users') %}active{% endif %}">
+  <a href="{{ url_for('admin.vehicles') }}" class="nav-link {% if request.endpoint in ('vehicles', 'users') %}active{% endif %}">
     <span class="nav-icon">☰</span>
     <span>Więcej</span>
   </a>

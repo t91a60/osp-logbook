@@ -7,7 +7,7 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.route('/login', methods=['GET', 'POST'], endpoint='login')
 def login():
     if 'user_id' in session:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('main.dashboard'))
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
@@ -22,7 +22,7 @@ def login():
             session['username'] = user['username']
             session['display_name'] = user['display_name']
             cur.close()
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('main.dashboard'))
         cur.close()
         flash('Nieprawidłowy login lub hasło.', 'error')
     return render_template('login.html')
@@ -30,4 +30,4 @@ def login():
 @auth_bp.route('/logout', endpoint='logout')
 def logout():
     session.clear()
-    return redirect(url_for('login'))
+    return redirect(url_for('auth.login'))

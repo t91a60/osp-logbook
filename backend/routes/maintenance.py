@@ -40,7 +40,7 @@ def maintenance():
         conn.commit()
         flash('Wpis serwisowy zapisany.', 'success')
         cur.close()
-        return redirect(url_for('maintenance',
+        return redirect(url_for('maintenance.maintenance',
                                 vehicle_id=request.args.get('vehicle_id', 'all'),
                                 status=request.args.get('status', 'all'),
                                 okres=request.args.get('okres', ''),
@@ -112,7 +112,7 @@ def complete_maintenance_view(eid):
     conn.commit()
     cur.close()
     flash('Oznaczono jako wykonane.', 'success')
-    return redirect(url_for('maintenance'))
+    return redirect(url_for('maintenance.maintenance'))
 
 
 @maintenance_bp.route('/serwis/<int:eid>/next', methods=['POST'], endpoint='create_next_maintenance')
@@ -130,7 +130,7 @@ def create_next_maintenance_view(eid):
     if not row:
         cur.close()
         flash('Nie znaleziono wpisu serwisowego.', 'error')
-        return redirect(url_for('maintenance'))
+        return redirect(url_for('maintenance.maintenance'))
 
     due_date = normalize_iso_date(row['due_date'])
     if due_date:
@@ -159,4 +159,4 @@ def create_next_maintenance_view(eid):
     conn.commit()
     cur.close()
     flash('Dodano kolejny wpis serwisowy.', 'success')
-    return redirect(url_for('maintenance'))
+    return redirect(url_for('maintenance.maintenance'))

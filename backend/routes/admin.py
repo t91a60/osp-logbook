@@ -20,7 +20,7 @@ def vehicles():
         conn.commit()
         flash('Pojazd dodany.', 'success')
         cur.close()
-        return redirect(url_for('vehicles'))
+        return redirect(url_for('admin.vehicles'))
 
     cur.execute('SELECT * FROM vehicles ORDER BY active DESC, name')
     vlist = cur.fetchall()
@@ -39,7 +39,7 @@ def toggle_vehicle_view(vid):
                      (0 if v['active'] else 1, vid))
         conn.commit()
     cur.close()
-    return redirect(url_for('vehicles'))
+    return redirect(url_for('admin.vehicles'))
 
 @admin_bp.route('/uzytkownicy', methods=['GET', 'POST'], endpoint='users')
 @login_required
@@ -76,7 +76,7 @@ def users():
             else:
                 flash('Hasło musi mieć co najmniej 4 znaki.', 'error')
         cur.close()
-        return redirect(url_for('users'))
+        return redirect(url_for('admin.users'))
 
     cur.execute('SELECT id, username, display_name FROM users ORDER BY display_name')
     all_users = cur.fetchall()
@@ -95,5 +95,5 @@ def delete_entry_view(kind, eid):
         conn.commit()
         cur.close()
         flash('Wpis usunięty.', 'success')
-    referrer = request.referrer or url_for('dashboard')
+    referrer = request.referrer or url_for('main.dashboard')
     return redirect(referrer)
