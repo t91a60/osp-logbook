@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, session, abort
+from flask import Blueprint, render_template, request, flash, redirect, url_for, session
 from werkzeug.security import generate_password_hash
 from psycopg2 import IntegrityError
 from backend.db import get_db, get_cursor
@@ -8,40 +8,12 @@ from backend.services.vehicle_service import VehicleService
 
 admin_bp = Blueprint('admin', __name__)
 
-
-def _is_admin() -> bool:
-    role = str(session.get('role') or '').strip().lower()
-    if role == 'admin':
-        return True
-
-    uid = session.get('user_id')
-    username = str(session.get('username') or '').strip().lower()
-    if not uid:
-        return False
-
-    conn = get_db()
-    with get_cursor(conn) as cur:
-        cur.execute('SELECT role FROM users WHERE id = %s', (uid,))
-        row = cur.fetchone()
-
-    refreshed_role = str((row or {}).get('role') or 'user').strip().lower()
-    if refreshed_role != 'admin' and username == 'admin':
-        with get_cursor(conn) as cur:
-            cur.execute("UPDATE users SET role = 'admin' WHERE id = %s", (uid,))
-        conn.commit()
-        refreshed_role = 'admin'
-
-    session['role'] = refreshed_role or 'user'
-    return session['role'] == 'admin'
-
 @admin_bp.route('/pojazdy', methods=['GET', 'POST'], endpoint='vehicles')
 @login_required
 def vehicles():
     conn = get_db()
     cur = get_cursor(conn)
     if request.method == 'POST':
-        if not _is_admin():
-            abort(403)
         f = request.form
         cur.execute(
             'INSERT INTO vehicles (name, plate, type) VALUES (%s, %s, %s)',
@@ -63,8 +35,6 @@ def vehicles():
 @admin_bp.route('/vehicles/<int:vid>/delete', methods=['POST'], endpoint='delete_vehicle')
 @login_required
 def delete_vehicle_view(vid):
-    if not _is_admin():
-        abort(403)
     VehicleService.delete_vehicle(vid, session.get('user_id'))
     flash('Pojazd usunięty.', 'success')
     return redirect(url_for('admin.vehicles'))
@@ -72,9 +42,6 @@ def delete_vehicle_view(vid):
 @admin_bp.route('/uzytkownicy', methods=['GET', 'POST'], endpoint='users')
 @login_required
 def users():
-    if not _is_admin():
-        abort(403)
-
     conn = get_db()
     cur = get_cursor(conn)
     if request.method == 'POST':
@@ -109,8 +76,6 @@ def users():
             else:
                 flash('Hasło musi mieć co najmniej 4 znaki.', 'error')
         elif action == 'delete':
-            if not _is_admin():
-                abort(403)
             uid = request.form.get('uid')
             if uid:
                 if str(session.get('user_id')) == str(uid):

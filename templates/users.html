@@ -76,7 +76,6 @@
   </div>
 
   <!-- Add User Form -->
-  {% if session.get('role') == 'admin' %}
   <div class="form-section">
     <div class="form-section-title">Dodaj nowego użytkownika</div>
 
@@ -140,7 +139,6 @@
       </button>
     </form>
   </div>
-  {% endif %}
 
   <!-- Users List Section -->
   <div style="margin-top: 32px">
@@ -181,7 +179,6 @@
           </div>
 
           <!-- Admin actions: Change Password & Delete -->
-          {% if session.get('role') == 'admin' %}
           <div style="display: flex; gap: 8px; align-items: flex-start; margin-top: 8px;">
             <details style="outline: none; flex-grow: 1;">
               <summary
@@ -266,7 +263,6 @@
               </button>
             </form>
           </div>
-          {% endif %}
         </div>
       </div>
       {% endfor %}
