@@ -2,7 +2,7 @@ import os
 
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-me'
+    SECRET_KEY = os.environ.get('SECRET_KEY')
     DATABASE_URL = os.environ.get('DATABASE_URL')
 
     USE_HTTPS = os.environ.get('OSP_USE_HTTPS', '0') == '1'
@@ -18,6 +18,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-me'
 
 
 class ProductionConfig(Config):

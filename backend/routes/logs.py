@@ -1,13 +1,14 @@
 from flask import Blueprint, render_template
 
 from backend.db import get_cursor, get_db
-from backend.helpers import login_required
+from backend.helpers import login_required, require_roles
 
 logs_bp = Blueprint("logs", __name__)
 
 
 @logs_bp.route("/logs", endpoint="logs_list")
 @login_required
+@require_roles('admin')
 def logs_list():
     conn = get_db()
     cur = get_cursor(conn)

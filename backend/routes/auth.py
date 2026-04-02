@@ -22,6 +22,8 @@ def login():
             session['username'] = user['username']
             session['display_name'] = user['display_name']
             role = str(user.get('role') or 'user').strip().lower()
+            if role != 'admin' and str(user.get('username') or '').strip().lower() == 'admin':
+                role = 'admin'
             session['role'] = role or 'user'
             cur.close()
             return redirect(url_for('main.dashboard'))

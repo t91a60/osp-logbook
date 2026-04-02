@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from datetime import date
 from backend.db import get_db, get_cursor
 from backend.helpers import login_required, build_date_where, paginate, parse_positive_int
+from backend.services.core_service import TripService
 
 trips_bp = Blueprint('trips', __name__)
 
@@ -29,20 +30,18 @@ def trips():
             cur.close()
             return redirect(url_for('trips.trips'))
 
-        cur.execute('''
-            INSERT INTO trips (vehicle_id, date, driver, odo_start, odo_end, purpose, notes, added_by)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (
-            f['vehicle_id'], f['date'], f['driver'].strip(),
-            odo_start, odo_end,
-            purpose, f.get('notes', '').strip(),
-            session['username']
-        ))
-        conn.commit()
-        from backend.services.audit_service import AuditService
-        AuditService.log('Dodanie', 'Wyjazd', f"Pojazd ID: {f['vehicle_id']}, Cel: {purpose}")
-        flash('Wyjazd zapisany.', 'success')
         cur.close()
+        TripService.add_trip(
+            vehicle_id=f['vehicle_id'],
+            date_val=f['date'],
+            driver=f['driver'].strip(),
+            odo_start=odo_start,
+            odo_end=odo_end,
+            purpose=purpose,
+            notes=f.get('notes', '').strip(),
+            added_by=session['username'],
+        )
+        flash('Wyjazd zapisany.', 'success')
         return redirect(url_for('trips.trips',
                                 vehicle_id=f.get('vehicle_id', ''),
                                 okres=request.args.get('okres', ''),

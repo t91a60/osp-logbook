@@ -4,6 +4,7 @@ services:
     env: docker
     region: frankfurt
     plan: free
+    preDeployCommand: yoyo apply -b --database $DATABASE_URL ./migrations
     healthCheckPath: /health
     envVars:
       - key: FLASK_ENV

@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from werkzeug.security import generate_password_hash
 from psycopg2 import IntegrityError
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required
+from backend.helpers import login_required, require_roles, db_tx
 from backend.services.audit_service import AuditService
 from backend.services.vehicle_service import VehicleService
 
@@ -10,6 +10,7 @@ admin_bp = Blueprint('admin', __name__)
 
 @admin_bp.route('/pojazdy', methods=['GET', 'POST'], endpoint='vehicles')
 @login_required
+@require_roles('admin')
 def vehicles():
     conn = get_db()
     cur = get_cursor(conn)
@@ -34,6 +35,7 @@ def vehicles():
 
 @admin_bp.route('/vehicles/<int:vid>/delete', methods=['POST'], endpoint='delete_vehicle')
 @login_required
+@require_roles('admin')
 def delete_vehicle_view(vid):
     VehicleService.delete_vehicle(vid, session.get('user_id'))
     flash('Pojazd usunięty.', 'success')
@@ -41,6 +43,7 @@ def delete_vehicle_view(vid):
 
 @admin_bp.route('/uzytkownicy', methods=['GET', 'POST'], endpoint='users')
 @login_required
+@require_roles('admin')
 def users():
     conn = get_db()
     cur = get_cursor(conn)
@@ -82,6 +85,15 @@ def users():
                     flash('Nie możesz usunąć samego siebie.', 'error')
                 else:
                     try:
+                        cur.execute('SELECT username FROM users WHERE id = %s', (uid,))
+                        target_user = cur.fetchone()
+                        target_username = str((target_user or {}).get('username') or '').strip().lower()
+
+                        if target_username == 'admin':
+                            flash('Konto admina jest chronione i nie może zostać usunięte.', 'error')
+                            cur.close()
+                            return redirect(url_for('admin.users'))
+
                         cur.execute('DELETE FROM users WHERE id = %s', (uid,))
                         conn.commit()
                         AuditService.log('Usunięcie', 'Użytkownik', f"Usunięto użytkownika UID: {uid}")
@@ -99,16 +111,18 @@ def users():
 
 @admin_bp.route('/usun/<string:kind>/<int:eid>', methods=['POST'], endpoint='delete_entry')
 @login_required
+@require_roles('admin')
 def delete_entry_view(kind, eid):
     tables = {'wyjazd': 'trips', 'tankowanie': 'fuel', 'serwis': 'maintenance'}
     table = tables.get(kind)
-    if table:
-        conn = get_db()
-        cur = get_cursor(conn)
+    if table is None:
+        flash('Nieznany typ wpisu.', 'error')
+        return redirect(request.referrer or url_for('main.dashboard'))
+
+    with db_tx() as (_, cur):
         cur.execute(f'DELETE FROM {table} WHERE id = %s', (eid,))
-        conn.commit()
-        cur.close()
-        AuditService.log('Usunięcie', kind.capitalize(), f"Usunięto z tabeli {table} ID: {eid}")
-        flash('Wpis usunięty.', 'success')
+
+    AuditService.log('Usunięcie', kind.capitalize(), f"Usunięto z tabeli {table} ID: {eid}")
+    flash('Wpis usunięty.', 'success')
     referrer = request.referrer or url_for('main.dashboard')
     return redirect(referrer)

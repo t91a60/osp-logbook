@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from datetime import date
 from backend.db import get_db, get_cursor
 from backend.helpers import login_required, build_date_where, paginate, parse_positive_int
+from backend.services.core_service import TripService
 
 fuel_bp = Blueprint('fuel', __name__)
 
@@ -25,19 +26,18 @@ def fuel():
             cur.close()
             return redirect(url_for('fuel.fuel'))
 
-        cur.execute('''
-            INSERT INTO fuel (vehicle_id, date, driver, odometer, liters, cost, notes, added_by)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (
-            f['vehicle_id'], f['date'], f['driver'].strip(),
-            odometer, liters, cost,
-            f.get('notes', '').strip(), session['username']
-        ))
-        conn.commit()
-        from backend.services.audit_service import AuditService
-        AuditService.log('Dodanie', 'Tankowanie', f"Pojazd ID: {f['vehicle_id']}, Litry: {liters}")
-        flash('Tankowanie zapisane.', 'success')
         cur.close()
+        TripService.add_fuel(
+            vehicle_id=f['vehicle_id'],
+            date_val=f['date'],
+            driver=f['driver'].strip(),
+            odometer=odometer,
+            liters=liters,
+            cost=cost,
+            notes=f.get('notes', '').strip(),
+            added_by=session['username'],
+        )
+        flash('Tankowanie zapisane.', 'success')
         return redirect(url_for('fuel.fuel',
                                 vehicle_id=f.get('vehicle_id', ''),
                                 okres=request.args.get('okres', ''),

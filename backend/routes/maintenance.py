@@ -1,7 +1,9 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session
 from datetime import date, timedelta
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required, build_date_where, paginate, normalize_iso_date, parse_positive_int
+from backend.helpers import login_required, build_date_where, paginate, normalize_iso_date, parse_positive_int, db_tx
+from backend.services.core_service import TripService
+from backend.services.audit_service import AuditService
 
 maintenance_bp = Blueprint('maintenance', __name__)
 
@@ -23,25 +25,20 @@ def maintenance():
         if status not in ('pending', 'completed'):
             status = 'pending'
 
-        cur.execute('''
-            INSERT INTO maintenance (vehicle_id, date, odometer, description, cost, notes, added_by, status, priority, due_date)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (
-            f['vehicle_id'], f['date'],
-            f.get('odometer') or None,
-            f['description'].strip(),
-            f.get('cost') or None,
-            f.get('notes', '').strip(),
-            session['username'],
-            status,
-            priority,
-            f.get('due_date') or None,
-        ))
-        conn.commit()
-        from backend.services.audit_service import AuditService
-        AuditService.log('Dodanie', 'Serwis', f"Pojazd ID: {f['vehicle_id']}, Opis: {f['description'].strip()}")
-        flash('Wpis serwisowy zapisany.', 'success')
         cur.close()
+        TripService.add_maintenance(
+            vehicle_id=f['vehicle_id'],
+            date_val=f['date'],
+            odometer=f.get('odometer') or None,
+            description=f['description'].strip(),
+            cost=f.get('cost') or None,
+            notes=f.get('notes', '').strip(),
+            added_by=session['username'],
+            status=status,
+            priority=priority,
+            due_date=f.get('due_date') or None,
+        )
+        flash('Wpis serwisowy zapisany.', 'success')
         return redirect(url_for('maintenance.maintenance',
                                 vehicle_id=request.args.get('vehicle_id', 'all'),
                                 status=request.args.get('status', 'all'),
@@ -65,11 +62,11 @@ def maintenance():
         params_list.append(selected_vehicle)
 
     if selected_status == 'pending':
-        where_parts.append("(m.status = 'pending' AND (NULLIF(m.due_date, '') IS NULL OR m.due_date >= CURRENT_DATE::text))")
+        where_parts.append("(m.status = 'pending' AND (m.due_date IS NULL OR m.due_date >= CURRENT_DATE))")
     elif selected_status == 'completed':
         where_parts.append("m.status = 'completed'")
     elif selected_status == 'overdue':
-        where_parts.append("(m.status = 'pending' AND NULLIF(m.due_date, '') IS NOT NULL AND m.due_date < CURRENT_DATE::text)")
+        where_parts.append("(m.status = 'pending' AND m.due_date IS NOT NULL AND m.due_date < CURRENT_DATE)")
 
     date_parts, date_params = build_date_where(okres, od, do_, alias='m')
     where_parts += date_parts
@@ -81,7 +78,7 @@ def maintenance():
         SELECT m.*, v.name AS vname,
                CASE
                    WHEN m.status = 'completed' THEN 'completed'
-                   WHEN NULLIF(m.due_date, '') IS NOT NULL AND m.due_date < CURRENT_DATE::text THEN 'overdue'
+                   WHEN m.due_date IS NOT NULL AND m.due_date < CURRENT_DATE THEN 'overdue'
                    ELSE 'pending'
                END AS effective_status
         FROM maintenance m
@@ -108,13 +105,10 @@ def maintenance():
 @maintenance_bp.route('/serwis/<int:eid>/complete', methods=['POST'], endpoint='complete_maintenance')
 @login_required
 def complete_maintenance_view(eid):
-    conn = get_db()
-    cur = get_cursor(conn)
-    cur.execute("UPDATE maintenance SET status = 'completed' WHERE id = %s", (eid,))
-    conn.commit()
-    from backend.services.audit_service import AuditService
+    with db_tx() as (_, cur):
+        cur.execute("UPDATE maintenance SET status = 'completed' WHERE id = %s", (eid,))
+
     AuditService.log('Edycja', 'Serwis', f"Zakończono serwis ID: {eid}")
-    cur.close()
     flash('Oznaczono jako wykonane.', 'success')
     return redirect(url_for('maintenance.maintenance'))
 
@@ -123,46 +117,44 @@ def complete_maintenance_view(eid):
 @login_required
 def create_next_maintenance_view(eid):
     conn = get_db()
-    cur = get_cursor(conn)
-    cur.execute('''
-        SELECT vehicle_id, odometer, description, notes, priority, due_date
-        FROM maintenance
-        WHERE id = %s
-    ''', (eid,))
-    row = cur.fetchone()
+    with get_cursor(conn) as cur:
+        cur.execute('''
+            SELECT vehicle_id, odometer, description, notes, priority, due_date
+            FROM maintenance
+            WHERE id = %s
+        ''', (eid,))
+        row = cur.fetchone()
 
     if not row:
-        cur.close()
         flash('Nie znaleziono wpisu serwisowego.', 'error')
         return redirect(url_for('maintenance.maintenance'))
 
     due_date = normalize_iso_date(row['due_date'])
     if due_date:
         try:
-            next_due = (date.fromisoformat(due_date) + timedelta(days=90)).isoformat()
+            next_due = date.fromisoformat(due_date) + timedelta(days=90)
         except ValueError:
-            next_due = (date.today() + timedelta(days=90)).isoformat()
+            next_due = date.today() + timedelta(days=90)
     else:
-        next_due = (date.today() + timedelta(days=90)).isoformat()
+        next_due = date.today() + timedelta(days=90)
 
-    cur.execute('''
-        INSERT INTO maintenance (vehicle_id, date, odometer, description, cost, notes, added_by, status, priority, due_date)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    ''', (
-        row['vehicle_id'],
-        date.today().isoformat(),
-        row['odometer'],
-        row['description'],
-        None,
-        row['notes'] or '',
-        session['username'],
-        'pending',
-        row['priority'] or 'medium',
-        next_due,
-    ))
-    conn.commit()
-    from backend.services.audit_service import AuditService
+    with db_tx() as (_, cur):
+        cur.execute('''
+            INSERT INTO maintenance (vehicle_id, date, odometer, description, cost, notes, added_by, status, priority, due_date)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (
+            row['vehicle_id'],
+            date.today(),
+            row['odometer'],
+            row['description'],
+            None,
+            row['notes'] or '',
+            session['username'],
+            'pending',
+            row['priority'] or 'medium',
+            next_due,
+        ))
+
     AuditService.log('Dodanie', 'Serwis', f"Zaplanowano kolejny po serwisie ID: {eid}")
-    cur.close()
     flash('Dodano kolejny wpis serwisowy.', 'success')
     return redirect(url_for('maintenance.maintenance'))

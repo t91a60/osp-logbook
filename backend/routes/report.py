@@ -20,12 +20,11 @@ def report():
         year, month = today.year, today.month
         month_str = today.strftime('%Y-%m')
 
-    first_day = date(year, month, 1).isoformat()
+    first_day = date(year, month, 1)
     if month == 12:
         last_day = date(year + 1, 1, 1) - timedelta(days=1)
     else:
         last_day = date(year, month + 1, 1) - timedelta(days=1)
-    last_day = last_day.isoformat()
     conn = get_db()
     cur = get_cursor(conn)
 
@@ -99,8 +98,8 @@ def report():
                                trip_entries=trip_entries,
                                month_str=month_str,
                                selected_vehicle=vid,
-                               first_day=first_day,
-                               last_day=last_day)
+                               first_day=first_day.isoformat(),
+                               last_day=last_day.isoformat())
     except Exception:
         current_app.logger.exception('Błąd generowania raportu miesięcznego')
         flash('Nie udało się wygenerować raportu. Sprawdź dane i spróbuj ponownie.', 'error')
@@ -112,7 +111,7 @@ def report():
                                trip_entries=[],
                                month_str=month_str,
                                selected_vehicle=vid,
-                               first_day=first_day,
-                               last_day=last_day)
+                               first_day=first_day.isoformat(),
+                               last_day=last_day.isoformat())
     finally:
         cur.close()

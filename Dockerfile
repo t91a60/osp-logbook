@@ -19,5 +19,4 @@ COPY . /app
 ENV FLASK_ENV=production
 
 EXPOSE 5000
-# Sprytne obejście ograniczeń Render Free (uruchamia migracje bazodanowe przed startem Gunicorn'a)
-CMD sh -c "yoyo apply -b --database \$DATABASE_URL ./migrations && gunicorn -w 4 --bind 0.0.0.0:5000 app:app"
+CMD ["gunicorn", "-w", "2", "--bind", "0.0.0.0:5000", "app:app"]

@@ -13,13 +13,16 @@ function showToast(message, type, duration) {
   toast.setAttribute("role", "alert");
 
   const icons = { success: "✓", error: "✗", info: "ℹ" };
-  toast.innerHTML =
-    '<span class="toast-icon">' +
-    (icons[type] || "•") +
-    "</span>" +
-    '<span style="flex:1">' +
-    message +
-    "</span>";
+  const iconEl = document.createElement("span");
+  iconEl.className = "toast-icon";
+  iconEl.textContent = icons[type] || "•";
+
+  const messageEl = document.createElement("span");
+  messageEl.style.flex = "1";
+  messageEl.textContent = String(message || "");
+
+  toast.appendChild(iconEl);
+  toast.appendChild(messageEl);
 
   container.appendChild(toast);
 
