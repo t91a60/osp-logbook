@@ -1,0 +1,162 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   OSP LOGBOOK v2 – MOBILE-FIRST DESIGN SYSTEM (Login)
+   ═══════════════════════════════════════════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+:root {
+  --bg:           #0f0f0f;
+  --bg-light:     #1a1a1a;
+  --bg-lighter:   #242424;
+  --bg-lightest:  #2e2e2e;
+  --text:         #f0f0f0;
+  --text-dim:     #a0a0a0;
+  --text-dimmer:  #606060;
+  --accent:       #ff6b3d;
+  --accent-dim:   #e55a2d;
+  --error:        #e74c3c;
+  --border:       #2e2e2e;
+  --font:         -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --radius:       8px;
+  --transition:   150ms ease;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+.login-container {
+  width: 100%;
+  max-width: 380px;
+  margin-top: -8vh; /* optical centering */
+}
+
+/* ── Brand ─────────────────────────────────────────────────────────────── */
+.brand {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.brand-icon {
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: center;
+}
+.brand-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.brand-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+/* ── Form ──────────────────────────────────────────────────────────────── */
+.login-form {
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+
+.form-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.form-input {
+  width: 100%;
+  background: var(--bg-lighter);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 1rem;
+  padding: 13px 12px;
+  min-height: 48px;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color var(--transition), background-color var(--transition);
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background-color: var(--bg-lightest);
+}
+.form-input::placeholder { color: var(--text-dimmer); }
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-family: var(--font);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 14px 20px;
+  min-height: 48px;
+  cursor: pointer;
+  margin-top: 8px;
+  letter-spacing: 0.02em;
+  transition: background-color var(--transition), opacity var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-primary:active { opacity: 0.82; }
+
+.error-message {
+  background: rgba(231,76,60,0.1);
+  border: 1px solid rgba(231,76,60,0.3);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 0.85rem;
+  color: #ff9a9e;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-hint {
+  font-size: 0.8rem;
+  color: var(--text-dimmer);
+  text-align: center;
+  margin-top: 24px;
+}

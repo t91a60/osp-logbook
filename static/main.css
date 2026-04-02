@@ -608,3 +608,22 @@ body {
   .entry { border: 1px solid #ddd; break-inside: avoid; }
   a { color: #000; text-decoration: none; }
 }
+
+.entry-overdue { border-color: rgba(231,76,60,.7); box-shadow: 0 0 0 1px rgba(231,76,60,.2); }
+.status-pending   { color:#f1c40f; background:rgba(241,196,15,.12); }
+.status-completed { color:var(--success); background:rgba(46,204,113,.12); }
+.status-overdue   { color:#ff8a80; background:rgba(231,76,60,.12); }
+.priority-low     { color:#7cb4ff; background:rgba(74,144,226,.12); }
+.priority-medium  { color:#f1c40f; background:rgba(241,196,15,.12); }
+.priority-high    { color:#ff8a80; background:rgba(231,76,60,.12); }
+
+@media print {
+  body { background: #fff !important; color: #000 !important; }
+  .print-only { display: block !important; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #ccc !important; padding: 6px 8px !important; color: #000 !important; font-size: 10pt; }
+  thead { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .section-title { color: #333 !important; margin-top: 16px; }
+  .entry { border: 1px solid #ccc; }
+}
+
