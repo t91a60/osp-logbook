@@ -173,7 +173,7 @@ endblock %} {% block content %}
               color: var(--text-dimmer);
             "
           >
-            {{ log.created_at[:16] }}
+            {{ (log.created_at|string)[:16] }}
           </td>
           <td style="padding: 8px; font-weight: 600; color: var(--accent)">
             {{ log.username or 'Nieznany' }}
