@@ -34,6 +34,8 @@ def fuel():
             f.get('notes', '').strip(), session['username']
         ))
         conn.commit()
+        from backend.services.audit_service import AuditService
+        AuditService.log('Dodanie', 'Tankowanie', f"Pojazd ID: {f['vehicle_id']}, Litry: {liters}")
         flash('Tankowanie zapisane.', 'success')
         cur.close()
         return redirect(url_for('fuel.fuel',

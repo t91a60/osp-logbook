@@ -1,9 +1,6 @@
-{% extends "base.html" %}
-{% block title %}Pojazdy – OSP Logbook{% endblock %}
-
+{% extends "base.html" %} {% block title %}Pojazdy – OSP Logbook{% endblock %}
 {% block content %}
 <div class="page">
-
   <!-- Page Header -->
   <div class="section-header">
     <span class="section-title">Zarządzanie pojazdami</span>
@@ -11,107 +8,276 @@
 
   <!-- Tab Navigation -->
   <div class="tab-nav no-print">
-    <a href="{{ url_for('admin.vehicles') }}"
-       class="tab-link {% if request.endpoint == 'admin.vehicles' %}active{% endif %}">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    <a
+      href="{{ url_for('admin.vehicles') }}"
+      class="tab-link {% if request.endpoint == 'admin.vehicles' %}active{% endif %}"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect x="1" y="3" width="15" height="13" rx="2" />
+        <path d="M16 8h4l3 3v5h-7V8z" />
+        <circle cx="5.5" cy="18.5" r="2.5" />
+        <circle cx="18.5" cy="18.5" r="2.5" />
+      </svg>
       Pojazdy
     </a>
-    <a href="{{ url_for('admin.users') }}"
-       class="tab-link {% if request.endpoint == 'admin.users' %}active{% endif %}">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <a
+      href="{{ url_for('admin.users') }}"
+      class="tab-link {% if request.endpoint == 'admin.users' %}active{% endif %}"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+      </svg>
       Użytkownicy
     </a>
-    <a href="{{ url_for('report.report') }}"
-       class="tab-link {% if request.endpoint == 'report.report' %}active{% endif %}">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <a
+      href="{{ url_for('report.report') }}"
+      class="tab-link {% if request.endpoint == 'report.report' %}active{% endif %}"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
       Raport
+    </a>
+    <a
+      href="{{ url_for('logs.logs_list') }}"
+      class="tab-link {% if request.endpoint == 'logs.logs_list' %}active{% endif %}"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polyline points="4 7 4 4 20 4 20 7" />
+        <line x1="9" y1="20" x2="15" y2="20" />
+        <line x1="12" y1="4" x2="12" y2="20" />
+      </svg>
+      Logs
     </a>
   </div>
 
   <!-- Add Vehicle Form -->
   <div class="form-section">
     <div class="form-section-title">Dodaj nowy pojazd</div>
-    
+
     <form method="POST" action="{{ url_for('admin.vehicles') }}">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
       <div class="form-grid full">
-        
         <!-- Name -->
         <div class="form-field">
           <label class="form-label">Nazwa pojazdu *</label>
-          <input type="text" name="name" class="form-input"
-                 placeholder="np. GCBA 5/32 Mercedes" 
-                 required autocomplete="off">
+          <input
+            type="text"
+            name="name"
+            class="form-input"
+            placeholder="np. GCBA 5/32 Mercedes"
+            required
+            autocomplete="off"
+          />
         </div>
 
         <!-- Registration Plate -->
         <div class="form-field">
           <label class="form-label">Nr rejestracyjny</label>
-          <input type="text" name="plate" class="form-input"
-                 placeholder="np. KCH 1234" 
-                 autocomplete="off"
-                 style="text-transform: uppercase;">
+          <input
+            type="text"
+            name="plate"
+            class="form-input"
+            placeholder="np. KCH 1234"
+            autocomplete="off"
+            style="text-transform: uppercase"
+          />
         </div>
 
         <!-- Type -->
         <div class="form-field">
           <label class="form-label">Typ pojazdu</label>
-          <input type="text" name="type" class="form-input"
-                 placeholder="np. GBA, GCBA, SLRt..."
-                 autocomplete="off">
+          <input
+            type="text"
+            name="type"
+            class="form-input"
+            placeholder="np. GBA, GCBA, SLRt..."
+            autocomplete="off"
+          />
         </div>
-
       </div>
-      
-      <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 12px;">
+
+      <button
+        type="submit"
+        class="btn btn-primary"
+        style="width: 100%; margin-top: 12px"
+      >
         ✓ Dodaj pojazd
       </button>
     </form>
   </div>
 
   <!-- Vehicle List Section -->
-  <div style="margin-top: 32px;">
-    <h2 style="font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 16px;">
+  <div style="margin-top: 32px">
+    <h2
+      style="
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        margin-bottom: 16px;
+      "
+    >
       Pojazdy ({{ vehicles|length }})
     </h2>
 
     {% if vehicles %}
-    <div style="display: flex; flex-direction: column; gap: 12px;">
+    <div style="display: flex; flex-direction: column; gap: 12px">
       {% for v in vehicles %}
       <div class="entry" style="{% if not v.active %}opacity: 0.6;{% endif %}">
         <div class="entry-header">
           <div class="entry-vehicle">
-            {% if v.type %}<span style="color: var(--text-dim); font-weight: 400; font-size: 0.85rem;">{{ v.type }}</span> {% endif %}{{ v.name }}
+            {% if v.type %}<span
+              style="
+                color: var(--text-dim);
+                font-weight: 400;
+                font-size: 0.85rem;
+              "
+              >{{ v.type }}</span
+            >
+            {% endif %}{{ v.name }}
           </div>
           {% if not v.active %}
-          <span class="badge" style="background: var(--error); color: #fff; font-size: 0.7rem;">INACTIVE</span>
+          <span
+            class="badge"
+            style="background: var(--error); color: #fff; font-size: 0.7rem"
+            >INACTIVE</span
+          >
           {% endif %}
         </div>
 
-        <div class="entry-main" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 8px;">
+        <div
+          class="entry-main"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-top: 8px;
+          "
+        >
           <div class="entry-meta">
-            {% if v.plate %}<div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">{{ v.plate }}</div>{% endif %}
+            {% if v.plate %}
+            <div
+              style="
+                font-size: 0.85rem;
+                color: var(--text-dim);
+                margin-top: 4px;
+              "
+            >
+              {{ v.plate }}
+            </div>
+            {% endif %}
           </div>
 
-          <form method="POST" action="{{ url_for('admin.toggle_vehicle', vid=v.id) }}">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn{% if v.active %} btn-secondary{% else %} btn-primary{% endif %}" style="min-height: 44px; padding: 8px 16px; font-size: 0.9rem; white-space: nowrap;">
-              {% if v.active %}Dezaktywuj{% else %}Aktywuj{% endif %}
-            </button>
-          </form>
+          <div style="display: flex; gap: 8px; align-items: center">
+            {% if session.get('role') == 'admin' %}
+            <form
+              method="POST"
+              action="{{ url_for('admin.delete_vehicle', vid=v.id) }}"
+              onsubmit="
+                return confirm('Czy na pewno chcesz usunąć ten pojazd?');
+              "
+            >
+              <input
+                type="hidden"
+                name="_csrf_token"
+                value="{{ csrf_token() }}"
+              />
+              <button
+                type="submit"
+                class="btn btn-secondary"
+                style="
+                  min-height: 44px;
+                  padding: 8px 16px;
+                  font-size: 0.9rem;
+                  white-space: nowrap;
+                  color: var(--error);
+                  border-color: var(--error);
+                "
+              >
+                Usuń
+              </button>
+            </form>
+            {% endif %}
+
+            <form
+              method="POST"
+              action="{{ url_for('admin.toggle_vehicle', vid=v.id) }}"
+            >
+              <input
+                type="hidden"
+                name="_csrf_token"
+                value="{{ csrf_token() }}"
+              />
+              <button
+                type="submit"
+                class="btn{% if v.active %} btn-secondary{% else %} btn-primary{% endif %}"
+                style="
+                  min-height: 44px;
+                  padding: 8px 16px;
+                  font-size: 0.9rem;
+                  white-space: nowrap;
+                "
+              >
+                {% if v.active %}Dezaktywuj{% else %}Aktywuj{% endif %}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
       {% endfor %}
     </div>
     {% else %}
-    <div style="text-align: center; padding: 32px 20px; color: var(--text-dim);">
-      <div style="font-size: 2rem; margin-bottom: 12px;">🚒</div>
+    <div style="text-align: center; padding: 32px 20px; color: var(--text-dim)">
+      <div style="font-size: 2rem; margin-bottom: 12px">🚒</div>
       <p>Brak pojazdów.</p>
-      <p style="font-size: 0.9rem; margin-top: 8px;">Dodaj pierwszy pojazd w formularzu powyżej.</p>
+      <p style="font-size: 0.9rem; margin-top: 8px">
+        Dodaj pierwszy pojazd w formularzu powyżej.
+      </p>
     </div>
     {% endif %}
   </div>
-
 </div>
 
 {% endblock %}

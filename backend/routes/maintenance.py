@@ -38,6 +38,8 @@ def maintenance():
             f.get('due_date') or None,
         ))
         conn.commit()
+        from backend.services.audit_service import AuditService
+        AuditService.log('Dodanie', 'Serwis', f"Pojazd ID: {f['vehicle_id']}, Opis: {f['description'].strip()}")
         flash('Wpis serwisowy zapisany.', 'success')
         cur.close()
         return redirect(url_for('maintenance.maintenance',
@@ -110,6 +112,8 @@ def complete_maintenance_view(eid):
     cur = get_cursor(conn)
     cur.execute("UPDATE maintenance SET status = 'completed' WHERE id = %s", (eid,))
     conn.commit()
+    from backend.services.audit_service import AuditService
+    AuditService.log('Edycja', 'Serwis', f"Zakończono serwis ID: {eid}")
     cur.close()
     flash('Oznaczono jako wykonane.', 'success')
     return redirect(url_for('maintenance.maintenance'))
@@ -157,6 +161,8 @@ def create_next_maintenance_view(eid):
         next_due,
     ))
     conn.commit()
+    from backend.services.audit_service import AuditService
+    AuditService.log('Dodanie', 'Serwis', f"Zaplanowano kolejny po serwisie ID: {eid}")
     cur.close()
     flash('Dodano kolejny wpis serwisowy.', 'success')
     return redirect(url_for('maintenance.maintenance'))

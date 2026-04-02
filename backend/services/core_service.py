@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from backend.db import get_db, get_cursor
 from backend.helpers import normalize_iso_date, days_since_iso_date
+from backend.services.audit_service import AuditService
 
 class VehicleService:
     @staticmethod
@@ -70,6 +71,7 @@ class TripService:
         ))
         conn.commit()
         cur.close()
+        AuditService.log('Dodanie', 'Wyjazd', f'Pojazd ID: {vehicle_id}, Kierowca: {driver}, Data: {date_val}')
 
     @staticmethod
     def add_fuel(vehicle_id, date_val, driver, odometer, liters, cost, notes, added_by):
@@ -83,6 +85,7 @@ class TripService:
         ))
         conn.commit()
         cur.close()
+        AuditService.log('Dodanie', 'Tankowanie', f'Pojazd ID: {vehicle_id}, Litry: {liters}, Data: {date_val}')
 
     @staticmethod
     def add_maintenance(vehicle_id, date_val, odometer, description, cost, notes, added_by, status, priority, due_date):
@@ -96,3 +99,4 @@ class TripService:
         ))
         conn.commit()
         cur.close()
+        AuditService.log('Dodanie', 'Serwis', f'Pojazd ID: {vehicle_id}, Opis: {description}, Data: {date_val}')

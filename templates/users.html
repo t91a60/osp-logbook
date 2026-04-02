@@ -1,9 +1,6 @@
-{% extends "base.html" %}
-{% block title %}Użytkownicy – OSP Logbook{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Użytkownicy – OSP Logbook{% endblock
+%} {% block content %}
 <div class="page">
-
   <!-- Page Header -->
   <div class="section-header">
     <span class="section-title">Zarządzanie użytkownikami</span>
@@ -11,136 +8,282 @@
 
   <!-- Tab Navigation -->
   <div class="tab-nav no-print">
-    <a href="{{ url_for('admin.vehicles') }}"
-       class="tab-link {% if request.endpoint == 'admin.vehicles' %}active{% endif %}">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    <a
+      href="{{ url_for('admin.vehicles') }}"
+      class="tab-link {% if request.endpoint == 'admin.vehicles' %}active{% endif %}"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect x="1" y="3" width="15" height="13" rx="2" />
+        <path d="M16 8h4l3 3v5h-7V8z" />
+        <circle cx="5.5" cy="18.5" r="2.5" />
+        <circle cx="18.5" cy="18.5" r="2.5" />
+      </svg>
       Pojazdy
     </a>
-    <a href="{{ url_for('admin.users') }}"
-       class="tab-link {% if request.endpoint == 'admin.users' %}active{% endif %}">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <a
+      href="{{ url_for('admin.users') }}"
+      class="tab-link {% if request.endpoint == 'admin.users' %}active{% endif %}"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+      </svg>
       Użytkownicy
     </a>
-    <a href="{{ url_for('report.report') }}"
-       class="tab-link {% if request.endpoint == 'report.report' %}active{% endif %}">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <a
+      href="{{ url_for('report.report') }}"
+      class="tab-link {% if request.endpoint == 'report.report' %}active{% endif %}"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
       Raport
+    </a>
+    <a href="{{ url_for('logs.logs_list') }}"
+       class="tab-link {% if request.endpoint == 'logs.logs_list' %}active{% endif %}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+      Logs
     </a>
   </div>
 
   <!-- Add User Form -->
+  {% if session.get('role') == 'admin' %}
   <div class="form-section">
     <div class="form-section-title">Dodaj nowego użytkownika</div>
-    
-    <form method="POST" action="{{ url_for('admin.users') }}" autocomplete="off">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-      <input type="hidden" name="action" value="add">
-      
+
+    <form
+      method="POST"
+      action="{{ url_for('admin.users') }}"
+      autocomplete="off"
+    >
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="action" value="add" />
+
       <div class="form-grid full">
-        
         <!-- Display Name -->
         <div class="form-field">
           <label class="form-label">Imię i nazwisko *</label>
-          <input type="text" name="display_name" class="form-input"
-                 placeholder="np. Jan Kowalski" 
-                 required autocomplete="off">
+          <input
+            type="text"
+            name="display_name"
+            class="form-input"
+            placeholder="np. Jan Kowalski"
+            required
+            autocomplete="off"
+          />
         </div>
 
         <!-- Username -->
         <div class="form-field">
           <label class="form-label">Login *</label>
-          <input type="text" name="username" class="form-input"
-                 placeholder="np. jkowalski"
-                 autocomplete="off" autocapitalize="none" required>
+          <input
+            type="text"
+            name="username"
+            class="form-input"
+            placeholder="np. jkowalski"
+            autocomplete="off"
+            autocapitalize="none"
+            required
+          />
         </div>
 
         <!-- Password -->
         <div class="form-field">
           <label class="form-label">Hasło *</label>
-          <input type="password" name="password" class="form-input"
-                 placeholder="Minimum 4 znaki"
-                 autocomplete="new-password" required minlength="4">
+          <input
+            type="password"
+            name="password"
+            class="form-input"
+            placeholder="Minimum 4 znaki"
+            autocomplete="new-password"
+            required
+            minlength="4"
+          />
         </div>
-
       </div>
-      
-      <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 12px;">
+
+      <button
+        type="submit"
+        class="btn btn-primary"
+        style="width: 100%; margin-top: 12px"
+      >
         ✓ Dodaj użytkownika
       </button>
     </form>
   </div>
+  {% endif %}
 
   <!-- Users List Section -->
-  <div style="margin-top: 32px;">
-    <h2 style="font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 16px;">
+  <div style="margin-top: 32px">
+    <h2
+      style="
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        margin-bottom: 16px;
+      "
+    >
       Użytkownicy ({{ users|length }})
     </h2>
 
     {% if users %}
-    <div style="display: flex; flex-direction: column; gap: 12px;">
+    <div style="display: flex; flex-direction: column; gap: 12px">
       {% for u in users %}
       <div class="entry">
         <div class="entry-header">
           <div class="entry-vehicle">{{ u.display_name }}</div>
         </div>
 
-        <div class="entry-main" style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+        <div
+          class="entry-main"
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 8px;
+          "
+        >
           <div class="entry-meta">
-            <div style="font-size: 0.85rem; color: var(--text-dim);">@{{ u.username }}</div>
+            <div style="font-size: 0.85rem; color: var(--text-dim)">
+              @{{ u.username }}
+            </div>
           </div>
 
           <!-- Change Password Collapsible -->
-          <details style="outline: none;">
-            <summary style="list-style: none; cursor: pointer; display: inline-block;">
-              <button type="button" class="btn btn-secondary" style="min-height: 44px; padding: 8px 16px; font-size: 0.9rem;">
+          {% if session.get('role') == 'admin' %}
+          <details style="outline: none">
+            <summary
+              style="list-style: none; cursor: pointer; display: inline-block"
+            >
+              <button
+                type="button"
+                class="btn btn-secondary"
+                style="min-height: 44px; padding: 8px 16px; font-size: 0.9rem"
+              >
                 🔑 Zmień hasło
               </button>
             </summary>
 
-            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #333;">
-              <form method="POST" action="{{ url_for('admin.users') }}" autocomplete="off">
-                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="action" value="change_pw">
-                <input type="hidden" name="uid" value="{{ u.id }}">
-                
+            <div
+              style="
+                margin-top: 12px;
+                padding-top: 12px;
+                border-top: 1px solid #333;
+              "
+            >
+              <form
+                method="POST"
+                action="{{ url_for('admin.users') }}"
+                autocomplete="off"
+              >
+                <input
+                  type="hidden"
+                  name="_csrf_token"
+                  value="{{ csrf_token() }}"
+                />
+                <input type="hidden" name="action" value="change_pw" />
+                <input type="hidden" name="uid" value="{{ u.id }}" />
+
                 <div class="form-grid full">
                   <div class="form-field">
                     <label class="form-label">Nowe hasło *</label>
-                    <input type="password" name="new_password" class="form-input"
-                           placeholder="Minimum 4 znaki"
-                           autocomplete="new-password" required minlength="4">
+                    <input
+                      type="password"
+                      name="new_password"
+                      class="form-input"
+                      placeholder="Minimum 4 znaki"
+                      autocomplete="new-password"
+                      required
+                      minlength="4"
+                    />
                   </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px;">
+                <button
+                  type="submit"
+                  class="btn btn-primary"
+                  style="width: 100%; margin-top: 8px"
+                >
                   ✓ Zmień hasło
                 </button>
               </form>
             </div>
           </details>
+          {% endif %}
         </div>
       </div>
       {% endfor %}
     </div>
     {% else %}
-    <div style="text-align: center; padding: 32px 20px; color: var(--text-dim);">
-      <div style="font-size: 2rem; margin-bottom: 12px;">👤</div>
+    <div style="text-align: center; padding: 32px 20px; color: var(--text-dim)">
+      <div style="font-size: 2rem; margin-bottom: 12px">👤</div>
       <p>Brak użytkowników.</p>
-      <p style="font-size: 0.9rem; margin-top: 8px;">Dodaj pierwszego użytkownika w formularzu powyżej.</p>
+      <p style="font-size: 0.9rem; margin-top: 8px">
+        Dodaj pierwszego użytkownika w formularzu powyżej.
+      </p>
     </div>
     {% endif %}
   </div>
 
   <!-- Security Note -->
-  <div style="background: var(--bg-lighter); border: 1px solid #333; border-radius: 8px; padding: 16px; margin-top: 32px; margin-bottom: 20px;">
-    <div style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px;">
+  <div
+    style="
+      background: var(--bg-lighter);
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 32px;
+      margin-bottom: 20px;
+    "
+  >
+    <div
+      style="
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 8px;
+      "
+    >
       ℹ ️ Ważne
     </div>
-    <div style="font-size: 0.9rem; line-height: 1.5; color: var(--text-dim);">
-      Hasła nie mogą być odzyskane — tylko zmienione. Zapamiętaj hasła lub zapisz je w bezpiecznym miejscu.
+    <div style="font-size: 0.9rem; line-height: 1.5; color: var(--text-dim)">
+      Hasła nie mogą być odzyskane — tylko zmienione. Zapamiętaj hasła lub
+      zapisz je w bezpiecznym miejscu.
     </div>
   </div>
-
 </div>
 
 {% endblock %}

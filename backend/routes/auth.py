@@ -21,6 +21,7 @@ def login():
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['display_name'] = user['display_name']
+            session['role'] = user.get('role', 'user')
             cur.close()
             return redirect(url_for('main.dashboard'))
         cur.close()

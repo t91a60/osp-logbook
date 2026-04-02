@@ -1,0 +1,198 @@
+{% extends "base.html" %} {% block title %}Historia Zmian – OSP Logbook{%
+endblock %} {% block content %}
+<div class="page">
+  <!-- Page Header -->
+  <div class="section-header">
+    <span class="section-title">Logi Zdarzeń</span>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tab-nav no-print">
+    <a
+      href="{{ url_for('admin.vehicles') }}"
+      class="tab-link {% if request.endpoint == 'admin.vehicles' %}active{% endif %}"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect x="1" y="3" width="15" height="13" rx="2" />
+        <path d="M16 8h4l3 3v5h-7V8z" />
+        <circle cx="5.5" cy="18.5" r="2.5" />
+        <circle cx="18.5" cy="18.5" r="2.5" />
+      </svg>
+      Pojazdy
+    </a>
+    <a
+      href="{{ url_for('admin.users') }}"
+      class="tab-link {% if request.endpoint == 'admin.users' %}active{% endif %}"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+      </svg>
+      Użytkownicy
+    </a>
+    <a
+      href="{{ url_for('report.report') }}"
+      class="tab-link {% if request.endpoint == 'report.report' %}active{% endif %}"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
+      Raport
+    </a>
+    <a
+      href="{{ url_for('logs.logs_list') }}"
+      class="tab-link {% if request.endpoint == 'logs.logs_list' %}active{% endif %}"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polyline points="4 7 4 4 20 4 20 7" />
+        <line x1="9" y1="20" x2="15" y2="20" />
+        <line x1="12" y1="4" x2="12" y2="20" />
+      </svg>
+      Logs
+    </a>
+  </div>
+
+  <!-- Logs List -->
+  {% if logs %}
+  <div style="overflow-x: auto; margin-bottom: 24px">
+    <table
+      id="logsTable"
+      style="width: 100%; border-collapse: collapse; font-size: 0.85rem"
+    >
+      <thead>
+        <tr style="border-bottom: 2px solid var(--border)">
+          <th
+            style="
+              text-align: left;
+              padding: 8px;
+              color: var(--text-dimmer);
+              font-size: 0.7rem;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+              white-space: nowrap;
+            "
+          >
+            Data i godzina
+          </th>
+          <th
+            style="
+              text-align: left;
+              padding: 8px;
+              color: var(--text-dimmer);
+              font-size: 0.7rem;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+            "
+          >
+            Użytkownik
+          </th>
+          <th
+            style="
+              text-align: left;
+              padding: 8px;
+              color: var(--text-dimmer);
+              font-size: 0.7rem;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+            "
+          >
+            Akcja
+          </th>
+          <th
+            style="
+              text-align: left;
+              padding: 8px;
+              color: var(--text-dimmer);
+              font-size: 0.7rem;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+            "
+          >
+            Obiekt
+          </th>
+          <th
+            style="
+              text-align: left;
+              padding: 8px;
+              color: var(--text-dimmer);
+              font-size: 0.7rem;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+            "
+          >
+            Szczegóły
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr style="border-bottom: 1px solid var(--border)">
+          <td
+            style="
+              padding: 8px;
+              font-family: var(--mono);
+              white-space: nowrap;
+              color: var(--text-dimmer);
+            "
+          >
+            {{ log.created_at[:16] }}
+          </td>
+          <td style="padding: 8px; font-weight: 600; color: var(--accent)">
+            {{ log.username or 'Nieznany' }}
+          </td>
+          <td style="padding: 8px">{{ log.action }}</td>
+          <td style="padding: 8px; color: var(--text-dim)">{{ log.object }}</td>
+          <td style="padding: 8px; color: var(--text-dimmer)">
+            {{ log.details }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state" style="margin: 24px 0; text-align: center">
+    <p>Brak historii zmian.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

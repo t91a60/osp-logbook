@@ -3,6 +3,8 @@ from werkzeug.security import generate_password_hash
 from psycopg2 import IntegrityError
 from backend.db import get_db, get_cursor
 from backend.helpers import login_required
+from backend.services.audit_service import AuditService
+from backend.services.vehicle_service import VehicleService
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -18,6 +20,7 @@ def vehicles():
             (f['name'].strip(), f.get('plate', '').strip(), f.get('type', '').strip())
         )
         conn.commit()
+        AuditService.log('Dodanie', 'Pojazd', f"Nazwa: {f['name'].strip()}")
         flash('Pojazd dodany.', 'success')
         cur.close()
         return redirect(url_for('admin.vehicles'))
@@ -38,7 +41,18 @@ def toggle_vehicle_view(vid):
         cur.execute('UPDATE vehicles SET active = %s WHERE id = %s',
                      (0 if v['active'] else 1, vid))
         conn.commit()
+        AuditService.log('Edycja', 'Pojazd', f"Zmieniono status aktywności pojazdu ID: {vid}")
     cur.close()
+    return redirect(url_for('admin.vehicles'))
+
+@admin_bp.route('/vehicles/<int:vid>/delete', methods=['POST'], endpoint='delete_vehicle')
+@login_required
+def delete_vehicle_view(vid):
+    from flask import session, abort
+    if session.get('role') != 'admin':
+        abort(403)
+    VehicleService.delete_vehicle(vid, session.get('user_id'))
+    flash('Pojazd usunięty.', 'success')
     return redirect(url_for('admin.vehicles'))
 
 @admin_bp.route('/uzytkownicy', methods=['GET', 'POST'], endpoint='users')
@@ -47,8 +61,11 @@ def users():
     conn = get_db()
     cur = get_cursor(conn)
     if request.method == 'POST':
+        from flask import session, abort
         action = request.form.get('action')
         if action == 'add':
+            if session.get('role') != 'admin':
+                abort(403)
             pw = request.form.get('password', '')
             if len(pw) < 4:
                 flash('Hasło musi mieć co najmniej 4 znaki.', 'error')
@@ -61,17 +78,21 @@ def users():
                          request.form['display_name'].strip())
                     )
                     conn.commit()
+                    AuditService.log('Dodanie', 'Użytkownik', f"Dodano użytkownika: {request.form['username'].strip()}")
                     flash('Użytkownik dodany.', 'success')
                 except IntegrityError:
                     conn.rollback()
                     flash('Login już istnieje.', 'error')
         elif action == 'change_pw':
+            if session.get('role') != 'admin':
+                abort(403)
             uid = request.form.get('uid')
             new_pw = request.form.get('new_password', '')
             if uid and len(new_pw) >= 4:
                 cur.execute('UPDATE users SET password = %s WHERE id = %s',
                              (generate_password_hash(new_pw), uid))
                 conn.commit()
+                AuditService.log('Edycja', 'Użytkownik', f"Zmieniono hasło dla UID: {uid}")
                 flash('Hasło zmienione.', 'success')
             else:
                 flash('Hasło musi mieć co najmniej 4 znaki.', 'error')
@@ -94,6 +115,7 @@ def delete_entry_view(kind, eid):
         cur.execute(f'DELETE FROM {table} WHERE id = %s', (eid,))
         conn.commit()
         cur.close()
+        AuditService.log('Usunięcie', kind.capitalize(), f"Usunięto z tabeli {table} ID: {eid}")
         flash('Wpis usunięty.', 'success')
     referrer = request.referrer or url_for('main.dashboard')
     return redirect(referrer)

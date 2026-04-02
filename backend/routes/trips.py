@@ -39,6 +39,8 @@ def trips():
             session['username']
         ))
         conn.commit()
+        from backend.services.audit_service import AuditService
+        AuditService.log('Dodanie', 'Wyjazd', f"Pojazd ID: {f['vehicle_id']}, Cel: {purpose}")
         flash('Wyjazd zapisany.', 'success')
         cur.close()
         return redirect(url_for('trips.trips',
