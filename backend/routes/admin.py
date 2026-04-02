@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for
+from flask import Blueprint, render_template, request, flash, redirect, url_for, session, abort
 from werkzeug.security import generate_password_hash
 from psycopg2 import IntegrityError
 from backend.db import get_db, get_cursor
@@ -14,6 +14,8 @@ def vehicles():
     conn = get_db()
     cur = get_cursor(conn)
     if request.method == 'POST':
+        if session.get('role') != 'admin':
+            abort(403)
         f = request.form
         cur.execute(
             'INSERT INTO vehicles (name, plate, type) VALUES (%s, %s, %s)',
@@ -25,30 +27,16 @@ def vehicles():
         cur.close()
         return redirect(url_for('admin.vehicles'))
 
-    cur.execute('SELECT * FROM vehicles ORDER BY active DESC, name')
+    cur.execute('SELECT * FROM vehicles WHERE active = 1 ORDER BY name')
     vlist = cur.fetchall()
     cur.close()
     return render_template('vehicles.html', vehicles=vlist)
 
-@admin_bp.route('/pojazdy/<int:vid>/toggle', methods=['POST'], endpoint='toggle_vehicle')
-@login_required
-def toggle_vehicle_view(vid):
-    conn = get_db()
-    cur = get_cursor(conn)
-    cur.execute('SELECT active FROM vehicles WHERE id = %s', (vid,))
-    v = cur.fetchone()
-    if v:
-        cur.execute('UPDATE vehicles SET active = %s WHERE id = %s',
-                     (0 if v['active'] else 1, vid))
-        conn.commit()
-        AuditService.log('Edycja', 'Pojazd', f"Zmieniono status aktywności pojazdu ID: {vid}")
-    cur.close()
-    return redirect(url_for('admin.vehicles'))
+
 
 @admin_bp.route('/vehicles/<int:vid>/delete', methods=['POST'], endpoint='delete_vehicle')
 @login_required
 def delete_vehicle_view(vid):
-    from flask import session, abort
     if session.get('role') != 'admin':
         abort(403)
     VehicleService.delete_vehicle(vid, session.get('user_id'))
@@ -58,14 +46,14 @@ def delete_vehicle_view(vid):
 @admin_bp.route('/uzytkownicy', methods=['GET', 'POST'], endpoint='users')
 @login_required
 def users():
+    if session.get('role') != 'admin':
+        abort(403)
+
     conn = get_db()
     cur = get_cursor(conn)
     if request.method == 'POST':
-        from flask import session, abort
         action = request.form.get('action')
         if action == 'add':
-            if session.get('role') != 'admin':
-                abort(403)
             pw = request.form.get('password', '')
             if len(pw) < 4:
                 flash('Hasło musi mieć co najmniej 4 znaki.', 'error')
@@ -84,8 +72,6 @@ def users():
                     conn.rollback()
                     flash('Login już istnieje.', 'error')
         elif action == 'change_pw':
-            if session.get('role') != 'admin':
-                abort(403)
             uid = request.form.get('uid')
             new_pw = request.form.get('new_password', '')
             if uid and len(new_pw) >= 4:
@@ -96,6 +82,22 @@ def users():
                 flash('Hasło zmienione.', 'success')
             else:
                 flash('Hasło musi mieć co najmniej 4 znaki.', 'error')
+        elif action == 'delete':
+            if session.get('role') != 'admin':
+                abort(403)
+            uid = request.form.get('uid')
+            if uid:
+                if str(session.get('user_id')) == str(uid):
+                    flash('Nie możesz usunąć samego siebie.', 'error')
+                else:
+                    try:
+                        cur.execute('DELETE FROM users WHERE id = %s', (uid,))
+                        conn.commit()
+                        AuditService.log('Usunięcie', 'Użytkownik', f"Usunięto użytkownika UID: {uid}")
+                        flash('Użytkownik został usunięty.', 'success')
+                    except IntegrityError:
+                        conn.rollback()
+                        flash('Nie można usunąć użytkownika, ponieważ posiada on przypisane statystyki lub wyjazdy.', 'error')
         cur.close()
         return redirect(url_for('admin.users'))
 

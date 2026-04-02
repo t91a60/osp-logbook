@@ -180,66 +180,92 @@
             </div>
           </div>
 
-          <!-- Change Password Collapsible -->
+          <!-- Admin actions: Change Password & Delete -->
           {% if session.get('role') == 'admin' %}
-          <details style="outline: none">
-            <summary
-              style="list-style: none; cursor: pointer; display: inline-block"
-            >
-              <button
-                type="button"
-                class="btn btn-secondary"
-                style="min-height: 44px; padding: 8px 16px; font-size: 0.9rem"
+          <div style="display: flex; gap: 8px; align-items: flex-start; margin-top: 8px;">
+            <details style="outline: none; flex-grow: 1;">
+              <summary
+                style="list-style: none; cursor: pointer; display: inline-block"
               >
-                🔑 Zmień hasło
-              </button>
-            </summary>
-
-            <div
-              style="
-                margin-top: 12px;
-                padding-top: 12px;
-                border-top: 1px solid #333;
-              "
-            >
-              <form
-                method="POST"
-                action="{{ url_for('admin.users') }}"
-                autocomplete="off"
-              >
-                <input
-                  type="hidden"
-                  name="_csrf_token"
-                  value="{{ csrf_token() }}"
-                />
-                <input type="hidden" name="action" value="change_pw" />
-                <input type="hidden" name="uid" value="{{ u.id }}" />
-
-                <div class="form-grid full">
-                  <div class="form-field">
-                    <label class="form-label">Nowe hasło *</label>
-                    <input
-                      type="password"
-                      name="new_password"
-                      class="form-input"
-                      placeholder="Minimum 4 znaki"
-                      autocomplete="new-password"
-                      required
-                      minlength="4"
-                    />
-                  </div>
-                </div>
-
                 <button
-                  type="submit"
-                  class="btn btn-primary"
-                  style="width: 100%; margin-top: 8px"
+                  type="button"
+                  class="btn btn-secondary"
+                  style="min-height: 44px; padding: 8px 16px; font-size: 0.9rem"
                 >
-                  ✓ Zmień hasło
+                  🔑 Zmień hasło
                 </button>
-              </form>
-            </div>
-          </details>
+              </summary>
+
+              <div
+                style="
+                  margin-top: 12px;
+                  padding-top: 12px;
+                  border-top: 1px solid #333;
+                "
+              >
+                <form
+                  method="POST"
+                  action="{{ url_for('admin.users') }}"
+                  autocomplete="off"
+                >
+                  <input
+                    type="hidden"
+                    name="_csrf_token"
+                    value="{{ csrf_token() }}"
+                  />
+                  <input type="hidden" name="action" value="change_pw" />
+                  <input type="hidden" name="uid" value="{{ u.id }}" />
+
+                  <div class="form-grid full">
+                    <div class="form-field">
+                      <label class="form-label">Nowe hasło *</label>
+                      <input
+                        type="password"
+                        name="new_password"
+                        class="form-input"
+                        placeholder="Minimum 4 znaki"
+                        autocomplete="new-password"
+                        required
+                        minlength="4"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    class="btn btn-primary"
+                    style="width: 100%; margin-top: 8px"
+                  >
+                    ✓ Zmień hasło
+                  </button>
+                </form>
+              </div>
+            </details>
+
+            <form
+              method="POST"
+              action="{{ url_for('admin.users') }}"
+              onsubmit="return confirm('Czy na pewno chcesz usunąć tego użytkownika? Tej operacji nie można cofnąć.');"
+            >
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+              <input type="hidden" name="action" value="delete" />
+              <input type="hidden" name="uid" value="{{ u.id }}" />
+              <button
+                type="submit"
+                class="btn btn-secondary"
+                style="
+                  min-height: 44px;
+                  padding: 8px 16px;
+                  font-size: 0.9rem;
+                  white-space: nowrap;
+                  color: var(--error);
+                  border-color: var(--error);
+                "
+              >
+                Usuń
+              </button>
+            </form>
+          </div>
           {% endif %}
         </div>
       </div>

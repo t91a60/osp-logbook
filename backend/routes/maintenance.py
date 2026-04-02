@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session
 from datetime import date, timedelta
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required, build_date_where, paginate, normalize_iso_date
+from backend.helpers import login_required, build_date_where, paginate, normalize_iso_date, parse_positive_int
 
 maintenance_bp = Blueprint('maintenance', __name__)
 
@@ -55,7 +55,7 @@ def maintenance():
     okres = request.args.get('okres', '')
     od = request.args.get('od', '')
     do_ = request.args.get('do', '')
-    page = int(request.args.get('page', 1))
+    page = parse_positive_int(request.args.get('page'), default=1)
 
     where_parts = []
     params_list = []

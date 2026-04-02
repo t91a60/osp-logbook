@@ -2,6 +2,7 @@ from datetime import date, timedelta
 from functools import wraps
 from flask import session, redirect, url_for
 
+
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -35,6 +36,16 @@ def build_date_where(okres, od, do_, alias='t'):
             params.append(do_)
 
     return parts, params
+
+
+def parse_positive_int(value, default=1):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+
+    return parsed if parsed > 0 else default
+
 
 def paginate(conn, cur, count_sql, count_params, data_sql, data_params, page, page_size=50):
     cur.execute(count_sql, count_params)
