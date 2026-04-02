@@ -14,7 +14,6 @@ services:
           property: connectionString
       - key: SECRET_KEY
         generateValue: true
-    preDeployCommand: yoyo apply -b --database $DATABASE_URL ./migrations
 
 databases:
   - name: osp-logbook-db
