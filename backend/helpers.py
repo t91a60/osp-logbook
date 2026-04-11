@@ -1,43 +1,28 @@
 from datetime import date, timedelta
-from contextlib import contextmanager
 from functools import wraps
 from flask import session, redirect, url_for, abort
-
-from backend.db import get_db, get_cursor
 
 
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if 'user_id' not in session:
-            return redirect(url_for('auth.login'))
+            return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated
 
 
-def require_roles(*allowed_roles):
-    normalized = {str(role).strip().lower() for role in allowed_roles}
+def admin_required(f):
+    """Wymaga zalogowania ORAZ flagi is_admin w sesji."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        if not session.get('is_admin'):
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated
 
-    def decorator(f):
-        @wraps(f)
-        def decorated(*args, **kwargs):
-            role = str(session.get('role') or 'user').strip().lower()
-            if role not in normalized:
-                abort(403)
-            return f(*args, **kwargs)
-
-        return decorated
-
-    return decorator
-
-
-def parse_iso_date(value):
-    if not value:
-        return None
-    try:
-        return date.fromisoformat(str(value))
-    except ValueError:
-        return None
 
 def build_date_where(okres, od, do_, alias='t'):
     today = date.today()
@@ -45,49 +30,25 @@ def build_date_where(okres, od, do_, alias='t'):
     params = []
 
     if okres == 'ten':
-        first = today.replace(day=1)
-        last = today
+        first = today.replace(day=1).isoformat()
+        last = today.isoformat()
         parts.append(f"{alias}.date BETWEEN %s AND %s")
         params += [first, last]
     elif okres == 'poprzedni':
         first_this = today.replace(day=1)
-        last_prev = first_this - timedelta(days=1)
-        first_prev = last_prev.replace(day=1)
+        last_prev = (first_this - timedelta(days=1)).isoformat()
+        first_prev = (first_this - timedelta(days=1)).replace(day=1).isoformat()
         parts.append(f"{alias}.date BETWEEN %s AND %s")
         params += [first_prev, last_prev]
     elif od or do_:
-        parsed_od = parse_iso_date(od)
-        parsed_do = parse_iso_date(do_)
-
-        if parsed_od:
+        if od:
             parts.append(f"{alias}.date >= %s")
-            params.append(parsed_od)
-        if parsed_do:
+            params.append(od)
+        if do_:
             parts.append(f"{alias}.date <= %s")
-            params.append(parsed_do)
+            params.append(do_)
 
     return parts, params
-
-
-def parse_positive_int(value, default=1):
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
-        return default
-
-    return parsed if parsed > 0 else default
-
-
-@contextmanager
-def db_tx():
-    conn = get_db()
-    try:
-        with get_cursor(conn) as cur:
-            yield conn, cur
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
 
 
 def paginate(conn, cur, count_sql, count_params, data_sql, data_params, page, page_size=50):
@@ -102,24 +63,3 @@ def paginate(conn, cur, count_sql, count_params, data_sql, data_params, page, pa
     )
     entries = cur.fetchall()
     return entries, total, total_pages, page
-
-
-def normalize_iso_date(value):
-    """Normalize DB date-like values to ISO string (YYYY-MM-DD)."""
-    if value is None:
-        return None
-    if isinstance(value, date):
-        return value.isoformat()
-    text = str(value).strip()
-    return text or None
-
-
-def days_since_iso_date(value):
-    """Return day difference from today for ISO date-like values."""
-    normalized = normalize_iso_date(value)
-    if not normalized:
-        return None
-    try:
-        return (date.today() - date.fromisoformat(normalized)).days
-    except ValueError:
-        return None

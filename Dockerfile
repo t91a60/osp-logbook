@@ -19,4 +19,4 @@ COPY . /app
 ENV FLASK_ENV=production
 
 EXPOSE 5000
-CMD ["gunicorn", "-w", "2", "--bind", "0.0.0.0:5000", "app:app"]
+CMD ["sh", "-c", "gunicorn -w 1 --bind 0.0.0.0:${PORT:-10000} app:app"]

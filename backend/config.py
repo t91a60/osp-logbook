@@ -1,10 +1,9 @@
 import os
 
-
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY')
     DATABASE_URL = os.environ.get('DATABASE_URL')
-
+    
     USE_HTTPS = os.environ.get('OSP_USE_HTTPS', '0') == '1'
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
@@ -15,21 +14,15 @@ class Config:
     if USE_HTTPS:
         PREFERRED_URL_SCHEME = 'https'
 
-
 class DevelopmentConfig(Config):
     DEBUG = True
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-me'
-
 
 class ProductionConfig(Config):
     DEBUG = False
-
-    if not os.environ.get('SECRET_KEY'):
-        raise ValueError('Brak zmiennej SECRET_KEY w środowisku produkcyjnym.')
-
+    SESSION_COOKIE_SECURE = True
 
 def get_config():
-    env = os.environ.get('APP_ENV', os.environ.get('FLASK_ENV', 'development'))
+    env = os.environ.get('FLASK_ENV', 'development')
     if env == 'production':
         return ProductionConfig
     return DevelopmentConfig

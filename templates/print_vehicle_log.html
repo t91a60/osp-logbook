@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Formularz pojazdu OSP - {{ vehicle.name }} - {{ period_label }}</title>
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: "Times New Roman", Times, serif;
+    color: #000;
+    background: #fff;
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
+  .no-print {
+    margin: 12px;
+    display: flex;
+    gap: 10px;
+  }
+
+  .no-print button,
+  .no-print a {
+    border: 1px solid #000;
+    background: #fff;
+    color: #000;
+    text-decoration: none;
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .sheet {
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .title {
+    text-align: center;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+
+  .meta {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 8px;
+  }
+
+  .meta td {
+    border: 1px solid #000;
+    padding: 4px 6px;
+    vertical-align: top;
+  }
+
+  .meta .label {
+    width: 18%;
+    font-weight: 700;
+  }
+
+  .log-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .log-table th,
+  .log-table td {
+    border: 1px solid #000;
+    padding: 3px 4px;
+    vertical-align: top;
+    word-wrap: break-word;
+  }
+
+  .log-table th {
+    text-align: center;
+    font-weight: 700;
+    font-size: 10px;
+  }
+
+  .center {
+    text-align: center;
+  }
+
+  .empty-row td {
+    height: 21px;
+  }
+
+  .totals {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+  }
+
+  .totals td {
+    border: 1px solid #000;
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+
+  .totals td:first-child {
+    font-weight: 700;
+  }
+
+  .totals .value {
+    width: 22%;
+    text-align: right;
+    font-weight: 700;
+  }
+
+  .signatures {
+    margin-top: 14mm;
+    display: flex;
+    gap: 10mm;
+    align-items: flex-end;
+  }
+
+  .signature-block {
+    flex: 1;
+    min-height: 28mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .signature-line {
+    border-top: 1px solid #000;
+    height: 0;
+    margin-bottom: 2mm;
+  }
+
+  .signature-label {
+    text-align: center;
+    font-size: 11px;
+  }
+
+  .stamp-block {
+    width: 55mm;
+    min-height: 28mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .stamp-box {
+    border: 1px solid #000;
+    height: 22mm;
+    margin-bottom: 2mm;
+  }
+
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+
+    body {
+      margin: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="no-print">
+  <button type="button" onclick="window.print()">Drukuj formularz</button>
+  <a href="{{ url_for('report.report', vehicle_id=vehicle.id) }}">Powrót do raportu</a>
+</div>
+
+<div class="sheet">
+  <div class="title">Podatnik dotyczący każdego wykorzystania tego pojazdu</div>
+  <div class="subtitle">Formularz rozliczeniowy pojazdu OSP</div>
+
+  <table class="meta">
+    <tr>
+      <td class="label">Pojazd</td>
+      <td>{{ vehicle.name }}{% if vehicle.plate %} ({{ vehicle.plate }}){% endif %}</td>
+      <td class="label">Okres</td>
+      <td>{{ period_label }}</td>
+    </tr>
+    <tr>
+      <td class="label">Zakres dat</td>
+      <td>{{ first_day }} - {{ last_day }}</td>
+      <td class="label">Data wydruku</td>
+      <td>{{ generated_on }}</td>
+    </tr>
+  </table>
+
+  <table class="log-table">
+    <colgroup>
+      <col style="width: 5%;">
+      <col style="width: 9%;">
+      <col style="width: 15%;">
+      <col style="width: 16%;">
+      <col style="width: 8%;">
+      <col style="width: 8%;">
+      <col style="width: 8%;">
+      <col style="width: 16%;">
+      <col style="width: 15%;">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>Kolejny numer wpisu</th>
+        <th>Data wyjazdu</th>
+        <th>Imię i nazwisko kierowcy</th>
+        <th>Cel wyjazdu</th>
+        <th>Km start</th>
+        <th>Km koniec</th>
+        <th>Przejechano km</th>
+        <th>Opis trasy (skąd-dokąd)</th>
+        <th>Uwagi</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td class="center">{{ row.no }}</td>
+        <td class="center">{{ row.date }}</td>
+        <td>{{ row.driver }}</td>
+        <td>{{ row.purpose }}</td>
+        <td class="center">{{ row.odo_start }}</td>
+        <td class="center">{{ row.odo_end }}</td>
+        <td class="center">{{ row.trip_km }}</td>
+        <td>{{ row.route_desc }}</td>
+        <td>{{ row.remarks }}</td>
+      </tr>
+      {% endfor %}
+
+      {% set min_rows = 20 %}
+      {% set missing_rows = min_rows - (rows|length) %}
+      {% if missing_rows > 0 %}
+        {% for _ in range(missing_rows) %}
+        <tr class="empty-row">
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+        </tr>
+        {% endfor %}
+      {% endif %}
+    </tbody>
+  </table>
+
+  <table class="totals">
+    <tr>
+      <td>Suma folio</td>
+      <td class="value">{{ folio_sum }}</td>
+    </tr>
+    <tr>
+      <td>Z przeniesienia z poprzedniej strony</td>
+      <td class="value">{{ carry_over }}</td>
+    </tr>
+    <tr>
+      <td>Razem na koniec okresu rozliczeniowego</td>
+      <td class="value">{{ period_total }}</td>
+    </tr>
+  </table>
+
+  <div class="signatures">
+    <div class="signature-block">
+      <div class="signature-line"></div>
+      <div class="signature-label">Podpis kierowcy</div>
+    </div>
+
+    <div class="signature-block">
+      <div class="signature-line"></div>
+      <div class="signature-label">Podpis Naczelnika OSP</div>
+    </div>
+
+    <div class="stamp-block">
+      <div class="stamp-box"></div>
+      <div class="signature-label">Miejsce na pieczątkę</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

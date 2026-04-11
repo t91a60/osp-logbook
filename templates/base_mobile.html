@@ -91,12 +91,21 @@
       >
         <span class="nav-icon">🔧</span><span>Serwis</span>
       </a>
+      {% if session.get('is_admin') %}
       <a
         href="{{ url_for('admin.vehicles') }}"
         class="nav-link {% if request.endpoint in ('admin.vehicles', 'admin.users', 'report.report', 'logs.logs_list') %}active{% endif %}"
       >
         <span class="nav-icon">☰</span><span>Więcej</span>
       </a>
+      {% else %}
+      <a
+        href="{{ url_for('report.report') }}"
+        class="nav-link {% if request.endpoint == 'report.report' %}active{% endif %}"
+      >
+        <span class="nav-icon">📊</span><span>Raport</span>
+      </a>
+      {% endif %}
     </nav>
     {% endif %}
 

@@ -3,7 +3,7 @@ endblock %} {% block content %}
 <div class="page">
   <!-- Page Header -->
   <div class="section-header">
-    <span class="section-title">Logi Zdarzeń</span>
+    <span class="section-title">Logi Zdarzeń{% if total is defined %} ({{ total }}){% endif %}</span>
   </div>
 
   <!-- Tab Navigation -->
@@ -188,6 +188,22 @@ endblock %} {% block content %}
       </tbody>
     </table>
   </div>
+
+  {% if total_pages is defined and total_pages > 1 %}
+  <div class="pagination no-print">
+    {% if page > 1 %}
+    <a href="{{ url_for('logs.logs_list', page=page-1) }}">← Wcześniejsze</a>
+    {% else %}
+    <span>← Wcześniejsze</span>
+    {% endif %}
+    <span>{{ page }} / {{ total_pages }}</span>
+    {% if page < total_pages %}
+    <a href="{{ url_for('logs.logs_list', page=page+1) }}">Następne →</a>
+    {% else %}
+    <span>Następne →</span>
+    {% endif %}
+  </div>
+  {% endif %}
   {% else %}
   <div class="empty-state" style="margin: 24px 0; text-align: center">
     <p>Brak historii zmian.</p>

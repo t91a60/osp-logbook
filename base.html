@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0f0f0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OSP Logbook">
+<link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+<title>{% block title %}OSP Logbook{% endblock %}</title>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js').then(function(registration) {
+        console.log('ServiceWorker registration successful');
+      }, function(err) {
+        console.log('ServiceWorker registration failed: ', err);
+      });
+    });
+  }
+</script>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   OSP LOGBOOK v2 – MOBILE-FIRST DESIGN SYSTEM
+   Dark mode only · Touch-optimised · No external resources
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+:root {
+  --bg:           #0a0a0c;
+  --bg-light:     #141416;
+  --bg-lighter:   #1e1e22;
+  --bg-lightest:  #28282d;
+  --text:         #f8f9fa;
+  --text-dim:     #a0a0aa;
+  --text-dimmer:  #64646e;
+  --accent:       #ff5e00;
+  --accent-dim:   #e65500;
+  --success:      #10b981;
+  --error:        #ef4444;
+  --warning:      #f59e0b;
+  --border:       #2a2a30;
+  --font:         -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --mono:         'SF Mono', 'Courier New', Courier, monospace;
+  --radius:       12px;
+  --transition:   200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100dvh;
+  padding-bottom: calc(85px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ── Layout ────────────────────────────────────────────────────────────── */
+
+.container { max-width: 100%; margin: 0 auto; }
+.page { padding: 0 16px 32px; }
+
+/* ── Top Bar ───────────────────────────────────────────────────────────── */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(20, 20, 22, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: max(8px, env(safe-area-inset-top)) 16px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+
+.topbar-brand svg { flex-shrink: 0; }
+
+.topbar-user {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-logout {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background var(--transition);
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+}
+.topbar-logout:active { background: rgba(255,107,61,0.12); }
+
+/* ── Bottom Nav ────────────────────────────────────────────────────────── */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: rgba(20, 20, 22, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--text-dimmer);
+  text-decoration: none;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: color var(--transition);
+  border: none;
+  background: none;
+  cursor: pointer;
+  min-height: 64px;
+  min-width: 48px;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-link:active, .nav-link.active { color: var(--accent); }
+
+/* ── Toast Notifications ───────────────────────────────────────────────── */
+
+.toast-container {
+  position: fixed;
+  bottom: calc(85px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(calc(100% - 32px), 420px);
+  z-index: 200;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 13px 16px;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  animation: toastIn 250ms ease-out both;
+}
+
+.toast.toast-out {
+  animation: toastOut 250ms ease-in both;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(16px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast, .toast.toast-out { animation: none; }
+}
+
+.toast.success { background: #1a3a28; border: 1px solid #2ecc71; color: #7fffc4; }
+.toast.error   { background: #3a1a1a; border: 1px solid #e74c3c; color: #ffaaaa; }
+.toast.info    { background: #2a2010; border: 1px solid #f39c12; color: #ffd580; }
+
+.toast-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 4px;
+  min-width: 28px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  -webkit-tap-highlight-color: transparent;
+}
+.toast-close:hover { opacity: 1; }
+
+/* ── Forms ─────────────────────────────────────────────────────────────── */
+
+.form-section {
+  background: var(--bg-light);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border);
+}
+
+.form-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dimmer);
+  margin-bottom: 16px;
+}
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-grid.full { grid-template-columns: 1fr; }
+
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+.form-field.full { grid-column: 1 / -1; }
+
+.form-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  background: var(--bg-lighter);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 1rem; /* CRITICAL: prevents iOS auto-zoom */
+  padding: 13px 12px;
+  min-height: 48px;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color var(--transition), background-color var(--transition);
+}
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  background-color: rgba(255, 94, 0, 0.05);
+  box-shadow: 0 0 0 3px rgba(255, 94, 0, 0.1);
+}
+.form-input::placeholder { color: var(--text-dimmer); }
+.form-input[type="number"] { font-family: var(--mono); }
+.form-input[type="date"]   { font-family: var(--mono); }
+
+.form-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%23a0a0a0' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+.form-textarea { resize: vertical; min-height: 88px; line-height: 1.5; }
+
+.form-hint {
+  font-size: 0.8rem;
+  color: var(--text-dimmer);
+  margin-top: 2px;
+  min-height: 1.2em;
+}
+.form-hint.success { color: var(--success); }
+.form-hint.error   { color: var(--error); }
+.form-hint.info    { color: #7cb4ff; }
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-radius: 6px;
+  font-family: var(--font);
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  min-height: 48px;
+  transition: background-color var(--transition), opacity var(--transition);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active { opacity: 0.82; }
+
+.btn-primary  { width: 100%; background: var(--accent); color: #fff; margin-top: 8px; }
+.btn-primary:hover { background: var(--accent-dim); }
+
+.btn-secondary { width: 100%; background: var(--bg-lighter); color: var(--text); border: 1px solid var(--border); margin-top: 8px; }
+.btn-secondary:hover { background: var(--bg-lightest); }
+
+.btn-danger { background: transparent; color: var(--error); border: 1px solid var(--error); padding: 10px 14px; min-height: 44px; font-size: 0.85rem; }
+.btn-sm { padding: 10px 14px; font-size: 0.85rem; min-height: 44px; }
+
+/* ── Date Filter Chips ──────────────────────────────────────────────────── */
+
+.filter-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1.5px solid var(--border);
+  color: var(--text-dim);
+  background: var(--bg-lighter);
+  transition: all var(--transition);
+  min-height: 36px;
+  -webkit-tap-highlight-color: transparent;
+}
+.chip:active, .chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ── Pagination ─────────────────────────────────────────────────────────── */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.pagination a, .pagination span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1.5px solid var(--border);
+}
+.pagination a { color: var(--text); background: var(--bg-lighter); }
+.pagination a:active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pagination span { color: var(--text-dimmer); background: none; border-color: transparent; }
+
+/* ── Data Entries ───────────────────────────────────────────────────────── */
+
+.entry {
+  background: var(--bg-lighter);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.entry-vehicle {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 0.92rem;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entry-date {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--text-dimmer);
+  white-space: nowrap;
+}
+
+.entry-main { font-size: 0.95rem; color: var(--text); line-height: 1.45; }
+
+.entry-meta {
+  font-size: 0.78rem;
+  color: var(--text-dimmer);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: var(--font);
+  background: rgba(255, 94, 0, 0.15);
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+.badge.success { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+
+/* ── Cards ──────────────────────────────────────────────────────────────── */
+
+.card {
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.card-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dimmer);
+  margin-bottom: 16px;
+}
+
+.section-header {
+  margin: 16px 0 24px;
+}
+
+.section-title {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin: 24px 0 16px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-dimmer);
+}
+.empty-state-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5; }
+
+/* ── Vehicle Cards (Dashboard) ──────────────────────────────────────────── */
+
+.vehicle-card {
+  background: var(--bg-light);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 10px;
+  text-decoration: none;
+  color: var(--text);
+  display: block;
+  transition: border-color var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.vehicle-card:active { border-color: var(--accent); }
+
+.vehicle-card-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.vehicle-card-plate {
+  font-size: 0.8rem;
+  font-family: var(--mono);
+  color: var(--text-dimmer);
+  margin-bottom: 10px;
+}
+.vehicle-card-stats {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+.vehicle-card-actions {
+  display: flex;
+  gap: 8px;
+}
+.vehicle-card-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 14px;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  background: var(--bg-lightest);
+  color: var(--text);
+  border: 1px solid var(--border);
+  min-height: 44px;
+  transition: background var(--transition), border-color var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.vehicle-card-btn:active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.vehicle-card-btn.primary { background: rgba(255,107,61,0.12); border-color: rgba(255,107,61,0.3); color: var(--accent); }
+.vehicle-card-btn.primary:active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ── Utility ────────────────────────────────────────────────────────────── */
+
+.text-mute    { color: var(--text-dimmer); }
+.text-accent  { color: var(--accent); }
+.text-success { color: var(--success); }
+.text-error   { color: var(--error); }
+.hidden       { display: none !important; }
+
+/* ── Loading Spinner ─────────────────────────────────────────────────────── */
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Tab Nav ────────────────────────────────────────────────────────────── */
+
+.tab-nav {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+}
+.tab-nav::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
+
+.tab-link {
+  flex: 1;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  padding: 14px 8px;
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.tab-link.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.tab-link:not(.active):active {
+  background: rgba(255,255,255,0.03);
+}
+
+/* ── Print ──────────────────────────────────────────────────────────────── */
+
+@media print {
+  .topbar, .bottom-nav, .btn, .no-print, .toast-container, .filter-chips, .pagination { display: none !important; }
+  body { background: #fff; color: #000; padding: 0; }
+  .page { padding: 0; }
+  .entry { border: 1px solid #ddd; break-inside: avoid; }
+  a { color: #000; text-decoration: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<header class="topbar">
+  <a href="{{ url_for('dashboard') }}" class="topbar-brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 2C8 6 4 9.5 4 14a8 8 0 0016 0c0-4.5-4-8-8-12z" fill="#ff6b3d"/>
+      <path d="M12 8c-2 2.5-3 4.5-3 6a3 3 0 006 0c0-1.5-1-3.5-3-6z" fill="#fff" opacity=".6"/>
+    </svg>
+    OSP Logbook
+  </a>
+  {% if session.user_id %}
+  <div class="topbar-user">
+    <span>{{ session.display_name }}</span>
+    <a href="{{ url_for('logout') }}" class="topbar-logout">Wyloguj</a>
+  </div>
+  {% endif %}
+</header>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+<script id="flashMessages" type="application/json">{{ messages|tojson }}</script>
+{% endwith %}
+
+<!-- Main Content -->
+<main class="container">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- Bottom Navigation -->
+{% if session.user_id %}
+<nav class="bottom-nav" aria-label="Nawigacja">
+  <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" aria-label="Start">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12L12 3l9 9"/><path d="M9 21V12h6v9"/></svg>
+    <span>Start</span>
+  </a>
+  <a href="{{ url_for('trips') }}" class="nav-link {% if request.endpoint == 'trips' %}active{% endif %}" aria-label="Wyjazdy">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    <span>Wyjazdy</span>
+  </a>
+  <a href="{{ url_for('fuel') }}" class="nav-link {% if request.endpoint == 'fuel' %}active{% endif %}" aria-label="Paliwo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 22V8a2 2 0 012-2h6a2 2 0 012 2v14"/><path d="M3 22h10"/><path d="M13 8h2l2 2v5a2 2 0 002 2h0a2 2 0 002-2V9l-3-3h-3"/><path d="M7 14v-4"/></svg>
+    <span>Paliwo</span>
+  </a>
+  <a href="{{ url_for('maintenance') }}" class="nav-link {% if request.endpoint == 'maintenance' %}active{% endif %}" aria-label="Serwis">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 010 1.4L9.4 13 5 14l1-4.4 5.3-5.3a1 1 0 011.4 0z"/><path d="M21 15a6 6 0 11-6-6"/><path d="M3 21l4-4"/></svg>
+    <span>Serwis</span>
+  </a>
+  <a href="{{ url_for('vehicles') }}" class="nav-link {% if request.endpoint in ('vehicles','users','report') %}active{% endif %}" aria-label="Więcej">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <span>Więcej</span>
+  </a>
+</nav>
+{% endif %}
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// OSP Logbook v2 – Core JS (inline, no external dependencies)
+// ═══════════════════════════════════════════════════════════════
+
+// ── Toast System ──────────────────────────────────────────────
+
+function showToast(message, type, duration) {
+  // type: 'success' | 'error' | 'info'
+  // duration: ms (null = stays until dismissed)
+  if (duration === undefined) {
+    duration = type === 'error' ? null : 2500;
+  }
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + (type || 'info');
+  toast.setAttribute('role', 'alert');
+
+  const icons = {
+    success: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>',
+    error:   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    info:    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+  };
+
+  toast.innerHTML =
+    (icons[type] || icons.info) +
+    '<span style="flex:1">' + message + '</span>' +
+    '<button class="toast-close" aria-label="Zamknij" onclick="dismissToast(this.parentElement)">✕</button>';
+
+  container.prepend(toast);
+
+  if (duration && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    setTimeout(function() { dismissToast(toast); }, duration);
+  } else if (duration) {
+    // reduced-motion: just remove
+    setTimeout(function() { if (toast.parentElement) toast.remove(); }, duration);
+  }
+}
+
+function dismissToast(toast) {
+  if (!toast || !toast.parentElement) return;
+  const rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (rm) { toast.remove(); return; }
+  toast.classList.add('toast-out');
+  setTimeout(function() { if (toast.parentElement) toast.remove(); }, 260);
+}
+
+// ── Auto-save ─────────────────────────────────────────────────
+
+function setupAutoSave(formId) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+  const key = 'form_' + formId;
+  try {
+    const saved = JSON.parse(localStorage.getItem(key));
+    if (saved) {
+      Object.entries(saved).forEach(function([name, value]) {
+        const field = form.elements[name];
+        if (field && field.type !== 'date') field.value = value;
+      });
+    }
+  } catch(e) {}
+  form.addEventListener('change', function() {
+    const obj = {};
+    for (const [k, v] of new FormData(form)) obj[k] = v;
+    try { localStorage.setItem(key, JSON.stringify(obj)); } catch(e) {}
+  });
+}
+
+function clearFormAutosave(formId) {
+  try { localStorage.removeItem('form_' + formId); } catch(e) {}
+}
+
+// ── AJAX Form Submit ──────────────────────────────────────────
+
+function submitForm(formId, endpoint, onSuccess) {
+  const form = document.getElementById(formId);
+  if (!form) return false;
+  const btn = form.querySelector('button[type="submit"]');
+  const orig = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Zapisywanie…'; }
+
+  fetch(endpoint, {
+    method: 'POST',
+    body: new FormData(form),
+    headers: { 'Accept': 'application/json' }
+  })
+  .then(function(r) {
+    return r.json().catch(function() { return {}; }).then(function(p) {
+      if (!r.ok) throw new Error(p.message || 'Błąd zapisywania.');
+      return p;
+    });
+  })
+  .then(function(data) {
+    if (data.success) {
+      showToast(data.message || 'Zapisano', 'success');
+      clearFormAutosave(formId);
+      form.reset();
+      // reset purpose combo if present
+      var ps = document.getElementById('purposeSelect');
+      if (ps) { ps.value = ''; }
+      var pc = document.getElementById('purposeCustomWrap');
+      if (pc) { pc.classList.add('hidden'); }
+      if (typeof onSuccess === 'function') onSuccess();
+    } else {
+      showToast(data.message || 'Błąd', 'error');
+    }
+  })
+  .catch(function(err) { showToast(err.message || 'Błąd sieci', 'error'); })
+  .finally(function() { if (btn) { btn.disabled = false; btn.innerHTML = orig; } });
+
+  return false;
+}
+
+// ── Vehicle memory ────────────────────────────────────────────
+
+function rememberVehicle(vehicleId, section) {
+  try { sessionStorage.setItem('vehicle_' + section, vehicleId); } catch(e) {}
+}
+function restoreVehicle(selectId, section) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  const saved = sessionStorage.getItem('vehicle_' + section);
+  if (saved) select.value = saved;
+}
+
+// ── Pull-to-Refresh & Sync ────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Check if current page wants auto-refresh
+  const wantsRefresh = document.body.getAttribute('data-autorefresh') === 'true';
+  let lastRefresh = Date.now();
+  
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && wantsRefresh) {
+      if (Date.now() - lastRefresh > 300000) { // 5 minutes max wait
+        location.reload();
+      } else {
+        // Soft refresh could go here, for now just reload if it's been over 10s
+        if (Date.now() - lastRefresh > 10000) {
+            location.reload();
+        }
+      }
+    } else if (document.visibilityState === 'hidden') {
+      lastRefresh = Date.now();
+    }
+  });
+
+  // Support for manual refresh hint (swiping down un-scrollable content)
+  let touchStartAreaY = 0;
+  document.body.addEventListener('touchstart', (e) => {
+    if(window.scrollY === 0) {
+      touchStartAreaY = e.touches[0].clientY;
+    }
+  }, {passive: true});
+  
+  document.body.addEventListener('touchend', (e) => {
+    if (window.scrollY === 0 && wantsRefresh && touchStartAreaY > 0) {
+      let touchEndAreaY = e.changedTouches[0].clientY;
+      if (touchEndAreaY - touchStartAreaY > 150) { // Pull down threshold
+        location.reload();
+      }
+    }
+  }, {passive: true});
+});
+
+
+// ── Odometer calc ─────────────────────────────────────────────
+
+function calculateKm() {
+  const start = parseInt(document.getElementById('odo_start')?.value || 0);
+  const end   = parseInt(document.getElementById('odo_end')?.value || 0);
+  const hint  = document.getElementById('kmHint');
+  if (hint && start && end && end > start) {
+    hint.textContent = (end - start) + ' km';
+    hint.className = 'form-hint success';
+  } else if (hint) {
+    hint.textContent = '';
+    hint.className = 'form-hint';
+  }
+}
+
+// ── Last-km hint ──────────────────────────────────────────────
+
+function loadLastKm(vehicleId, hintId) {
+  const hint = document.getElementById(hintId);
+  if (!hint || !vehicleId) { if (hint) hint.textContent = ''; return; }
+  fetch('/api/vehicle/' + vehicleId + '/last_km')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.km !== null && d.km !== undefined) {
+        const kmFmt = d.km.toLocaleString('pl-PL');
+        const daysTxt = d.days_ago === 0 ? 'dzisiaj'
+                      : d.days_ago === 1 ? 'wczoraj'
+                      : d.days_ago + ' dni temu';
+        hint.textContent = 'Ostatni odczyt: ' + kmFmt + ' km · ' + daysTxt;
+        hint.className = 'form-hint info';
+      } else {
+        hint.textContent = 'Brak danych o przebiegu';
+        hint.className = 'form-hint';
+      }
+    })
+    .catch(function() { hint.textContent = ''; hint.className = 'form-hint'; });
+}
+
+// ── Driver datalist ───────────────────────────────────────────
+
+function loadDrivers(datalistId) {
+  fetch('/api/drivers')
+    .then(function(r) { return r.json(); })
+    .then(function(names) {
+      const dl = document.getElementById(datalistId);
+      if (!dl) return;
+      names.forEach(function(name) {
+        const opt = document.createElement('option');
+        opt.value = name;
+        dl.appendChild(opt);
+      });
+    })
+    .catch(function() {});
+}
+
+// ── Purpose combo ─────────────────────────────────────────────
+
+function onPurposeChange(sel) {
+  const wrap  = document.getElementById('purposeCustomWrap');
+  const input = document.getElementById('purposeCustom');
+  if (!wrap) return;
+  if (sel.value === '__inne__') {
+    wrap.classList.remove('hidden');
+    if (input) input.required = true;
+  } else {
+    wrap.classList.add('hidden');
+    if (input) { input.required = false; input.value = ''; }
+  }
+}
+
+// ── Keyboard shortcuts ────────────────────────────────────────
+
+function setupFormKeyboardShortcuts(formId) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+  form.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      form.querySelector('button[type="submit"]')?.click();
+    }
+  });
+}
+
+// ── Flash → Toast on load ─────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', function() {
+  const el = document.getElementById('flashMessages');
+  if (!el || !el.textContent.trim() || el.textContent.trim() === '[]') return;
+  try {
+    JSON.parse(el.textContent).forEach(function(pair) {
+      const type = pair[0] === 'error' ? 'error' : pair[0] === 'success' ? 'success' : 'info';
+      showToast(pair[1], type);
+    });
+  } catch(e) {}
+});
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

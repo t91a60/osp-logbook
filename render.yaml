@@ -4,9 +4,12 @@ services:
     env: docker
     region: frankfurt
     plan: free
+    # Render przekazuje PORT do kontenera; Gunicorn binduje się do tego portu.
     preDeployCommand: yoyo apply -b --database $DATABASE_URL ./migrations
     healthCheckPath: /health
     envVars:
+      - key: APP_ENV
+        value: production
       - key: FLASK_ENV
         value: production
       - key: DATABASE_URL

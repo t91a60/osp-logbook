@@ -1,117 +1,120 @@
-from flask import Blueprint, render_template, make_response, current_app
+from flask import render_template, make_response, current_app
 from datetime import date
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required, normalize_iso_date, days_since_iso_date
+from backend.helpers import login_required
 
-main_bp = Blueprint('main', __name__)
 
-@main_bp.route('/sw.js', endpoint='sw')
-def sw():
-    response = make_response(current_app.send_static_file('sw.js'))
-    response.headers['Content-Type'] = 'application/javascript'
-    response.headers['Service-Worker-Allowed'] = '/'
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    return response
+def register_routes(app):
+    @app.route('/sw.js', endpoint='sw')
+    def sw():
+        response = make_response(current_app.send_static_file('sw.js'))
+        response.headers['Content-Type'] = 'application/javascript'
+        response.headers['Service-Worker-Allowed'] = '/'
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response
 
-@main_bp.route('/', endpoint='dashboard')
-@login_required
-def dashboard():
-    conn = get_db()
-    cur = get_cursor(conn)
-    cur.execute('''
-        WITH TripDetails AS (
-            SELECT vehicle_id, 
-                   MAX(odo_end) as max_trip_km, 
-                   MAX(date) as max_trip_dt
-            FROM trips 
-            WHERE odo_end IS NOT NULL
-            GROUP BY vehicle_id
-        ),
-        FuelDetails AS (
-            SELECT vehicle_id, 
-                   MAX(odometer) as max_fuel_km, 
-                   MAX(date) as max_fuel_dt
-            FROM fuel 
-            WHERE odometer IS NOT NULL
-            GROUP BY vehicle_id
-        ),
-        LastTripInfo AS (
-            SELECT vehicle_id,
-                   MAX(date) as abs_last_trip_dt
-            FROM trips
-            GROUP BY vehicle_id
-        )
-        SELECT v.id, v.name, v.plate, v.type,
-               t.max_trip_km, t.max_trip_dt,
-               f.max_fuel_km, f.max_fuel_dt,
-               lt.abs_last_trip_dt
-        FROM vehicles v
-        LEFT JOIN TripDetails t ON v.id = t.vehicle_id
-        LEFT JOIN FuelDetails f ON v.id = f.vehicle_id
-        LEFT JOIN LastTripInfo lt ON v.id = lt.vehicle_id
-        WHERE v.active = 1
-        ORDER BY v.name
-    ''')
-    vehicles_with_stats = cur.fetchall()
+    @app.route('/', endpoint='dashboard')
+    @login_required
+    def dashboard():
+        conn = get_db()
+        cur = get_cursor(conn)
+        try:
+            # Jedno zapytanie CTE zamiast N+1 pętli po pojazdach.
+            # Zwraca dla każdego aktywnego pojazdu:
+            #   - ostatnie znane km (max z trips.odo_end i fuel.odometer)
+            #   - datę ostatniego wyjazdu
+            cur.execute('''
+                WITH trip_max AS (
+                    SELECT vehicle_id,
+                           MAX(odo_end)  AS last_km,
+                           MAX(date)     AS last_km_date
+                    FROM trips
+                    WHERE odo_end IS NOT NULL
+                    GROUP BY vehicle_id
+                ),
+                fuel_max AS (
+                    SELECT vehicle_id,
+                           MAX(odometer) AS last_km,
+                           MAX(date)     AS last_km_date
+                    FROM fuel
+                    WHERE odometer IS NOT NULL
+                    GROUP BY vehicle_id
+                ),
+                last_trip_date AS (
+                    SELECT vehicle_id, MAX(date) AS last_trip_date
+                    FROM trips
+                    GROUP BY vehicle_id
+                )
+                SELECT
+                    v.id, v.name, v.plate, v.type,
+                    CASE
+                        WHEN tm.last_km IS NULL THEN fm.last_km
+                        WHEN fm.last_km IS NULL THEN tm.last_km
+                        WHEN (tm.last_km_date >= fm.last_km_date) THEN tm.last_km
+                        ELSE fm.last_km
+                    END AS last_km,
+                    ltd.last_trip_date
+                FROM vehicles v
+                LEFT JOIN trip_max      tm  ON tm.vehicle_id = v.id
+                LEFT JOIN fuel_max      fm  ON fm.vehicle_id = v.id
+                LEFT JOIN last_trip_date ltd ON ltd.vehicle_id = v.id
+                WHERE v.active = 1
+                ORDER BY v.name
+            ''')
+            vehicles_raw = cur.fetchall()
 
-    vehicle_cards = []
-    vehicles_raw = []
-    for v in vehicles_with_stats:
-        vehicles_raw.append(v)
-        trip_km = v['max_trip_km']
-        fuel_km = v['max_fuel_km']
-        trip_dt = normalize_iso_date(v['max_trip_dt']) if v['max_trip_dt'] else None
-        fuel_dt = normalize_iso_date(v['max_fuel_dt']) if v['max_fuel_dt'] else None
-        last_trip_dt = normalize_iso_date(v['abs_last_trip_dt']) if v['abs_last_trip_dt'] else None
+            vehicle_cards = []
+            today = date.today()
+            for v in vehicles_raw:
+                days_ago = None
+                if v['last_trip_date']:
+                    try:
+                        days_ago = (today - date.fromisoformat(v['last_trip_date'])).days
+                    except ValueError:
+                        pass
+                vehicle_cards.append({
+                    'id':              v['id'],
+                    'name':            v['name'],
+                    'plate':           v['plate'],
+                    'type':            v['type'],
+                    'last_km':         v['last_km'],
+                    'last_trip_date':  v['last_trip_date'],
+                    'days_ago':        days_ago,
+                })
 
-        last_km = None
-        if trip_km is not None and fuel_km is not None:
-            last_km = trip_km if (trip_dt or '') >= (fuel_dt or '') else fuel_km
-        elif trip_km is not None:
-            last_km = trip_km
-        elif fuel_km is not None:
-            last_km = fuel_km
-        
-        vehicle_cards.append({
-            'id': v['id'],
-            'name': v['name'],
-            'plate': v['plate'],
-            'type': v['type'],
-            'last_km': last_km,
-            'last_trip_date': last_trip_dt,
-            'days_ago': days_since_iso_date(last_trip_dt)
-        })
+            cur.execute('''
+                SELECT t.*, v.name AS vname
+                FROM trips t JOIN vehicles v ON t.vehicle_id = v.id
+                ORDER BY t.date DESC, t.created_at DESC LIMIT 6
+            ''')
+            recent_trips = cur.fetchall()
 
-    cur.execute('''
-        SELECT t.*, v.name AS vname
-        FROM trips t JOIN vehicles v ON t.vehicle_id = v.id
-        ORDER BY t.date DESC, t.created_at DESC LIMIT 6
-    ''')
-    recent_trips = cur.fetchall()
-    cur.execute('''
-        SELECT f.*, v.name AS vname
-        FROM fuel f JOIN vehicles v ON f.vehicle_id = v.id
-        ORDER BY f.date DESC, f.created_at DESC LIMIT 4
-    ''')
-    recent_fuel = cur.fetchall()
-    cur.execute('SELECT COUNT(*) AS count FROM trips')
-    trips_count = cur.fetchone()['count']
-    cur.execute('SELECT COUNT(*) AS count FROM fuel')
-    fuel_count = cur.fetchone()['count']
-    cur.execute('SELECT COUNT(*) AS count FROM maintenance')
-    maint_count = cur.fetchone()['count']
-    cur.close()
+            cur.execute('''
+                SELECT f.*, v.name AS vname
+                FROM fuel f JOIN vehicles v ON f.vehicle_id = v.id
+                ORDER BY f.date DESC, f.created_at DESC LIMIT 4
+            ''')
+            recent_fuel = cur.fetchall()
 
-    stats = dict(
-        trips=trips_count,
-        fuel=fuel_count,
-        maintenance=maint_count,
-    )
+            cur.execute('SELECT COUNT(*) AS count FROM trips')
+            trips_count = cur.fetchone()['count']
+            cur.execute('SELECT COUNT(*) AS count FROM fuel')
+            fuel_count = cur.fetchone()['count']
+            cur.execute('SELECT COUNT(*) AS count FROM maintenance')
+            maint_count = cur.fetchone()['count']
 
-    return render_template('dashboard.html',
-                           vehicles=vehicles_raw,
-                           vehicle_cards=vehicle_cards,
-                           recent_trips=recent_trips,
-                           recent_fuel=recent_fuel,
-                           stats=stats,
-                           today=date.today().isoformat())
+            # vehicles_raw potrzebne dla selektora — pobierz wszystkie aktywne
+            cur.execute('SELECT * FROM vehicles WHERE active = 1 ORDER BY name')
+            vehicles_all = cur.fetchall()
+        finally:
+            cur.close()
+
+        stats = dict(trips=trips_count, fuel=fuel_count, maintenance=maint_count)
+
+        return render_template('dashboard.html',
+                               vehicles=vehicles_all,
+                               vehicle_cards=vehicle_cards,
+                               recent_trips=recent_trips,
+                               recent_fuel=recent_fuel,
+                               stats=stats,
+                               today=today.isoformat())

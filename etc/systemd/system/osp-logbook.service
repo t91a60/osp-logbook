@@ -1,0 +1,27 @@
+[Unit]
+Description=OSP Logbook (Gunicorn)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=notify
+User=ospapp
+Group=ospapp
+WorkingDirectory=/opt/osp-logbook/osp_logbook
+EnvironmentFile=/etc/osp-logbook.env
+ExecStart=/opt/osp-logbook/venv/bin/gunicorn \
+	--workers 2 \
+	--worker-class sync \
+	--bind unix:/run/osp-logbook/gunicorn.sock \
+	--timeout 30 \
+	--access-logfile /var/log/osp-logbook/access.log \
+	--error-logfile /var/log/osp-logbook/error.log \
+	app:app
+ExecReload=/bin/kill -s HUP $MAINPID
+RuntimeDirectory=osp-logbook
+RuntimeDirectoryMode=0755
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

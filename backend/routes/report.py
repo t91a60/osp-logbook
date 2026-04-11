@@ -1,34 +1,32 @@
-from flask import Blueprint, render_template, request, flash, current_app
+from flask import render_template, request
 from datetime import date, timedelta
 from backend.db import get_db, get_cursor
 from backend.helpers import login_required
 
-report_bp = Blueprint('report', __name__)
 
-@report_bp.route('/raport', endpoint='report')
-@login_required
-def report():
-    today = date.today()
-    month_str = request.args.get('month', today.strftime('%Y-%m'))
-    vid = request.args.get('vehicle_id', '')
+def register_routes(app):
+    @app.route('/raport', endpoint='report')
+    @login_required
+    def report():
+        conn = get_db()
+        cur = get_cursor(conn)
+        today = date.today()
+        month_str = request.args.get('month', today.strftime('%Y-%m'))
+        vid = request.args.get('vehicle_id', '')
 
-    try:
-        year, month = int(month_str[:4]), int(month_str[5:7])
-        if month < 1 or month > 12:
-            raise ValueError('Invalid month range')
-    except (ValueError, IndexError):
-        year, month = today.year, today.month
-        month_str = today.strftime('%Y-%m')
+        try:
+            year, month = int(month_str[:4]), int(month_str[5:7])
+        except (ValueError, IndexError):
+            year, month = today.year, today.month
+            month_str = today.strftime('%Y-%m')
 
-    first_day = date(year, month, 1)
-    if month == 12:
-        last_day = date(year + 1, 1, 1) - timedelta(days=1)
-    else:
-        last_day = date(year, month + 1, 1) - timedelta(days=1)
-    conn = get_db()
-    cur = get_cursor(conn)
+        first_day = date(year, month, 1).isoformat()
+        if month == 12:
+            last_day = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            last_day = date(year, month + 1, 1) - timedelta(days=1)
+        last_day = last_day.isoformat()
 
-    try:
         cur.execute('SELECT * FROM vehicles ORDER BY active DESC, name')
         vehicles = cur.fetchall()
 
@@ -46,6 +44,12 @@ def report():
         ''', trip_params)
         trip_entries = cur.fetchall()
 
+        summary_where = "WHERE t.date BETWEEN %s AND %s"
+        summary_params = [first_day, last_day]
+        if vid:
+            summary_where += " AND t.vehicle_id = %s"
+            summary_params.append(vid)
+
         cur.execute(f'''
             SELECT v.id, v.name, v.plate,
                    COUNT(t.id) AS trip_count,
@@ -54,7 +58,7 @@ def report():
             FROM vehicles v
             LEFT JOIN trips t ON t.vehicle_id = v.id AND t.date BETWEEN %s AND %s
             {"AND t.vehicle_id = %s" if vid else ""}
-            GROUP BY v.id, v.name, v.plate
+            GROUP BY v.id
             HAVING COUNT(t.id) > 0
             ORDER BY v.name
         ''', [first_day, last_day] + ([vid] if vid else []))
@@ -90,6 +94,8 @@ def report():
         maint_summary = cur.fetchall()
         maint_by_vid = {r['vehicle_id']: r for r in maint_summary}
 
+        cur.close()
+
         return render_template('report.html',
                                vehicles=vehicles,
                                trip_summary=trip_summary,
@@ -98,20 +104,5 @@ def report():
                                trip_entries=trip_entries,
                                month_str=month_str,
                                selected_vehicle=vid,
-                               first_day=first_day.isoformat(),
-                               last_day=last_day.isoformat())
-    except Exception:
-        current_app.logger.exception('Błąd generowania raportu miesięcznego')
-        flash('Nie udało się wygenerować raportu. Sprawdź dane i spróbuj ponownie.', 'error')
-        return render_template('report.html',
-                               vehicles=[],
-                               trip_summary=[],
-                               fuel_by_vid={},
-                               maint_by_vid={},
-                               trip_entries=[],
-                               month_str=month_str,
-                               selected_vehicle=vid,
-                               first_day=first_day.isoformat(),
-                               last_day=last_day.isoformat())
-    finally:
-        cur.close()
+                               first_day=first_day,
+                               last_day=last_day)
