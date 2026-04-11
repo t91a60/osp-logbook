@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Historia Zmian – OSP Logbook{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="section-header">
+    <span class="section-title">Logi Zdarzeń{% if total is defined %} ({{ total }}){% endif %}</span>
+  </div>
+
+  <div class="tab-nav no-print">
+    <a href="{{ url_for('vehicles') }}" class="tab-link {% if request.endpoint == 'vehicles' %}active{% endif %}">Pojazdy</a>
+    <a href="{{ url_for('users') }}" class="tab-link {% if request.endpoint == 'users' %}active{% endif %}">Użytkownicy</a>
+    <a href="{{ url_for('report') }}" class="tab-link {% if request.endpoint == 'report' %}active{% endif %}">Raport</a>
+    <a href="{{ url_for('logs.logs_list') }}" class="tab-link {% if request.endpoint == 'logs.logs_list' %}active{% endif %}">Logs</a>
+  </div>
+
+  {% if logs %}
+  <div style="overflow-x:auto; margin-bottom:24px;">
+    <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border);">
+          <th style="text-align:left; padding:8px; color:var(--text-dimmer); font-size:.7rem; text-transform:uppercase; letter-spacing:.05em; white-space:nowrap;">Data i godzina</th>
+          <th style="text-align:left; padding:8px; color:var(--text-dimmer); font-size:.7rem; text-transform:uppercase; letter-spacing:.05em;">Użytkownik</th>
+          <th style="text-align:left; padding:8px; color:var(--text-dimmer); font-size:.7rem; text-transform:uppercase; letter-spacing:.05em;">Akcja</th>
+          <th style="text-align:left; padding:8px; color:var(--text-dimmer); font-size:.7rem; text-transform:uppercase; letter-spacing:.05em;">Obiekt</th>
+          <th style="text-align:left; padding:8px; color:var(--text-dimmer); font-size:.7rem; text-transform:uppercase; letter-spacing:.05em;">Szczegóły</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:8px; font-family:var(--mono); white-space:nowrap; color:var(--text-dimmer);">{{ (log.created_at|string)[:16] }}</td>
+          <td style="padding:8px; font-weight:600; color:var(--accent);">{{ log.username or 'Nieznany' }}</td>
+          <td style="padding:8px;">{{ log.action }}</td>
+          <td style="padding:8px; color:var(--text-dim);">{{ log.object }}</td>
+          <td style="padding:8px; color:var(--text-dimmer);">{{ log.details }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if total_pages is defined and total_pages > 1 %}
+  <div class="pagination no-print">
+    {% if page > 1 %}
+    <a href="{{ url_for('logs.logs_list', page=page-1) }}">← Wcześniejsze</a>
+    {% else %}
+    <span>← Wcześniejsze</span>
+    {% endif %}
+    <span>{{ page }} / {{ total_pages }}</span>
+    {% if page < total_pages %}
+    <a href="{{ url_for('logs.logs_list', page=page+1) }}">Następne →</a>
+    {% else %}
+    <span>Następne →</span>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="empty-state" style="margin:24px 0; text-align:center;">
+    <p>Brak historii zmian.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

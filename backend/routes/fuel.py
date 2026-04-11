@@ -2,7 +2,7 @@ from flask import render_template, request, flash, redirect, url_for, session
 from datetime import date
 from psycopg2 import IntegrityError
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required, build_date_where, paginate
+from backend.helpers import login_required, build_date_where, paginate, parse_positive_int
 
 
 class ValidationError(Exception):
@@ -88,7 +88,7 @@ def register_routes(app):
             okres = request.args.get('okres', '')
             od = request.args.get('od', '')
             do_ = request.args.get('do', '')
-            page = int(request.args.get('page', 1))
+            page = parse_positive_int(request.args.get('page'), default=1)
 
             where_parts = []
             params = []

@@ -1,53 +1,45 @@
 from flask import render_template, request, abort
 from datetime import date, timedelta
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required
+from backend.helpers import login_required, parse_positive_int
 
 
-def _quarter_date_range(year, quarter):
-    if quarter == 1:
-        return date(year, 1, 1), date(year, 3, 31)
-    if quarter == 2:
-        return date(year, 4, 1), date(year, 6, 30)
-    if quarter == 3:
-        return date(year, 7, 1), date(year, 9, 30)
-    return date(year, 10, 1), date(year, 12, 31)
+def _parse_period(period):
+    today = date.today()
 
-
-def _parse_period(period, today):
-    # YYYY-MM
-    if len(period) == 7 and period[4] == '-':
+    if '-Q' in period:
         try:
-            year = int(period[:4])
-            month = int(period[5:7])
-            first = date(year, month, 1)
-            if month == 12:
-                last = date(year + 1, 1, 1) - timedelta(days=1)
-            else:
-                last = date(year, month + 1, 1) - timedelta(days=1)
-            return first, last, first.strftime('%m/%Y')
-        except ValueError:
-            pass
-
-    # YYYY-QN
-    if len(period) == 7 and period[4] == '-' and period[5].upper() == 'Q':
-        try:
-            year = int(period[:4])
-            quarter = int(period[6])
+            year_text, quarter_text = period.split('-Q', 1)
+            year = int(year_text)
+            quarter = int(quarter_text)
             if quarter not in (1, 2, 3, 4):
                 raise ValueError
-            first, last = _quarter_date_range(year, quarter)
-            return first, last, f'Q{quarter} {year}'
         except ValueError:
-            pass
+            year = today.year
+            quarter = (today.month - 1) // 3 + 1
+        start_month = (quarter - 1) * 3 + 1
+        first_day = date(year, start_month, 1)
+        if quarter == 4:
+            last_day = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            last_day = date(year, start_month + 3, 1) - timedelta(days=1)
+        return first_day, last_day, f'Q{quarter} {year}'
 
-    # Fallback to current month
-    first = date(today.year, today.month, 1)
-    if today.month == 12:
-        last = date(today.year + 1, 1, 1) - timedelta(days=1)
-    else:
-        last = date(today.year, today.month + 1, 1) - timedelta(days=1)
-    return first, last, first.strftime('%m/%Y')
+    try:
+        year, month = int(period[:4]), int(period[5:7])
+        first_day = date(year, month, 1)
+        if month == 12:
+            last_day = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            last_day = date(year, month + 1, 1) - timedelta(days=1)
+        return first_day, last_day, period
+    except (ValueError, IndexError):
+        first_day = today.replace(day=1)
+        if today.month == 12:
+            last_day = date(today.year + 1, 1, 1) - timedelta(days=1)
+        else:
+            last_day = date(today.year, today.month + 1, 1) - timedelta(days=1)
+        return first_day, last_day, today.strftime('%Y-%m')
 
 
 def register_routes(app):
@@ -58,7 +50,8 @@ def register_routes(app):
         cur = get_cursor(conn)
         today = date.today()
         month_str = request.args.get('month', today.strftime('%Y-%m'))
-        vid = request.args.get('vehicle_id', '')
+        vid = parse_positive_int(request.args.get('vehicle_id'), default=0)
+        selected_vehicle = str(vid) if vid else ''
 
         try:
             year, month = int(month_str[:4]), int(month_str[5:7])
@@ -80,7 +73,7 @@ def register_routes(app):
         trip_params = [first_day, last_day]
         if vid:
             trip_where += " AND t.vehicle_id = %s"
-            trip_params.append(vid)
+            trip_params.append(str(vid))
 
         cur.execute(f'''
             SELECT t.*, v.name AS vname
@@ -94,7 +87,7 @@ def register_routes(app):
         summary_params = [first_day, last_day]
         if vid:
             summary_where += " AND t.vehicle_id = %s"
-            summary_params.append(vid)
+            summary_params.append(str(vid))
 
         cur.execute(f'''
             SELECT v.id, v.name, v.plate,
@@ -114,7 +107,7 @@ def register_routes(app):
         fuel_params = [first_day, last_day]
         if vid:
             fuel_where += " AND f.vehicle_id = %s"
-            fuel_params.append(vid)
+            fuel_params.append(str(vid))
 
         cur.execute(f'''
             SELECT vehicle_id, SUM(liters) AS total_liters, SUM(cost) AS total_cost
@@ -129,7 +122,7 @@ def register_routes(app):
         maint_params = [first_day, last_day]
         if vid:
             maint_where += " AND m.vehicle_id = %s"
-            maint_params.append(vid)
+            maint_params.append(str(vid))
 
         cur.execute(f'''
             SELECT vehicle_id, SUM(cost) AS total_cost
@@ -149,70 +142,79 @@ def register_routes(app):
                                maint_by_vid=maint_by_vid,
                                trip_entries=trip_entries,
                                month_str=month_str,
-                               selected_vehicle=vid,
+                               selected_vehicle=selected_vehicle,
                                first_day=first_day,
                                last_day=last_day)
 
-    @app.route('/report/print/<int:vehicle_id>/<string:period>', endpoint='report_print_vehicle')
+    @app.route('/report/print/<int:vehicle_id>/<path:period>', endpoint='report_print')
     @login_required
-    def report_print_vehicle(vehicle_id, period):
+    def report_print(vehicle_id, period):
         conn = get_db()
         cur = get_cursor(conn)
-        today = date.today()
-
-        first_dt, last_dt, period_label = _parse_period(period, today)
-        first_day = first_dt.isoformat()
-        last_day = last_dt.isoformat()
-
         try:
-            cur.execute('SELECT id, name, plate, type, active FROM vehicles WHERE id = %s', (vehicle_id,))
+            cur.execute('SELECT * FROM vehicles WHERE id = %s', (vehicle_id,))
             vehicle = cur.fetchone()
             if not vehicle:
                 abort(404)
 
-            cur.execute('''
-                SELECT id, date, driver, purpose, notes, odo_start, odo_end
+            first_date, last_date, period_label = _parse_period(period)
+            first_day = first_date.isoformat()
+            last_day = last_date.isoformat()
+            generated_on = date.today().isoformat()
+
+            cur.execute(
+                '''
+                SELECT date, driver, purpose, odo_start, odo_end, notes
                 FROM trips
                 WHERE vehicle_id = %s AND date BETWEEN %s AND %s
-                ORDER BY date ASC, created_at ASC
-            ''', (vehicle_id, first_day, last_day))
-            entries = cur.fetchall()
+                ORDER BY date, created_at
+                ''',
+                (vehicle_id, first_day, last_day),
+            )
+            trip_rows = cur.fetchall()
+
+            rows = []
+            total_km = 0
+            for index, row in enumerate(trip_rows, start=1):
+                trip_km = 0
+                if row['odo_start'] is not None and row['odo_end'] is not None:
+                    trip_km = row['odo_end'] - row['odo_start']
+                total_km += trip_km
+                rows.append({
+                    'no': index,
+                    'date': row['date'],
+                    'driver': row['driver'],
+                    'purpose': row['purpose'],
+                    'odo_start': row['odo_start'] if row['odo_start'] is not None else '',
+                    'odo_end': row['odo_end'] if row['odo_end'] is not None else '',
+                    'trip_km': trip_km if trip_km else '',
+                    'route_desc': row['purpose'],
+                    'remarks': row['notes'] or '',
+                })
+
+            cur.execute(
+                '''
+                SELECT MAX(COALESCE(odo_end, odo_start)) AS km
+                FROM trips
+                WHERE vehicle_id = %s AND date < %s
+                ''',
+                (vehicle_id, first_day),
+            )
+            carry_row = cur.fetchone()
+            carry_over = carry_row['km'] or 0
+            period_total = carry_over + total_km
         finally:
             cur.close()
 
-        rows = []
-        folio_sum = 0
-        for idx, trip in enumerate(entries, start=1):
-            odo_start = trip['odo_start'] if trip['odo_start'] is not None else ''
-            odo_end = trip['odo_end'] if trip['odo_end'] is not None else ''
-            trip_km = ''
-            if trip['odo_start'] is not None and trip['odo_end'] is not None:
-                trip_km = max(0, trip['odo_end'] - trip['odo_start'])
-                folio_sum += trip_km
-
-            rows.append({
-                'no': idx,
-                'date': trip['date'],
-                'driver': trip['driver'],
-                'purpose': trip['purpose'],
-                'odo_start': odo_start,
-                'odo_end': odo_end,
-                'trip_km': trip_km,
-                'route_desc': '',
-                'remarks': trip['notes'] or ''
-            })
-
-        carry_over = 0
-        period_total = carry_over + folio_sum
-
-        return render_template('templates/print_vehicle_log.html',
-                               vehicle=vehicle,
-                               period=period,
-                               period_label=period_label,
-                               first_day=first_day,
-                               last_day=last_day,
-                               generated_on=today.isoformat(),
-                               rows=rows,
-                               folio_sum=folio_sum,
-                               carry_over=carry_over,
-                               period_total=period_total)
+        return render_template(
+            'print_vehicle_log.html',
+            vehicle=vehicle,
+            rows=rows,
+            period_label=period_label,
+            first_day=first_day,
+            last_day=last_day,
+            generated_on=generated_on,
+            folio_sum=total_km,
+            carry_over=carry_over,
+            period_total=period_total,
+        )

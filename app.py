@@ -1,4 +1,6 @@
-from flask import Flask, session, request, abort
+import os
+
+from flask import Flask, session, request, abort, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -11,7 +13,7 @@ from backend.db import register_db, check_db_health
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=[],          # brak domyślnego limitu globalnego
-    storage_uri="memory://",    # zmień na Redis w prod dla multi-worker
+    storage_uri=os.environ.get('RATELIMIT_STORAGE_URI', 'memory://'),
 )
 
 
@@ -39,7 +41,11 @@ def create_app(config_class=None):
             if '_csrf_token' not in session:
                 session['_csrf_token'] = secrets.token_hex(32)
             return session['_csrf_token']
-        return dict(csrf_token=generate_csrf_token)
+
+        def asset_url(filename):
+            return url_for('static', filename=filename)
+
+        return dict(csrf_token=generate_csrf_token, asset_url=asset_url)
 
     @app.after_request
     def add_security_headers(response):
@@ -64,7 +70,7 @@ def create_app(config_class=None):
             return 'OK', 200
         return 'DB ERROR', 500
 
-    from backend.routes import auth, main, trips, fuel, maintenance, admin, report, api
+    from backend.routes import auth, main, trips, fuel, maintenance, admin, report, api, logs
     auth.register_routes(app)
     main.register_routes(app)
     trips.register_routes(app)
@@ -73,6 +79,7 @@ def create_app(config_class=None):
     admin.register_routes(app)
     report.register_routes(app)
     api.register_routes(app)
+    app.register_blueprint(logs.logs_bp)
 
     return app
 

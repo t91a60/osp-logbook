@@ -1,8 +1,8 @@
-from flask import render_template, request, flash, redirect, url_for, session
+from flask import render_template, request, flash, redirect, url_for, session, abort
 from datetime import date, timedelta
 from psycopg2 import IntegrityError
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required, build_date_where, paginate, normalize_iso_date
+from backend.helpers import login_required, build_date_where, paginate, parse_positive_int
 
 
 class ValidationError(Exception):
@@ -99,7 +99,7 @@ def register_routes(app):
             okres = request.args.get('okres', '')
             od = request.args.get('od', '')
             do_ = request.args.get('do', '')
-            page = int(request.args.get('page', 1))
+            page = parse_positive_int(request.args.get('page'), default=1)
 
             where_parts = []
             params_list = []
@@ -159,6 +159,13 @@ def register_routes(app):
         conn = get_db()
         cur = get_cursor(conn)
         try:
+            cur.execute('SELECT added_by FROM maintenance WHERE id = %s', (eid,))
+            row = cur.fetchone()
+            if not row:
+                flash('Nie znaleziono wpisu serwisowego.', 'error')
+                return redirect(url_for('maintenance'))
+            if row['added_by'] != session['username'] and not session.get('is_admin'):
+                abort(403)
             cur.execute("UPDATE maintenance SET status = 'completed' WHERE id = %s", (eid,))
             conn.commit()
         finally:
@@ -182,13 +189,15 @@ def register_routes(app):
                 flash('Nie znaleziono wpisu serwisowego.', 'error')
                 return redirect(url_for('maintenance'))
 
+            cur.execute('SELECT added_by FROM maintenance WHERE id = %s', (eid,))
+            owner_row = cur.fetchone()
+            if owner_row and owner_row['added_by'] != session['username'] and not session.get('is_admin'):
+                abort(403)
+
             if row['due_date']:
                 try:
-                    normalized_due_date = normalize_iso_date(row['due_date'])
-                    if normalized_due_date is None:
-                        raise ValueError
-                    next_due = (date.fromisoformat(normalized_due_date) + timedelta(days=90)).isoformat()
-                except (TypeError, ValueError):
+                    next_due = (date.fromisoformat(row['due_date']) + timedelta(days=90)).isoformat()
+                except ValueError:
                     next_due = (date.today() + timedelta(days=90)).isoformat()
             else:
                 next_due = (date.today() + timedelta(days=90)).isoformat()

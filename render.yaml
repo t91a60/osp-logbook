@@ -5,7 +5,7 @@ services:
     region: frankfurt
     plan: free
     # Render przekazuje PORT do kontenera; Gunicorn binduje się do tego portu.
-    preDeployCommand: python -m yoyo apply -b --database $DATABASE_URL ./migrations
+    preDeployCommand: yoyo apply -b --database $DATABASE_URL ./migrations
     healthCheckPath: /health
     envVars:
       - key: APP_ENV
@@ -18,6 +18,8 @@ services:
           property: connectionString
       - key: SECRET_KEY
         generateValue: true
+      - key: RATELIMIT_STORAGE_URI
+        value: memory://
 
 databases:
   - name: osp-logbook-db

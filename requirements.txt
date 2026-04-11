@@ -3,4 +3,4 @@ werkzeug>=3.0.0
 gunicorn>=21.2.0
 psycopg2-binary>=2.9.9
 flask-limiter>=3.5.0
-yoyo-migrations>=9.0.0
+yoyo-migrations>=8.2.0

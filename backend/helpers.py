@@ -1,7 +1,6 @@
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from functools import wraps
 from flask import session, redirect, url_for, abort
-from backend.db import get_db, get_cursor
 
 
 def login_required(f):
@@ -19,25 +18,18 @@ def admin_required(f):
     def decorated(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
-
-        # Treat session as cache only; verify from DB when flag is missing/false.
         if not session.get('is_admin'):
-            conn = get_db()
-            cur = get_cursor(conn)
-            try:
-                cur.execute('SELECT is_admin FROM users WHERE id = %s', (session.get('user_id'),))
-                row = cur.fetchone()
-            finally:
-                cur.close()
-
-            if not row or not bool(row['is_admin']):
-                abort(403)
-
-            # Sync session so next checks are fast.
-            session['is_admin'] = True
-
+            abort(403)
         return f(*args, **kwargs)
     return decorated
+
+
+def parse_positive_int(value, default=1):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return parsed if parsed > 0 else default
 
 
 def build_date_where(okres, od, do_, alias='t'):
@@ -79,22 +71,3 @@ def paginate(conn, cur, count_sql, count_params, data_sql, data_params, page, pa
     )
     entries = cur.fetchall()
     return entries, total, total_pages, page
-
-
-def normalize_iso_date(value):
-    if value in (None, ''):
-        return None
-    if isinstance(value, date) and not isinstance(value, datetime):
-        return value.isoformat()
-    if isinstance(value, datetime):
-        return value.date().isoformat()
-    return str(value)
-
-
-def days_since_iso_date(value, today=None):
-    normalized = normalize_iso_date(value)
-    if not normalized:
-        return None
-    if today is None:
-        today = date.today()
-    return (today - date.fromisoformat(normalized)).days
