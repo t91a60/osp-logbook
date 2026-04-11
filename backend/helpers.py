@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from functools import wraps
 from flask import session, redirect, url_for, abort
 
@@ -63,3 +63,22 @@ def paginate(conn, cur, count_sql, count_params, data_sql, data_params, page, pa
     )
     entries = cur.fetchall()
     return entries, total, total_pages, page
+
+
+def normalize_iso_date(value):
+    if value in (None, ''):
+        return None
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    return str(value)
+
+
+def days_since_iso_date(value, today=None):
+    normalized = normalize_iso_date(value)
+    if not normalized:
+        return None
+    if today is None:
+        today = date.today()
+    return (today - date.fromisoformat(normalized)).days

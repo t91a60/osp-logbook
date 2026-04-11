@@ -1,7 +1,7 @@
 from flask import request, jsonify, session, current_app
 from datetime import date, timedelta
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required
+from backend.helpers import login_required, normalize_iso_date
 
 
 class ValidationError(Exception):
@@ -63,8 +63,8 @@ def register_routes(app):
         days_ago = None
         if dt:
             try:
-                days_ago = (date.today() - date.fromisoformat(dt)).days
-            except ValueError:
+                days_ago = (date.today() - date.fromisoformat(normalize_iso_date(dt))).days
+            except (TypeError, ValueError):
                 pass
 
         return jsonify({'km': km, 'date': dt, 'days_ago': days_ago})

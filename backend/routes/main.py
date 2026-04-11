@@ -1,7 +1,7 @@
 from flask import render_template, make_response, current_app
 from datetime import date
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required
+from backend.helpers import login_required, normalize_iso_date
 
 
 def register_routes(app):
@@ -69,8 +69,11 @@ def register_routes(app):
                 days_ago = None
                 if v['last_trip_date']:
                     try:
-                        days_ago = (today - date.fromisoformat(v['last_trip_date'])).days
-                    except ValueError:
+                        normalized_last_trip_date = normalize_iso_date(v['last_trip_date'])
+                        if normalized_last_trip_date is None:
+                            raise ValueError
+                        days_ago = (today - date.fromisoformat(normalized_last_trip_date)).days
+                    except (TypeError, ValueError):
                         pass
                 vehicle_cards.append({
                     'id':              v['id'],
