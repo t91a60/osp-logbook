@@ -9,8 +9,8 @@
   <!-- Tab Navigation -->
   <div class="tab-nav no-print">
     <a
-      href="{{ url_for('admin.vehicles') }}"
-      class="tab-link {% if request.endpoint == 'admin.vehicles' %}active{% endif %}"
+      href="{{ url_for('vehicles') }}"
+      class="tab-link {% if request.endpoint == 'vehicles' %}active{% endif %}"
     >
       <svg
         width="18"
@@ -30,8 +30,8 @@
       Pojazdy
     </a>
     <a
-      href="{{ url_for('admin.users') }}"
-      class="tab-link {% if request.endpoint == 'admin.users' %}active{% endif %}"
+      href="{{ url_for('users') }}"
+      class="tab-link {% if request.endpoint == 'users' %}active{% endif %}"
     >
       <svg
         width="18"
@@ -49,8 +49,8 @@
       Użytkownicy
     </a>
     <a
-      href="{{ url_for('report.report') }}"
-      class="tab-link {% if request.endpoint == 'report.report' %}active{% endif %}"
+      href="{{ url_for('report') }}"
+      class="tab-link {% if request.endpoint == 'report' %}active{% endif %}"
     >
       <svg
         width="18"
@@ -94,7 +94,7 @@
   <div class="form-section">
     <div class="form-section-title">Dodaj nowy pojazd</div>
 
-    <form method="POST" action="{{ url_for('admin.vehicles') }}">
+    <form method="POST" action="{{ url_for('vehicles') }}">
       <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
       <div class="form-grid full">
         <!-- Name -->
@@ -206,7 +206,7 @@
           <div style="display: flex; gap: 8px; align-items: center">
             <form
               method="POST"
-              action="{{ url_for('admin.delete_vehicle', vid=v.id) }}"
+              action="{{ url_for('delete_vehicle', vid=v.id) }}"
               onsubmit="
                 return confirm('Czy na pewno chcesz usunąć ten pojazd?');
               "
@@ -249,3 +249,6 @@
 </div>
 
 {% endblock %}
+
+
+

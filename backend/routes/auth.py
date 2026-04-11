@@ -1,5 +1,6 @@
 from flask import request, session, redirect, url_for, flash, render_template
 from werkzeug.security import check_password_hash
+import secrets
 from backend.db import get_db, get_cursor
 
 
@@ -47,10 +48,13 @@ def register_routes(app):
                 finally:
                     cur.close()
 
+                # Reset previous session state to reduce session fixation risk.
+                session.clear()
                 session['user_id'] = user['id']
                 session['username'] = user['username']
                 session['display_name'] = user['display_name']
                 session['is_admin'] = is_admin
+                session['_csrf_token'] = secrets.token_hex(32)
                 return redirect(url_for('dashboard'))
 
             flash('Nieprawidłowy login lub hasło.', 'error')

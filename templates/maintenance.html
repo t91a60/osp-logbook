@@ -95,7 +95,7 @@
   <!-- Status + Vehicle Filter -->
   <div class="form-section" style="margin-bottom:8px;">
     <div class="form-section-title">Filtry</div>
-    <form method="GET" action="{{ url_for('maintenance.maintenance') }}" id="maintFilterForm">
+    <form method="GET" action="{{ url_for('maintenance') }}" id="maintFilterForm">
       <input type="hidden" name="okres" value="{{ okres }}">
       <input type="hidden" name="od" value="{{ od }}">
       <input type="hidden" name="do" value="{{ do_ }}">
@@ -124,14 +124,14 @@
 
   <!-- Date Filter Chips -->
   <div class="filter-chips">
-    <a href="{{ url_for('maintenance.maintenance', vehicle_id=selected_vehicle, status=selected_status, okres='ten') }}"
+    <a href="{{ url_for('maintenance', vehicle_id=selected_vehicle, status=selected_status, okres='ten') }}"
        class="chip {% if okres == 'ten' %}active{% endif %}">Ten miesiąc</a>
-    <a href="{{ url_for('maintenance.maintenance', vehicle_id=selected_vehicle, status=selected_status, okres='poprzedni') }}"
+    <a href="{{ url_for('maintenance', vehicle_id=selected_vehicle, status=selected_status, okres='poprzedni') }}"
        class="chip {% if okres == 'poprzedni' %}active{% endif %}">Poprzedni miesiąc</a>
-    <a href="{{ url_for('maintenance.maintenance', vehicle_id=selected_vehicle, status=selected_status) }}"
+    <a href="{{ url_for('maintenance', vehicle_id=selected_vehicle, status=selected_status) }}"
        class="chip {% if not okres and not od and not do_ %}active{% endif %}">Wszystkie</a>
   </div>
-  <form method="GET" action="{{ url_for('maintenance.maintenance') }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
+  <form method="GET" action="{{ url_for('maintenance') }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
     <input type="hidden" name="vehicle_id" value="{{ selected_vehicle }}">
     <input type="hidden" name="status" value="{{ selected_status }}">
     <div style="flex:1; min-width:130px;">
@@ -177,16 +177,16 @@
     {% endif %}
     <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" class="no-print">
       {% if m.status != 'completed' %}
-      <form method="POST" action="{{ url_for('maintenance.complete_maintenance', eid=m.id) }}">
+      <form method="POST" action="{{ url_for('complete_maintenance', eid=m.id) }}">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-secondary btn-sm">✓ Oznacz jako wykonane</button>
       </form>
       {% endif %}
-      <form method="POST" action="{{ url_for('maintenance.create_next_maintenance', eid=m.id) }}">
+      <form method="POST" action="{{ url_for('create_next_maintenance', eid=m.id) }}">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-secondary btn-sm">+ Utwórz następny</button>
       </form>
-      <form method="POST" action="{{ url_for('admin.delete_entry', kind='serwis', eid=m.id) }}"
+      <form method="POST" action="{{ url_for('delete_entry', kind='serwis', eid=m.id) }}"
             onsubmit="return confirm('Usunąć ten wpis?')">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-danger btn-sm">Usuń</button>
@@ -199,11 +199,11 @@
   {% if total_pages > 1 %}
   <div class="pagination no-print">
     {% if page > 1 %}
-    <a href="{{ url_for('maintenance.maintenance', vehicle_id=selected_vehicle, status=selected_status, okres=okres, od=od, do=do_, page=page-1) }}">← Wcześniejsze</a>
+    <a href="{{ url_for('maintenance', vehicle_id=selected_vehicle, status=selected_status, okres=okres, od=od, do=do_, page=page-1) }}">← Wcześniejsze</a>
     {% else %}<span>← Wcześniejsze</span>{% endif %}
     <span>{{ page }} / {{ total_pages }}</span>
     {% if page < total_pages %}
-    <a href="{{ url_for('maintenance.maintenance', vehicle_id=selected_vehicle, status=selected_status, okres=okres, od=od, do=do_, page=page+1) }}">Następne →</a>
+    <a href="{{ url_for('maintenance', vehicle_id=selected_vehicle, status=selected_status, okres=okres, od=od, do=do_, page=page+1) }}">Następne →</a>
     {% else %}<span>Następne →</span>{% endif %}
   </div>
   {% endif %}
@@ -227,7 +227,7 @@
 .priority-high    { color:#ff8a80; background:rgba(231,76,60,.12); }
 </style>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function() {
   setupAutoSave('maintenanceForm');
   setupFormKeyboardShortcuts('maintenanceForm');
@@ -241,3 +241,6 @@ function submitMaintenance() {
 }
 </script>
 {% endblock %}
+
+
+

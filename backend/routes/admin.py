@@ -8,6 +8,7 @@ MIN_PASSWORD_LEN = 8
 
 
 def register_routes(app):
+    from app import limiter
 
     @app.route('/pojazdy', methods=['GET', 'POST'], endpoint='vehicles')
     @admin_required
@@ -84,13 +85,69 @@ def register_routes(app):
                         flash('Hasło zmienione.', 'success')
                     else:
                         flash(f'Hasło musi mieć co najmniej {MIN_PASSWORD_LEN} znaków.', 'error')
+                elif action == 'delete':
+                    uid = request.form.get('uid')
+                    if not uid:
+                        flash('Brak ID użytkownika.', 'error')
+                        return redirect(url_for('users'))
+
+                    try:
+                        uid_int = int(uid)
+                    except (TypeError, ValueError):
+                        flash('Nieprawidłowe ID użytkownika.', 'error')
+                        return redirect(url_for('users'))
+
+                    if uid_int == session.get('user_id'):
+                        flash('Nie możesz usunąć własnego konta.', 'error')
+                        return redirect(url_for('users'))
+
+                    cur.execute('SELECT id, username, is_admin FROM users WHERE id = %s', (uid_int,))
+                    target = cur.fetchone()
+                    if not target:
+                        flash('Użytkownik nie istnieje.', 'error')
+                        return redirect(url_for('users'))
+
+                    if target.get('is_admin'):
+                        cur.execute('SELECT COUNT(*) AS count FROM users WHERE is_admin = TRUE AND id <> %s', (uid_int,))
+                        remaining_admins = cur.fetchone()['count']
+                        if remaining_admins <= 0:
+                            flash('Nie można usunąć ostatniego administratora.', 'error')
+                            return redirect(url_for('users'))
+
+                    cur.execute('DELETE FROM users WHERE id = %s', (uid_int,))
+                    conn.commit()
+                    flash('Użytkownik usunięty.', 'success')
                 return redirect(url_for('users'))
 
-            cur.execute('SELECT id, username, display_name FROM users ORDER BY display_name')
+            cur.execute('SELECT id, username, display_name, is_admin FROM users ORDER BY display_name')
             all_users = cur.fetchall()
         finally:
             cur.close()
         return render_template('users.html', users=all_users)
+
+    @app.route('/pojazdy/<int:vid>/usun', methods=['POST'], endpoint='delete_vehicle')
+    @admin_required
+    @limiter.limit('30 per minute')
+    def delete_vehicle(vid):
+        conn = get_db()
+        cur = get_cursor(conn)
+        try:
+            cur.execute('SELECT id, active FROM vehicles WHERE id = %s', (vid,))
+            v = cur.fetchone()
+            if not v:
+                flash('Pojazd nie istnieje.', 'error')
+                return redirect(url_for('vehicles'))
+
+            if not v['active']:
+                flash('Pojazd już jest nieaktywny.', 'info')
+                return redirect(url_for('vehicles'))
+
+            cur.execute('UPDATE vehicles SET active = 0 WHERE id = %s', (vid,))
+            conn.commit()
+            flash('Pojazd dezaktywowany.', 'success')
+        finally:
+            cur.close()
+        return redirect(url_for('vehicles'))
 
     @app.route('/usun/<string:kind>/<int:eid>', methods=['POST'], endpoint='delete_entry')
     @login_required

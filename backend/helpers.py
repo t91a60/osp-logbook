@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from functools import wraps
 from flask import session, redirect, url_for, abort
 
@@ -30,6 +30,44 @@ def parse_positive_int(value, default=1):
     except (TypeError, ValueError):
         return default
     return parsed if parsed > 0 else default
+
+
+def normalize_iso_date(value):
+    """Normalize different DB date representations to YYYY-MM-DD string."""
+    if value in (None, ''):
+        return None
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+
+    text = str(value).strip()
+    if not text:
+        return None
+
+    # Handle values like "YYYY-MM-DD HH:MM:SS" or ISO datetime variants.
+    if 'T' in text:
+        text = text.split('T', 1)[0]
+    elif ' ' in text:
+        text = text.split(' ', 1)[0]
+
+    try:
+        return date.fromisoformat(text).isoformat()
+    except ValueError:
+        return None
+
+
+def days_since_iso_date(value, today=None):
+    """Return number of days since a date-like value, or None if invalid."""
+    normalized = normalize_iso_date(value)
+    if normalized is None:
+        return None
+
+    ref = today or date.today()
+    try:
+        return (ref - date.fromisoformat(normalized)).days
+    except ValueError:
+        return None
 
 
 def build_date_where(okres, od, do_, alias='t'):

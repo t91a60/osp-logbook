@@ -9,8 +9,8 @@
   <!-- Tab Navigation -->
   <div class="tab-nav no-print">
     <a
-      href="{{ url_for('admin.vehicles') }}"
-      class="tab-link {% if request.endpoint == 'admin.vehicles' %}active{% endif %}"
+      href="{{ url_for('vehicles') }}"
+      class="tab-link {% if request.endpoint == 'vehicles' %}active{% endif %}"
     >
       <svg
         width="18"
@@ -30,8 +30,8 @@
       Pojazdy
     </a>
     <a
-      href="{{ url_for('admin.users') }}"
-      class="tab-link {% if request.endpoint == 'admin.users' %}active{% endif %}"
+      href="{{ url_for('users') }}"
+      class="tab-link {% if request.endpoint == 'users' %}active{% endif %}"
     >
       <svg
         width="18"
@@ -49,8 +49,8 @@
       Użytkownicy
     </a>
     <a
-      href="{{ url_for('report.report') }}"
-      class="tab-link {% if request.endpoint == 'report.report' %}active{% endif %}"
+      href="{{ url_for('report') }}"
+      class="tab-link {% if request.endpoint == 'report' %}active{% endif %}"
     >
       <svg
         width="18"
@@ -81,7 +81,7 @@
 
     <form
       method="POST"
-      action="{{ url_for('admin.users') }}"
+      action="{{ url_for('users') }}"
       autocomplete="off"
     >
       <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
@@ -122,10 +122,10 @@
             type="password"
             name="password"
             class="form-input"
-            placeholder="Minimum 4 znaki"
+            placeholder="Minimum 8 znaków"
             autocomplete="new-password"
             required
-            minlength="4"
+            minlength="8"
           />
         </div>
       </div>
@@ -202,7 +202,7 @@
               >
                 <form
                   method="POST"
-                  action="{{ url_for('admin.users') }}"
+                  action="{{ url_for('users') }}"
                   autocomplete="off"
                 >
                   <input
@@ -220,10 +220,10 @@
                         type="password"
                         name="new_password"
                         class="form-input"
-                        placeholder="Minimum 4 znaki"
+                        placeholder="Minimum 8 znaków"
                         autocomplete="new-password"
                         required
-                        minlength="4"
+                        minlength="8"
                       />
                     </div>
                   </div>
@@ -241,7 +241,7 @@
 
             <form
               method="POST"
-              action="{{ url_for('admin.users') }}"
+              action="{{ url_for('users') }}"
               onsubmit="return confirm('Czy na pewno chcesz usunąć tego użytkownika? Tej operacji nie można cofnąć.');"
             >
               <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
@@ -309,3 +309,6 @@
 </div>
 
 {% endblock %}
+
+
+

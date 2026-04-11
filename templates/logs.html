@@ -9,8 +9,8 @@ endblock %} {% block content %}
   <!-- Tab Navigation -->
   <div class="tab-nav no-print">
     <a
-      href="{{ url_for('admin.vehicles') }}"
-      class="tab-link {% if request.endpoint == 'admin.vehicles' %}active{% endif %}"
+      href="{{ url_for('vehicles') }}"
+      class="tab-link {% if request.endpoint == 'vehicles' %}active{% endif %}"
     >
       <svg
         width="18"
@@ -30,8 +30,8 @@ endblock %} {% block content %}
       Pojazdy
     </a>
     <a
-      href="{{ url_for('admin.users') }}"
-      class="tab-link {% if request.endpoint == 'admin.users' %}active{% endif %}"
+      href="{{ url_for('users') }}"
+      class="tab-link {% if request.endpoint == 'users' %}active{% endif %}"
     >
       <svg
         width="18"
@@ -49,8 +49,8 @@ endblock %} {% block content %}
       Użytkownicy
     </a>
     <a
-      href="{{ url_for('report.report') }}"
-      class="tab-link {% if request.endpoint == 'report.report' %}active{% endif %}"
+      href="{{ url_for('report') }}"
+      class="tab-link {% if request.endpoint == 'report' %}active{% endif %}"
     >
       <svg
         width="18"
@@ -212,3 +212,6 @@ endblock %} {% block content %}
 </div>
 
 {% endblock %}
+
+
+

@@ -22,10 +22,30 @@ def _get_active_vehicle(cur, vehicle_id):
     return cur.fetchone()
 
 
+def _optional_int(value, field_name):
+    if value in (None, ''):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        raise ValidationError(f'{field_name} musi być liczbą całkowitą.')
+
+
+def _optional_float(value, field_name):
+    if value in (None, ''):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        raise ValidationError(f'{field_name} musi być liczbą.')
+
+
 def register_routes(app):
+    from app import limiter
 
     @app.route('/api/vehicle/<int:vid>/last_km', endpoint='api_vehicle_last_km')
     @login_required
+    @limiter.limit('120 per minute')
     def api_vehicle_last_km(vid):
         conn = get_db()
         cur = get_cursor(conn)
@@ -71,6 +91,7 @@ def register_routes(app):
 
     @app.route('/api/drivers', endpoint='api_drivers')
     @login_required
+    @limiter.limit('120 per minute')
     def api_drivers():
         cutoff = (date.today() - timedelta(days=90)).isoformat()
         conn = get_db()
@@ -90,6 +111,7 @@ def register_routes(app):
 
     @app.route('/api/trips', methods=['POST'], endpoint='api_add_trip')
     @login_required
+    @limiter.limit('60 per minute')
     def api_add_trip():
         f = request.form
         conn = get_db()
@@ -112,12 +134,19 @@ def register_routes(app):
             if not driver:
                 raise ValidationError('Kierowca jest wymagany.')
 
+            trip_date = f.get('date', '').strip()
+            if not trip_date:
+                raise ValidationError('Data jest wymagana.')
+
+            odo_start = _optional_int(f.get('odo_start'), 'Km start')
+            odo_end = _optional_int(f.get('odo_end'), 'Km koniec')
+
             cur.execute('''
                 INSERT INTO trips (vehicle_id, date, driver, odo_start, odo_end, purpose, notes, added_by)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
-                vehicle['id'], f['date'], driver,
-                f.get('odo_start') or None, f.get('odo_end') or None,
+                vehicle['id'], trip_date, driver,
+                odo_start, odo_end,
                 purpose, f.get('notes', '').strip(),
                 session['username']
             ))
@@ -136,6 +165,7 @@ def register_routes(app):
 
     @app.route('/api/fuel', methods=['POST'], endpoint='api_add_fuel')
     @login_required
+    @limiter.limit('60 per minute')
     def api_add_fuel():
         f = request.form
         conn = get_db()
@@ -153,13 +183,24 @@ def register_routes(app):
             if not driver:
                 raise ValidationError('Kierowca jest wymagany.')
 
+            fuel_date = f.get('date', '').strip()
+            if not fuel_date:
+                raise ValidationError('Data jest wymagana.')
+
+            liters_float = _optional_float(liters, 'Litry')
+            if liters_float is None or liters_float <= 0:
+                raise ValidationError('Podaj poprawną ilość paliwa.')
+
+            cost = _optional_float(f.get('cost'), 'Koszt')
+            odometer = _optional_int(f.get('odometer'), 'Stan km')
+
             cur.execute('''
                 INSERT INTO fuel (vehicle_id, date, driver, odometer, liters, cost, notes, added_by)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
-                vehicle['id'], f['date'], driver,
-                f.get('odometer') or None,
-                liters, f.get('cost') or None,
+                vehicle['id'], fuel_date, driver,
+                odometer,
+                liters_float, cost,
                 f.get('notes', '').strip(), session['username']
             ))
             conn.commit()
@@ -177,6 +218,7 @@ def register_routes(app):
 
     @app.route('/api/maintenance', methods=['POST'], endpoint='api_add_maintenance')
     @login_required
+    @limiter.limit('60 per minute')
     def api_add_maintenance():
         f = request.form
         conn = get_db()
@@ -190,6 +232,10 @@ def register_routes(app):
             if not description:
                 raise ValidationError('Opis jest wymagany.')
 
+            maintenance_date = f.get('date', '').strip()
+            if not maintenance_date:
+                raise ValidationError('Data jest wymagana.')
+
             priority = f.get('priority', 'medium')
             if priority not in ('low', 'medium', 'high'):
                 priority = 'medium'
@@ -198,14 +244,17 @@ def register_routes(app):
             if status not in ('pending', 'completed'):
                 status = 'pending'
 
+            odometer = _optional_int(f.get('odometer'), 'Stan km')
+            cost = _optional_float(f.get('cost'), 'Koszt')
+
             cur.execute('''
                 INSERT INTO maintenance (vehicle_id, date, odometer, description, cost, notes, added_by, status, priority, due_date)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
-                vehicle['id'], f['date'],
-                f.get('odometer') or None,
+                vehicle['id'], maintenance_date,
+                odometer,
                 description,
-                f.get('cost') or None,
+                cost,
                 f.get('notes', '').strip(),
                 session['username'],
                 status, priority,

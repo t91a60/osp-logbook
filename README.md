@@ -1,7 +1,7 @@
 # 🚒 OSP Logbook
 
 ![Wersja](https://img.shields.io/badge/Wersja-2.0-ff6b3d)
-![Stos technologiczny](https://img.shields.io/badge/Tech-Python%20%7C%20Flask%20%7C%20SQLite-blue)
+![Stos technologiczny](https://img.shields.io/badge/Tech-Python%20%7C%20Flask%20%7C%20PostgreSQL-blue)
 ![Licencja](https://img.shields.io/badge/Licencja-MIT-success)
 
 **OSP Logbook** to szybki, nowoczesny i niezależny dziennik pojazdów stworzony z myślą o jednostkach Ochotniczej Straży Pożarnej (OSP). Aplikacja została zaprojektowana w podejściu *Mobile-First*, co pozwala na błyskawiczne wypełnianie ewidencji na telefonach komórkowych, bezpośrednio po powrocie z ciężkiej akcji.
@@ -34,7 +34,7 @@ cd osp-logbook
 pip install -r requirements.txt
 
 # 3. Uruchom serwer testowo (nasłuchuje na 0.0.0.0:5000)
-python app.py
+python run.py
 ```
 
 Po uruchomieniu, otwórz w przeglądarce: `http://localhost:5000` LUB `http://TWOJ_ADRES_IP:5000`
@@ -50,6 +50,16 @@ Jeśli wdrażasz lub odtwarzasz bazę ręcznie, uruchom migracje przed startem a
 ```bash
 python -m yoyo apply -b --database $DATABASE_URL ./migrations
 ```
+
+Bezpieczny bootstrap administratora (opcjonalnie):
+
+```bash
+BOOTSTRAP_ADMIN_USERNAME=admin \
+BOOTSTRAP_ADMIN_PASSWORD='silne_haslo_tylko_na_start' \
+python run.py
+```
+
+Po pierwszym logowaniu usuń zmienną `BOOTSTRAP_ADMIN_PASSWORD` ze środowiska.
 
 ---
 
@@ -108,7 +118,7 @@ sudo systemctl start osp-logbook
 ## 🛠 Stos Technologiczny (Tech Stack)
 
 *   **Backend:** Python 3 + Flask + Werkzeug
-*   **Baza danych:** SQLite3 (Wszystkie dane znajdują się w jednym pliku `logbook.db` - jego przekopiowanie to najprostszy backup na świecie!)
+*   **Baza danych:** PostgreSQL (produkcyjnie na Render.com, lokalnie przez `DATABASE_URL`).
 *   **Frontend:** HTML5 + Vanilla JS + Jinja2 (Zero frameworków typu React, zero Tailwind, zero zewnętrznych czcionek).
 
 ---

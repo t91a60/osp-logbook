@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="OSP Logbook">
 <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 <title>Logowanie – OSP Logbook</title>
-<script>
+<script nonce="{{ csp_nonce() }}">
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
       navigator.serviceWorker.register('/sw.js').then(function(registration) {
@@ -36,7 +36,7 @@
     <div class="brand-subtitle">Dziennik Pojazdów</div>
   </div>
 
-  <form method="POST" action="{{ url_for('auth.login') }}" class="login-form">
+  <form method="POST" action="{{ url_for('login') }}" class="login-form">
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -74,3 +74,6 @@
 
 </body>
 </html>
+
+
+

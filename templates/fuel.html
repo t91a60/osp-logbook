@@ -91,14 +91,14 @@
   <!-- Date Filter Chips -->
   <div style="margin-bottom:4px;">
     <div class="filter-chips">
-      <a href="{{ url_for('fuel.fuel', vehicle_id=selected_vehicle, okres='ten') }}"
+      <a href="{{ url_for('fuel', vehicle_id=selected_vehicle, okres='ten') }}"
          class="chip {% if okres == 'ten' %}active{% endif %}" id="chip-ten">Ten miesiąc</a>
-      <a href="{{ url_for('fuel.fuel', vehicle_id=selected_vehicle, okres='poprzedni') }}"
+      <a href="{{ url_for('fuel', vehicle_id=selected_vehicle, okres='poprzedni') }}"
          class="chip {% if okres == 'poprzedni' %}active{% endif %}" id="chip-poprzedni">Poprzedni miesiąc</a>
-      <a href="{{ url_for('fuel.fuel', vehicle_id=selected_vehicle) }}"
+      <a href="{{ url_for('fuel', vehicle_id=selected_vehicle) }}"
          class="chip {% if not okres and not od and not do_ %}active{% endif %}" id="chip-all">Wszystkie</a>
     </div>
-    <form method="GET" action="{{ url_for('fuel.fuel') }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;">
+    <form method="GET" action="{{ url_for('fuel') }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;">
       <input type="hidden" name="vehicle_id" value="{{ selected_vehicle }}">
       <div style="flex:1; min-width:130px;">
         <label class="form-label" for="fuel_od">Od</label>
@@ -114,7 +114,7 @@
 
   <!-- Vehicle Filter -->
   <div style="margin-bottom:12px;">
-    <form method="GET" action="{{ url_for('fuel.fuel') }}" style="display:flex;gap:8px;align-items:center;">
+    <form method="GET" action="{{ url_for('fuel') }}" style="display:flex;gap:8px;align-items:center;">
       <input type="hidden" name="okres" value="{{ okres }}">
       <input type="hidden" name="od" value="{{ od }}">
       <input type="hidden" name="do" value="{{ do_ }}">
@@ -146,7 +146,7 @@
       <span class="badge">⛽ {{ f.liters }} L</span>
       {% if f.cost %}<span class="badge">{{ "%.2f"|format(f.cost) }} zł</span>{% endif %}
       {% if f.odometer %}<span>{{ f.odometer }} km</span>{% endif %}
-      <form method="POST" action="{{ url_for('admin.delete_entry', kind='tankowanie', eid=f.id) }}"
+      <form method="POST" action="{{ url_for('delete_entry', kind='tankowanie', eid=f.id) }}"
             style="display:inline; margin-left:auto;"
             onsubmit="return confirm('Usunąć ten wpis?')" class="no-print">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
@@ -163,13 +163,13 @@
   {% if total_pages > 1 %}
   <div class="pagination no-print">
     {% if page > 1 %}
-    <a href="{{ url_for('fuel.fuel', vehicle_id=selected_vehicle, okres=okres, od=od, do=do_, page=page-1) }}" id="fuel-prev">← Wcześniejsze</a>
+    <a href="{{ url_for('fuel', vehicle_id=selected_vehicle, okres=okres, od=od, do=do_, page=page-1) }}" id="fuel-prev">← Wcześniejsze</a>
     {% else %}
     <span>← Wcześniejsze</span>
     {% endif %}
     <span>{{ page }} / {{ total_pages }}</span>
     {% if page < total_pages %}
-    <a href="{{ url_for('fuel.fuel', vehicle_id=selected_vehicle, okres=okres, od=od, do=do_, page=page+1) }}" id="fuel-next">Następne →</a>
+    <a href="{{ url_for('fuel', vehicle_id=selected_vehicle, okres=okres, od=od, do=do_, page=page+1) }}" id="fuel-next">Następne →</a>
     {% else %}
     <span>Następne →</span>
     {% endif %}
@@ -185,7 +185,7 @@
 
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function() {
   setupAutoSave('fuelForm');
   setupFormKeyboardShortcuts('fuelForm');
@@ -225,3 +225,6 @@ function submitFuel() {
 }
 </script>
 {% endblock %}
+
+
+

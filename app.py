@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, session, request, abort, url_for
+from flask import Flask, session, request, abort, url_for, g
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -8,21 +8,33 @@ import secrets
 
 from backend.config import get_config
 from backend.db import register_db, check_db_health
+from backend.bootstrap import ensure_bootstrap_admin
 
 # Globalna instancja limitera — trasy importują ją przez `from app import limiter`
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=[],          # brak domyślnego limitu globalnego
+    default_limits=[os.environ.get('RATELIMIT_DEFAULT', '600 per hour')],
     storage_uri=os.environ.get('RATELIMIT_STORAGE_URI', 'memory://'),
 )
+
+
+def _validate_required_config(app):
+    env_name = os.environ.get('FLASK_ENV', 'development')
+    missing = [
+        key for key in ('SECRET_KEY', 'DATABASE_URL')
+        if not app.config.get(key)
+    ]
+    if missing and env_name == 'production':
+        raise RuntimeError(f"Missing required production settings: {', '.join(missing)}")
 
 
 def create_app(config_class=None):
     if config_class is None:
         config_class = get_config()
 
-    app = Flask(__name__, template_folder='.')
+    app = Flask(__name__, template_folder='templates')
     app.config.from_object(config_class)
+    _validate_required_config(app)
 
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
@@ -30,9 +42,11 @@ def create_app(config_class=None):
 
     @app.before_request
     def csrf_protect():
+        g.csp_nonce = secrets.token_urlsafe(16)
         if request.method == "POST":
             token = session.get('_csrf_token', None)
-            if not token or token != request.form.get('_csrf_token'):
+            req_token = request.form.get('_csrf_token') or request.headers.get('X-CSRFToken')
+            if not token or token != req_token:
                 abort(403, 'Błąd walidacji żądania (niepoprawny token CSRF).')
 
     @app.context_processor
@@ -45,16 +59,25 @@ def create_app(config_class=None):
         def asset_url(filename):
             return url_for('static', filename=filename)
 
-        return dict(csrf_token=generate_csrf_token, asset_url=asset_url)
+        def csp_nonce():
+            return getattr(g, 'csp_nonce', '')
+
+        return dict(csrf_token=generate_csrf_token, asset_url=asset_url, csp_nonce=csp_nonce)
 
     @app.after_request
     def add_security_headers(response):
+        nonce = getattr(g, 'csp_nonce', '')
+        script_src = "script-src 'self'"
+        if nonce:
+            script_src = f"script-src 'self' 'nonce-{nonce}'"
+
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['X-XSS-Protection'] = '1; mode=block'
         response.headers['Content-Security-Policy'] = (
-            "default-src 'self'; script-src 'self' 'unsafe-inline'; "
-            "style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';"
+            f"default-src 'self'; {script_src}; "
+            "style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; "
+            "base-uri 'self'; frame-ancestors 'none';"
         )
         if app.debug:
             response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
@@ -63,6 +86,7 @@ def create_app(config_class=None):
         return response
 
     register_db(app)
+    ensure_bootstrap_admin(app)
 
     @app.route('/health', endpoint='health')
     def health():

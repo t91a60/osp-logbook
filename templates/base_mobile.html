@@ -27,7 +27,7 @@
     <title>{% block title %}OSP Logbook{% endblock %}</title>
 
     <link rel="stylesheet" href="{{ asset_url('mobile.css') }}" />
-    <script>
+    <script nonce="{{ csp_nonce() }}">
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
           navigator.serviceWorker
@@ -39,13 +39,13 @@
   </head>
   <body>
     <header class="topbar">
-      <a href="{{ url_for('main.dashboard') }}" class="topbar-brand"
+      <a href="{{ url_for('dashboard') }}" class="topbar-brand"
         >OSP Logbook</a
       >
       {% if session.user_id %}
       <div class="topbar-user">
         <span>{{ session.display_name }}</span>
-        <a href="{{ url_for('auth.logout') }}" class="topbar-logout">Wyloguj</a>
+        <a href="{{ url_for('logout') }}" class="topbar-logout">Wyloguj</a>
       </div>
       {% endif %}
     </header>
@@ -58,7 +58,7 @@
     ></div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-    <script id="flashMessages" type="application/json">
+    <script nonce="{{ csp_nonce() }}" id="flashMessages" type="application/json">
       {{ messages|tojson }}
     </script>
     {% endwith %}
@@ -68,40 +68,40 @@
     {% if session.user_id %}
     <nav class="bottom-nav">
       <a
-        href="{{ url_for('main.dashboard') }}"
-        class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}"
+        href="{{ url_for('dashboard') }}"
+        class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}"
       >
         <span class="nav-icon">⌂</span><span>Start</span>
       </a>
       <a
-        href="{{ url_for('trips.trips') }}"
-        class="nav-link {% if request.endpoint == 'trips.trips' %}active{% endif %}"
+        href="{{ url_for('trips') }}"
+        class="nav-link {% if request.endpoint == 'trips' %}active{% endif %}"
       >
         <span class="nav-icon">🚒</span><span>Wyjazdy</span>
       </a>
       <a
-        href="{{ url_for('fuel.fuel') }}"
-        class="nav-link {% if request.endpoint == 'fuel.fuel' %}active{% endif %}"
+        href="{{ url_for('fuel') }}"
+        class="nav-link {% if request.endpoint == 'fuel' %}active{% endif %}"
       >
         <span class="nav-icon">⛽</span><span>Paliwo</span>
       </a>
       <a
-        href="{{ url_for('maintenance.maintenance') }}"
-        class="nav-link {% if request.endpoint == 'maintenance.maintenance' %}active{% endif %}"
+        href="{{ url_for('maintenance') }}"
+        class="nav-link {% if request.endpoint == 'maintenance' %}active{% endif %}"
       >
         <span class="nav-icon">🔧</span><span>Serwis</span>
       </a>
       {% if session.get('is_admin') %}
       <a
-        href="{{ url_for('admin.vehicles') }}"
-        class="nav-link {% if request.endpoint in ('admin.vehicles', 'admin.users', 'report.report', 'logs.logs_list') %}active{% endif %}"
+        href="{{ url_for('vehicles') }}"
+        class="nav-link {% if request.endpoint in ('vehicles', 'users', 'report', 'logs.logs_list') %}active{% endif %}"
       >
         <span class="nav-icon">☰</span><span>Więcej</span>
       </a>
       {% else %}
       <a
-        href="{{ url_for('report.report') }}"
-        class="nav-link {% if request.endpoint == 'report.report' %}active{% endif %}"
+        href="{{ url_for('report') }}"
+        class="nav-link {% if request.endpoint == 'report' %}active{% endif %}"
       >
         <span class="nav-icon">📊</span><span>Raport</span>
       </a>
@@ -112,3 +112,6 @@
     <script src="{{ asset_url('app.js') }}"></script>
   </body>
 </html>
+
+
+

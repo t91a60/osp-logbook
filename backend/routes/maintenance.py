@@ -2,7 +2,7 @@ from flask import render_template, request, flash, redirect, url_for, session, a
 from datetime import date, timedelta
 from psycopg2 import IntegrityError
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required, build_date_where, paginate, parse_positive_int
+from backend.helpers import login_required, build_date_where, paginate, parse_positive_int, normalize_iso_date
 
 
 class ValidationError(Exception):
@@ -195,9 +195,10 @@ def register_routes(app):
                 abort(403)
 
             if row['due_date']:
-                try:
-                    next_due = (date.fromisoformat(row['due_date']) + timedelta(days=90)).isoformat()
-                except ValueError:
+                normalized_due = normalize_iso_date(row['due_date'])
+                if normalized_due is not None:
+                    next_due = (date.fromisoformat(normalized_due) + timedelta(days=90)).isoformat()
+                else:
                     next_due = (date.today() + timedelta(days=90)).isoformat()
             else:
                 next_due = (date.today() + timedelta(days=90)).isoformat()
