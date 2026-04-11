@@ -1,6 +1,7 @@
 import os
+import hmac
 
-from flask import Flask, session, request, abort, url_for, g
+from flask import Flask, session, request, abort, url_for, g, jsonify, redirect, flash
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -40,14 +41,41 @@ def create_app(config_class=None):
 
     limiter.init_app(app)
 
+    def _is_json_request():
+        if request.is_json:
+            return True
+        accept = (request.headers.get('Accept') or '').lower()
+        xrw = (request.headers.get('X-Requested-With') or '').lower()
+        return 'application/json' in accept or xrw == 'xmlhttprequest'
+
+    def _csrf_failure_response():
+        message = 'Sesja wygasła lub token CSRF jest niepoprawny. Odśwież stronę i spróbuj ponownie.'
+        if _is_json_request():
+            return jsonify({'success': False, 'message': message, 'code': 'csrf_invalid'}), 403
+
+        flash(message, 'error')
+        if 'user_id' in session:
+            return redirect(request.referrer or url_for('dashboard'))
+        return redirect(url_for('login'))
+
     @app.before_request
     def csrf_protect():
         g.csp_nonce = secrets.token_urlsafe(16)
-        if request.method == "POST":
-            token = session.get('_csrf_token', None)
-            req_token = request.form.get('_csrf_token') or request.headers.get('X-CSRFToken')
-            if not token or token != req_token:
-                abort(403, 'Błąd walidacji żądania (niepoprawny token CSRF).')
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+            token = session.get('_csrf_token')
+            req_token = (
+                request.form.get('_csrf_token')
+                or request.form.get('csrf_token')
+                or request.headers.get('X-CSRFToken')
+                or request.headers.get('X-CSRF-Token')
+                or request.headers.get('X-XSRF-TOKEN')
+            )
+
+            if not token or not req_token:
+                return _csrf_failure_response()
+
+            if not hmac.compare_digest(str(token), str(req_token)):
+                return _csrf_failure_response()
 
     @app.context_processor
     def inject_csrf_token():
