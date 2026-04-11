@@ -3,12 +3,39 @@ from werkzeug.security import generate_password_hash
 from psycopg2 import IntegrityError
 from backend.db import get_db, get_cursor
 from backend.helpers import login_required, admin_required
+from backend.services.vehicle_service import VehicleService
 
 MIN_PASSWORD_LEN = 8
 
 
 def register_routes(app):
     from app import limiter
+
+    def _delete_vehicle_or_error(cur, vid):
+        cur.execute('SELECT id FROM vehicles WHERE id = %s', (vid,))
+        vehicle = cur.fetchone()
+        if not vehicle:
+            return 'Pojazd nie istnieje.'
+
+        cur.execute(
+            'SELECT (SELECT COUNT(*) FROM trips WHERE vehicle_id = %s) + '
+            '       (SELECT COUNT(*) FROM fuel WHERE vehicle_id = %s) + '
+            '       (SELECT COUNT(*) FROM maintenance WHERE vehicle_id = %s) AS count',
+            (vid, vid, vid)
+        )
+        ref_count = cur.fetchone()['count']
+        if ref_count:
+            return (
+                'Nie można usunąć pojazdu — posiada przypisane wpisy (wyjazdy/tankowania/serwis). '
+                'Najpierw usuń powiązane wpisy.'
+            )
+
+        try:
+            VehicleService.delete_vehicle(vid, session.get('user_id'))
+        except Exception:
+            return 'Nie udało się usunąć pojazdu. Spróbuj ponownie.'
+
+        return None
 
     @app.route('/pojazdy', methods=['GET', 'POST'], endpoint='vehicles')
     @admin_required
@@ -26,7 +53,7 @@ def register_routes(app):
                 flash('Pojazd dodany.', 'success')
                 return redirect(url_for('vehicles'))
 
-            cur.execute('SELECT * FROM vehicles ORDER BY active DESC, name')
+            cur.execute('SELECT * FROM vehicles ORDER BY name')
             vlist = cur.fetchall()
         finally:
             cur.close()
@@ -38,12 +65,11 @@ def register_routes(app):
         conn = get_db()
         cur = get_cursor(conn)
         try:
-            cur.execute('SELECT active FROM vehicles WHERE id = %s', (vid,))
-            v = cur.fetchone()
-            if v:
-                cur.execute('UPDATE vehicles SET active = %s WHERE id = %s',
-                            (0 if v['active'] else 1, vid))
-                conn.commit()
+            error = _delete_vehicle_or_error(cur, vid)
+            if error:
+                flash(error, 'error')
+            else:
+                flash('Pojazd usunięty.', 'success')
         finally:
             cur.close()
         return redirect(url_for('vehicles'))
@@ -132,19 +158,11 @@ def register_routes(app):
         conn = get_db()
         cur = get_cursor(conn)
         try:
-            cur.execute('SELECT id, active FROM vehicles WHERE id = %s', (vid,))
-            v = cur.fetchone()
-            if not v:
-                flash('Pojazd nie istnieje.', 'error')
-                return redirect(url_for('vehicles'))
-
-            if not v['active']:
-                flash('Pojazd już jest nieaktywny.', 'info')
-                return redirect(url_for('vehicles'))
-
-            cur.execute('UPDATE vehicles SET active = 0 WHERE id = %s', (vid,))
-            conn.commit()
-            flash('Pojazd dezaktywowany.', 'success')
+            error = _delete_vehicle_or_error(cur, vid)
+            if error:
+                flash(error, 'error')
+            else:
+                flash('Pojazd usunięty.', 'success')
         finally:
             cur.close()
         return redirect(url_for('vehicles'))

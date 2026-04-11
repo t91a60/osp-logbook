@@ -20,7 +20,7 @@ def register_routes(app):
         cur = get_cursor(conn)
         try:
             # Jedno zapytanie CTE zamiast N+1 pętli po pojazdach.
-            # Zwraca dla każdego aktywnego pojazdu:
+            # Zwraca dla każdego pojazdu:
             #   - ostatnie znane km (max z trips.odo_end i fuel.odometer)
             #   - datę ostatniego wyjazdu
             cur.execute('''
@@ -58,7 +58,6 @@ def register_routes(app):
                 LEFT JOIN trip_max      tm  ON tm.vehicle_id = v.id
                 LEFT JOIN fuel_max      fm  ON fm.vehicle_id = v.id
                 LEFT JOIN last_trip_date ltd ON ltd.vehicle_id = v.id
-                WHERE v.active = 1
                 ORDER BY v.name
             ''')
             vehicles_raw = cur.fetchall()
@@ -106,8 +105,8 @@ def register_routes(app):
             cur.execute('SELECT COUNT(*) AS count FROM maintenance')
             maint_count = cur.fetchone()['count']
 
-            # vehicles_raw potrzebne dla selektora — pobierz wszystkie aktywne
-            cur.execute('SELECT * FROM vehicles WHERE active = 1 ORDER BY name')
+            # vehicles_raw potrzebne dla selektora — pobierz wszystkie pojazdy
+            cur.execute('SELECT * FROM vehicles ORDER BY name')
             vehicles_all = cur.fetchall()
         finally:
             cur.close()

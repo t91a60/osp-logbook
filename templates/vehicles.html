@@ -207,9 +207,6 @@
             <form
               method="POST"
               action="{{ url_for('delete_vehicle', vid=v.id) }}"
-              onsubmit="
-                return confirm('Czy na pewno chcesz usunąć ten pojazd?');
-              "
             >
               <input
                 type="hidden"
@@ -219,6 +216,7 @@
               <button
                 type="submit"
                 class="btn btn-secondary"
+                onclick="return confirm('Czy na pewno chcesz trwale usunąć ten pojazd? Tej operacji nie można cofnąć.')"
                 style="
                   min-height: 44px;
                   padding: 8px 16px;
@@ -228,6 +226,7 @@
                   border-color: var(--error);
                 "
               >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
                 Usuń
               </button>
             </form>

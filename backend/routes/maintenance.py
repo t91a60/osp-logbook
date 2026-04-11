@@ -34,7 +34,7 @@ def register_routes(app):
         conn = get_db()
         cur = get_cursor(conn)
         try:
-            cur.execute('SELECT * FROM vehicles WHERE active = 1 ORDER BY name')
+            cur.execute('SELECT * FROM vehicles ORDER BY name')
             vehicles = cur.fetchall()
 
             if request.method == 'POST':

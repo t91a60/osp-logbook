@@ -73,7 +73,7 @@ class VehicleService:
 
 class TripService:
     @staticmethod
-    def add_trip(vehicle_id, date_val, driver, odo_start, odo_end, purpose, notes, added_by):
+    def add_trip(vehicle_id, date_val, driver, odo_start, odo_end, purpose, notes, added_by, time_start=None, time_end=None):
         conn = get_db()
         vehicle_id = _to_int(vehicle_id)
         odo_start = _to_int(odo_start)
@@ -82,10 +82,10 @@ class TripService:
         try:
             with get_cursor(conn) as cur:
                 cur.execute('''
-                    INSERT INTO trips (vehicle_id, date, driver, odo_start, odo_end, purpose, notes, added_by)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO trips (vehicle_id, date, driver, odo_start, odo_end, purpose, notes, added_by, time_start, time_end)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ''', (
-                    vehicle_id, date_val, driver, odo_start, odo_end, purpose, notes, added_by
+                    vehicle_id, date_val, driver, odo_start, odo_end, purpose, notes, added_by, time_start, time_end
                 ))
             conn.commit()
         except Exception:

@@ -106,6 +106,73 @@
     <div class="form-hint">Obsługiwane okresy: YYYY-MM (miesiąc) oraz YYYY-Q1..Q4 (kwartał).</div>
   </div>
 
+  {% if report_vehicle and trip_entries %}
+  <div class="no-print" style="margin-bottom:16px;">
+    <button type="button" class="btn btn-secondary" onclick="window.print()">
+      Drukuj kartę drogową
+    </button>
+  </div>
+  {% endif %}
+
+  {% if report_vehicle and trip_entries %}
+  <section class="print-only road-card-print">
+    <div class="road-card-header">
+      <div class="road-card-period">OKRES ROZLICZENIOWY (miesiąc / kwartał): {{ period_label }}</div>
+      <div class="road-card-year">{{ last_day[:4] }} r</div>
+      <h1>EWIDENCJA PRZEBIEGU POJAZDU</h1>
+      <p>WPIS OSOBY KIERUJĄCEJ POJAZDEM SAMOCHODOWYM, BĘDĄCEJ PRACOWNIKIEM PODATNIKA, DOTYCZĄCY KAŻDEGO WYKORZYSTANIA TEGO POJAZDU</p>
+      <div class="road-card-vehicle">
+        <span><strong>Pojazd:</strong> {{ report_vehicle.name }}</span>
+        <span><strong>Nr rej.:</strong> {{ report_vehicle.plate or '—' }}</span>
+      </div>
+    </div>
+
+    <table class="road-card-table">
+      <thead>
+        <tr>
+          <th style="width:5%">Kolejny numer wpisu</th>
+          <th style="width:10%">Data wyjazdu</th>
+          <th style="width:15%">Imię i nazwisko osoby kierującej pojazdem</th>
+          <th style="width:30%">Cel wyjazdu / Opis trasy (skąd - dokąd)</th>
+          <th style="width:10%">Liczba przejechanych kilometrów</th>
+          <th style="width:20%">Stan licznika na dzień wyjazdu / powrotu pojazdu</th>
+          <th style="width:10%">Uwagi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for trip in trip_entries %}
+        <tr>
+          <td class="road-card-center">{{ loop.index }}</td>
+          <td>{{ trip.date.strftime('%d.%m.%Y') if trip.date else '' }}</td>
+          <td>{{ trip.driver }}</td>
+          <td>{{ trip.purpose }}</td>
+          <td class="road-card-center">{% if trip.odo_start is not none and trip.odo_end is not none %}{{ trip.odo_end - trip.odo_start }}{% endif %}</td>
+          <td>
+            <div>{{ trip.odo_start if trip.odo_start is not none else '' }} - {{ trip.odo_end if trip.odo_end is not none else '' }}</div>
+            <div>{{ trip.time_start or '' }} - {{ trip.time_end or '' }}</div>
+          </td>
+          <td>{{ trip.notes or '' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="road-card-footer">
+      <div class="road-card-footer-box">
+        <div>Suma folio: _______ km</div>
+        <div>Z przeniesienia z poprzedniej strony: _______ km</div>
+        <div>Razem na koniec okresu rozliczeniowego: {{ total_km }} km</div>
+        <div>Stan licznika na koniec okresu rozliczeniowego: _______ km</div>
+      </div>
+      <div class="road-card-footer-box">
+        <p>Potwierdzam autentyczność dokonanych przez kierującego pojazdem wpisów za bieżący okres rozliczeniowy.</p>
+        <p>Stwierdzam ich zgodność ze stanem faktycznym.</p>
+        <div class="road-card-signature">Data i podpis podatnika: ____________________________</div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
   <!-- Print header (print only) -->
   <div style="display:none;" class="print-only">
     <h1 style="font-size:1.4rem; font-weight:700; margin-bottom:4px;">OSP Logbook – Raport miesięczny</h1>
@@ -114,8 +181,8 @@
 
   <!-- Summary Table -->
   {% if trip_summary %}
-  <div class="section-title">Podsumowanie pojazdów</div>
-  <div style="overflow-x:auto; margin-bottom:20px;">
+  <div class="section-title no-print">Podsumowanie pojazdów</div>
+  <div class="no-print" style="overflow-x:auto; margin-bottom:20px;">
     <table id="summaryTable" style="width:100%; border-collapse:collapse; font-size:0.88rem;">
       <thead>
         <tr style="border-bottom:2px solid var(--border);">
@@ -149,7 +216,7 @@
     </table>
   </div>
   {% else %}
-  <div class="empty-state" style="margin:24px 0;">
+  <div class="empty-state no-print" style="margin:24px 0;">
     <div class="empty-state-icon">📊</div>
     <p>Brak danych za wybrany okres</p>
   </div>
@@ -157,8 +224,8 @@
 
   <!-- Trip List -->
   {% if trip_entries %}
-  <div class="section-title">Lista wyjazdów</div>
-  <div style="overflow-x:auto; margin-bottom:24px;">
+  <div class="section-title no-print">Lista wyjazdów</div>
+  <div class="no-print" style="overflow-x:auto; margin-bottom:24px;">
     <table id="tripListTable" style="width:100%; border-collapse:collapse; font-size:0.85rem;">
       <thead>
         <tr style="border-bottom:2px solid var(--border);">
@@ -257,14 +324,92 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
+.no-print { display: block; }
+.print-only { display: none; }
+
 @media print {
-  body { background: #fff !important; color: #000 !important; }
+  @page { size: A4 portrait; margin: 12mm; }
+
+  body { background: #fff !important; color: #000 !important; font-size: 9pt; }
+  .no-print { display: none !important; }
   .print-only { display: block !important; }
+  .road-card-print { color: #000; font-size: 9pt; }
+  .road-card-header {
+    border: 1px solid #000;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+  }
+  .road-card-header h1 {
+    font-size: 13pt;
+    margin: 6px 0 4px;
+    text-align: center;
+  }
+  .road-card-header p {
+    font-size: 9pt;
+    text-align: center;
+    margin: 0 0 6px;
+  }
+  .road-card-period,
+  .road-card-year {
+    font-size: 9pt;
+    line-height: 1.35;
+  }
+  .road-card-year {
+    text-align: right;
+    margin-bottom: 4px;
+  }
+  .road-card-vehicle {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 6px;
+  }
+  .road-card-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #000;
+    font-size: 9pt;
+  }
+  .road-card-table th,
+  .road-card-table td {
+    border: 1px solid #000;
+    padding: 3px 5px;
+    vertical-align: top;
+  }
+  .road-card-table thead th {
+    background: #f0f0f0 !important;
+    text-align: center;
+    font-weight: 700;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .road-card-table tbody tr:nth-child(even) {
+    background: #f9f9f9 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .road-card-table tbody td {
+    min-height: 22px;
+  }
+  .road-card-center {
+    text-align: center;
+  }
+  .road-card-footer {
+    margin-top: 10px;
+  }
+  .road-card-footer-box {
+    border: 1px solid #000;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+  }
+  .road-card-footer-box p {
+    margin: 0 0 6px;
+  }
+  .road-card-signature {
+    margin-top: 14px;
+  }
   table { border-collapse: collapse; width: 100%; }
-  th, td { border: 1px solid #ccc !important; padding: 6px 8px !important; color: #000 !important; font-size: 10pt; }
-  thead { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .section-title { color: #333 !important; margin-top: 16px; }
-  .entry { border: 1px solid #ccc; }
+  th, td { color: #000 !important; }
 }
 </style>
 

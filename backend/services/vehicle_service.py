@@ -8,11 +8,10 @@ class VehicleService:
         conn = get_db()
         try:
             with get_cursor(conn) as cur:
-                # Soft delete: sets active = 0 (false)
-                cur.execute('UPDATE vehicles SET active = 0 WHERE id = %s', (vehicle_id,))
+                cur.execute('DELETE FROM vehicles WHERE id = %s', (vehicle_id,))
             conn.commit()
         except Exception:
             conn.rollback()
             raise
 
-        AuditService.log('Usunięcie', 'Pojazd', f"Usunięto (miękko) pojazd ID: {vehicle_id}")
+        AuditService.log('Usunięcie', 'Pojazd', f"Usunięto pojazd ID: {vehicle_id}")

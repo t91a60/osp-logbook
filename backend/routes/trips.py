@@ -3,6 +3,7 @@ from datetime import date
 from psycopg2 import IntegrityError
 from backend.db import get_db, get_cursor
 from backend.helpers import login_required, build_date_where, paginate, parse_positive_int
+from backend.services.core_service import TripService
 
 
 class ValidationError(Exception):
@@ -25,7 +26,7 @@ def register_routes(app):
         conn = get_db()
         cur = get_cursor(conn)
         try:
-            cur.execute('SELECT * FROM vehicles WHERE active = 1 ORDER BY name')
+            cur.execute('SELECT * FROM vehicles ORDER BY name')
             vehicles = cur.fetchall()
 
             if request.method == 'POST':
@@ -59,18 +60,19 @@ def register_routes(app):
                     return redirect(url_for('trips'))
 
                 try:
-                    cur.execute('''
-                        INSERT INTO trips (vehicle_id, date, driver, odo_start, odo_end, purpose, notes, added_by)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    ''', (
-                        int(vehicle_id), trip_date, driver,
-                        odo_start, odo_end,
-                        purpose, f.get('notes', '').strip(),
-                        session['username']
-                    ))
-                    conn.commit()
+                    TripService.add_trip(
+                        int(vehicle_id),
+                        trip_date,
+                        driver,
+                        odo_start,
+                        odo_end,
+                        purpose,
+                        f.get('notes', '').strip(),
+                        session['username'],
+                        time_start=f.get('time_start') or None,
+                        time_end=f.get('time_end') or None,
+                    )
                 except IntegrityError:
-                    conn.rollback()
                     raise ValidationError('Nie udało się zapisać wyjazdu. Sprawdź dane i spróbuj ponownie.')
 
                 flash('Wyjazd zapisany.', 'success')

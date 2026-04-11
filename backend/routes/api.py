@@ -2,6 +2,7 @@ from flask import request, jsonify, session, current_app
 from datetime import date, timedelta
 from backend.db import get_db, get_cursor
 from backend.helpers import login_required, normalize_iso_date
+from backend.services.core_service import TripService
 
 
 class ValidationError(Exception):
@@ -13,12 +14,12 @@ def _json_error(message, status_code):
 
 
 def _get_active_vehicle(cur, vehicle_id):
-    """Zwraca pojazd jeśli istnieje i jest aktywny, inaczej None."""
+    """Zwraca pojazd jeśli istnieje, inaczej None."""
     try:
         vid = int(vehicle_id)
     except (TypeError, ValueError):
         return None
-    cur.execute("SELECT id FROM vehicles WHERE id = %s AND active = 1", (vid,))
+    cur.execute("SELECT id FROM vehicles WHERE id = %s", (vid,))
     return cur.fetchone()
 
 
@@ -119,7 +120,7 @@ def register_routes(app):
         try:
             vehicle = _get_active_vehicle(cur, f.get('vehicle_id'))
             if not vehicle:
-                raise ValidationError('Nieprawidłowy lub nieaktywny pojazd.')
+                raise ValidationError('Nieprawidłowy pojazd.')
 
             purpose_sel = f.get('purpose_select', '').strip()
             if purpose_sel == '__inne__':
@@ -141,21 +142,21 @@ def register_routes(app):
             odo_start = _optional_int(f.get('odo_start'), 'Km start')
             odo_end = _optional_int(f.get('odo_end'), 'Km koniec')
 
-            cur.execute('''
-                INSERT INTO trips (vehicle_id, date, driver, odo_start, odo_end, purpose, notes, added_by)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (
-                vehicle['id'], trip_date, driver,
-                odo_start, odo_end,
-                purpose, f.get('notes', '').strip(),
-                session['username']
-            ))
-            conn.commit()
+            TripService.add_trip(
+                vehicle['id'],
+                trip_date,
+                driver,
+                odo_start,
+                odo_end,
+                purpose,
+                f.get('notes', '').strip(),
+                session['username'],
+                time_start=f.get('time_start') or None,
+                time_end=f.get('time_end') or None,
+            )
         except ValidationError as exc:
-            conn.rollback()
             return _json_error(str(exc), 400)
         except Exception:
-            conn.rollback()
             current_app.logger.exception('Trip API error')
             return _json_error('Nie udało się zapisać wyjazdu. Spróbuj ponownie.', 500)
         finally:
@@ -173,7 +174,7 @@ def register_routes(app):
         try:
             vehicle = _get_active_vehicle(cur, f.get('vehicle_id'))
             if not vehicle:
-                raise ValidationError('Nieprawidłowy lub nieaktywny pojazd.')
+                raise ValidationError('Nieprawidłowy pojazd.')
 
             liters = (f.get('liters') or '').strip()
             if not liters:
@@ -226,7 +227,7 @@ def register_routes(app):
         try:
             vehicle = _get_active_vehicle(cur, f.get('vehicle_id'))
             if not vehicle:
-                raise ValidationError('Nieprawidłowy lub nieaktywny pojazd.')
+                raise ValidationError('Nieprawidłowy pojazd.')
 
             description = f.get('description', '').strip()
             if not description:

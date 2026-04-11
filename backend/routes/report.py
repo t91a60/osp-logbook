@@ -4,6 +4,12 @@ from backend.db import get_db, get_cursor
 from backend.helpers import login_required, parse_positive_int
 
 
+_POLISH_MONTHS = [
+    'styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec',
+    'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień',
+]
+
+
 def _parse_period(period):
     today = date.today()
 
@@ -66,8 +72,10 @@ def register_routes(app):
             last_day = date(year, month + 1, 1) - timedelta(days=1)
         last_day = last_day.isoformat()
 
-        cur.execute('SELECT * FROM vehicles ORDER BY active DESC, name')
+        cur.execute('SELECT * FROM vehicles ORDER BY name')
         vehicles = cur.fetchall()
+        report_vehicle = next((v for v in vehicles if str(v['id']) == selected_vehicle), None)
+        period_label = f'{_POLISH_MONTHS[month - 1]} {year}'
 
         trip_where = "WHERE t.date BETWEEN %s AND %s"
         trip_params = [first_day, last_day]
@@ -82,6 +90,11 @@ def register_routes(app):
             ORDER BY t.date, t.created_at
         ''', trip_params)
         trip_entries = cur.fetchall()
+        total_km = sum(
+            (entry['odo_end'] - entry['odo_start'])
+            for entry in trip_entries
+            if entry['odo_start'] is not None and entry['odo_end'] is not None
+        )
 
         summary_where = "WHERE t.date BETWEEN %s AND %s"
         summary_params = [first_day, last_day]
@@ -141,6 +154,9 @@ def register_routes(app):
                                fuel_by_vid=fuel_by_vid,
                                maint_by_vid=maint_by_vid,
                                trip_entries=trip_entries,
+                               total_km=total_km,
+                               period_label=period_label,
+                               report_vehicle=report_vehicle,
                                month_str=month_str,
                                selected_vehicle=selected_vehicle,
                                first_day=first_day,
