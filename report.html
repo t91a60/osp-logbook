@@ -49,6 +49,55 @@
     </form>
   </div>
 
+  <div class="form-section no-print">
+    <div class="form-section-title">Drukuj formularz pojazdu</div>
+    <form id="printVehicleForm" onsubmit="return openVehiclePrintForm()" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+      <div class="form-field" style="flex:1; min-width:180px;">
+        <label class="form-label" for="print_vehicle">Pojazd</label>
+        <select id="print_vehicle" class="form-select" required>
+          <option value="">Wybierz pojazd</option>
+          {% for v in vehicles %}
+          <option value="{{ v.id }}" {% if selected_vehicle == v.id|string %}selected{% endif %}>{{ v.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-field" style="min-width:150px;">
+        <label class="form-label" for="print_period_mode">Tryb okresu</label>
+        <select id="print_period_mode" class="form-select" onchange="togglePrintPeriodFields()">
+          <option value="month" selected>Miesiąc</option>
+          <option value="quarter">Kwartał</option>
+        </select>
+      </div>
+
+      <div class="form-field" id="print_month_wrap" style="min-width:170px;">
+        <label class="form-label" for="print_month">Miesiąc</label>
+        <input type="month" id="print_month" class="form-input" value="{{ month_str }}" style="min-height:48px;">
+      </div>
+
+      {% set month_num = (month_str[5:7]|int) if month_str and month_str|length >= 7 else 1 %}
+      {% set default_quarter = ((month_num - 1) // 3) + 1 %}
+      <div id="print_quarter_wrap" style="display:none; flex:1; min-width:260px; gap:10px; align-items:flex-end;">
+        <div class="form-field" style="min-width:110px; flex:1;">
+          <label class="form-label" for="print_quarter_year">Rok</label>
+          <input type="number" id="print_quarter_year" class="form-input" min="2000" max="2100" value="{{ month_str[:4] if month_str and month_str|length >= 4 else '' }}">
+        </div>
+        <div class="form-field" style="min-width:120px; flex:1;">
+          <label class="form-label" for="print_quarter">Kwartał</label>
+          <select id="print_quarter" class="form-select">
+            <option value="1" {% if default_quarter == 1 %}selected{% endif %}>Q1</option>
+            <option value="2" {% if default_quarter == 2 %}selected{% endif %}>Q2</option>
+            <option value="3" {% if default_quarter == 3 %}selected{% endif %}>Q3</option>
+            <option value="4" {% if default_quarter == 4 %}selected{% endif %}>Q4</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-secondary" style="min-height:48px; width:auto; margin-top:0;">Drukuj formularz pojazdu</button>
+    </form>
+    <div class="form-hint">Obsługiwane okresy: YYYY-MM (miesiąc) oraz YYYY-Q1..Q4 (kwartał).</div>
+  </div>
+
   <!-- Print header (print only) -->
   <div style="display:none;" class="print-only">
     <h1 style="font-size:1.4rem; font-weight:700; margin-bottom:4px;">OSP Logbook – Raport miesięczny</h1>
@@ -140,6 +189,56 @@
   {% endif %}
 
 </div>
+
+<script>
+function togglePrintPeriodFields() {
+  const mode = document.getElementById('print_period_mode')?.value;
+  const monthWrap = document.getElementById('print_month_wrap');
+  const quarterWrap = document.getElementById('print_quarter_wrap');
+  if (!monthWrap || !quarterWrap) return;
+
+  if (mode === 'quarter') {
+    monthWrap.style.display = 'none';
+    quarterWrap.style.display = 'flex';
+  } else {
+    monthWrap.style.display = 'block';
+    quarterWrap.style.display = 'none';
+  }
+}
+
+function openVehiclePrintForm() {
+  const vehicleId = document.getElementById('print_vehicle')?.value;
+  if (!vehicleId) {
+    alert('Wybierz pojazd do wydruku formularza.');
+    return false;
+  }
+
+  const mode = document.getElementById('print_period_mode')?.value || 'month';
+  let period = '';
+
+  if (mode === 'quarter') {
+    const year = (document.getElementById('print_quarter_year')?.value || '').trim();
+    const quarter = document.getElementById('print_quarter')?.value || '1';
+    if (!/^\d{4}$/.test(year)) {
+      alert('Podaj poprawny rok dla kwartału (YYYY).');
+      return false;
+    }
+    period = year + '-Q' + quarter;
+  } else {
+    const month = (document.getElementById('print_month')?.value || '').trim();
+    if (!/^\d{4}-\d{2}$/.test(month)) {
+      alert('Podaj poprawny miesiąc (YYYY-MM).');
+      return false;
+    }
+    period = month;
+  }
+
+  window.location.href = '/report/print/' + encodeURIComponent(vehicleId) + '/' + encodeURIComponent(period);
+  return false;
+}
+
+document.addEventListener('DOMContentLoaded', togglePrintPeriodFields);
+</script>
 
 <style>
 @media print {

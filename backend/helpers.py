@@ -1,6 +1,7 @@
 from datetime import date, datetime, timedelta
 from functools import wraps
 from flask import session, redirect, url_for, abort
+from backend.db import get_db, get_cursor
 
 
 def login_required(f):
@@ -18,8 +19,23 @@ def admin_required(f):
     def decorated(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
+
+        # Treat session as cache only; verify from DB when flag is missing/false.
         if not session.get('is_admin'):
-            abort(403)
+            conn = get_db()
+            cur = get_cursor(conn)
+            try:
+                cur.execute('SELECT is_admin FROM users WHERE id = %s', (session.get('user_id'),))
+                row = cur.fetchone()
+            finally:
+                cur.close()
+
+            if not row or not bool(row['is_admin']):
+                abort(403)
+
+            # Sync session so next checks are fast.
+            session['is_admin'] = True
+
         return f(*args, **kwargs)
     return decorated
 

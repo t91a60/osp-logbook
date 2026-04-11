@@ -27,10 +27,30 @@ def register_routes(app):
                 cur.close()
 
             if user and check_password_hash(user['password'], password):
+                # Backward compatibility: older deployments could have an
+                # existing 'admin' user created before the is_admin flag.
+                # Auto-repair the flag at login so admin routes work again.
+                if user['username'] == 'admin' and not bool(user['is_admin']):
+                    cur = get_cursor(conn)
+                    try:
+                        cur.execute('UPDATE users SET is_admin = TRUE WHERE id = %s', (user['id'],))
+                        conn.commit()
+                    finally:
+                        cur.close()
+
+                # Role should come from DB state at login time, not stale row copy.
+                cur = get_cursor(conn)
+                try:
+                    cur.execute('SELECT is_admin FROM users WHERE id = %s', (user['id'],))
+                    role_row = cur.fetchone()
+                    is_admin = bool(role_row['is_admin']) if role_row else False
+                finally:
+                    cur.close()
+
                 session['user_id'] = user['id']
                 session['username'] = user['username']
                 session['display_name'] = user['display_name']
-                session['is_admin'] = bool(user['is_admin'])
+                session['is_admin'] = is_admin
                 return redirect(url_for('dashboard'))
 
             flash('Nieprawidłowy login lub hasło.', 'error')

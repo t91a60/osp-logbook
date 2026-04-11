@@ -96,6 +96,12 @@
     font-size: 10px;
   }
 
+  .log-table .group-head {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
   .center {
     text-align: center;
   }
@@ -183,7 +189,7 @@
 
 <div class="no-print">
   <button type="button" onclick="window.print()">Drukuj formularz</button>
-  <a href="{{ url_for('report.report', vehicle_id=vehicle.id) }}">Powrót do raportu</a>
+  <a href="{{ url_for('report', vehicle_id=vehicle.id) }}">Powrót do raportu</a>
 </div>
 
 <div class="sheet">
@@ -219,13 +225,17 @@
     </colgroup>
     <thead>
       <tr>
+        <th class="group-head" colspan="4">Lewa strona</th>
+        <th class="group-head" colspan="5">Prawa strona</th>
+      </tr>
+      <tr>
         <th>Kolejny numer wpisu</th>
         <th>Data wyjazdu</th>
         <th>Imię i nazwisko kierowcy</th>
         <th>Cel wyjazdu</th>
-        <th>Km start</th>
-        <th>Km koniec</th>
-        <th>Przejechano km</th>
+        <th>Licznik start</th>
+        <th>Licznik koniec</th>
+        <th>Liczba przejechanych kilometrów</th>
         <th>Opis trasy (skąd-dokąd)</th>
         <th>Uwagi</th>
       </tr>
