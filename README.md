@@ -43,12 +43,12 @@ Po uruchomieniu, otwórz w przeglądarce: `http://localhost:5000` LUB `http://TW
 
 ## 🚢 Render.com i migracje
 
-Na Renderze schemat bazy jest przygotowywany wyłącznie przez `yoyo apply` uruchamiane w `preDeployCommand` z pliku `render.yaml`. Aplikacja nie wykonuje już runtime-owych migracji schematu przy starcie.
+Na Renderze schemat bazy jest przygotowywany wyłącznie przez `python -m yoyo apply` uruchamiane w `preDeployCommand` z pliku `render.yaml`. Aplikacja nie wykonuje już runtime-owych migracji schematu przy starcie.
 
 Jeśli wdrażasz lub odtwarzasz bazę ręcznie, uruchom migracje przed startem aplikacji:
 
 ```bash
-yoyo apply -b --database $DATABASE_URL ./migrations
+python -m yoyo apply -b --database $DATABASE_URL ./migrations
 ```
 
 ---
