@@ -217,7 +217,7 @@ function calcFuel() {
 }
 
 function submitFuel() {
-  return submitForm('fuelForm', '{{ url_for("api.api_add_fuel") }}', function() {
+  return submitForm('fuelForm', '{{ url_for("api_add_fuel") }}', function() {
     document.getElementById('fuel_vehicle_id').focus();
     const hint = document.getElementById('fuelHint');
     if (hint) { hint.textContent = ''; hint.className = 'form-hint'; }

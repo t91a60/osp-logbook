@@ -235,7 +235,7 @@ function submitTrip() {
     const pc = document.getElementById('purposeCustom');
     if (!pc || !pc.value.trim()) { showToast('Opisz cel wyjazdu.', 'error'); return false; }
   }
-  return submitForm('tripForm', '{{ url_for("api.api_add_trip") }}', function() {
+  return submitForm('tripForm', '{{ url_for("api_add_trip") }}', function() {
     document.getElementById('vehicle_id').focus();
   });
 }

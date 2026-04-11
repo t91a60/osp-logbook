@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function submitMaintenance() {
-  return submitForm('maintenanceForm', '{{ url_for("api.api_add_maintenance") }}', function() {
+  return submitForm('maintenanceForm', '{{ url_for("api_add_maintenance") }}', function() {
     document.getElementById('maint_vehicle_id').focus();
   });
 }

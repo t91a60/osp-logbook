@@ -188,7 +188,7 @@
 <body>
 
 <div class="no-print">
-  <button type="button" onclick="window.print()">Drukuj formularz</button>
+  <button type="button" id="printFormBtn">Drukuj formularz</button>
   <a href="{{ url_for('report', vehicle_id=vehicle.id) }}">Powrót do raportu</a>
 </div>
 
@@ -307,6 +307,17 @@
     </div>
   </div>
 </div>
+
+<script nonce="{{ csp_nonce() }}">
+document.addEventListener('DOMContentLoaded', function() {
+  const btn = document.getElementById('printFormBtn');
+  if (btn) {
+    btn.addEventListener('click', function() {
+      window.print();
+    });
+  }
+});
+</script>
 
 </body>
 </html>
