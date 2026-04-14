@@ -35,7 +35,6 @@ class TestGetOrSet:
         assert cache_service.get_or_set('b', 60, lambda: 'WRONG') == 'beta'
 
     def test_expired_entry_refreshed(self):
-        # TTL minimum is 1 second in the implementation (max(1, int(ttl_seconds)))
         cache_service.get_or_set('x', 1, lambda: 'old')
         # Manually expire the entry
         cache_service._cache['x']['expires_at'] = 0

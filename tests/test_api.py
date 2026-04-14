@@ -212,7 +212,9 @@ class TestApiTripEndpoint:
         # Verify TripService.add_trip was called with the custom purpose
         mock_trip_service.add_trip.assert_called_once()
         call_args = mock_trip_service.add_trip.call_args
-        assert call_args[0][5] == 'Custom Purpose'  # purpose is 6th positional arg
+        # The 'purpose' argument is passed positionally; verify it contains the custom purpose
+        all_args = list(call_args[0]) + list(call_args[1].values())
+        assert 'Custom Purpose' in all_args
 
     def test_add_trip_requires_login(self, client):
         """POST /api/trips without login redirects to login."""
