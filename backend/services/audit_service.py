@@ -21,6 +21,7 @@ class AuditService:
         pool = get_pool()
         conn = None
         try:
+            # Pobieramy oddzielne, niezależne połączenie dla audytu
             conn = pool.getconn()
             conn.autocommit = False
             with get_cursor(conn) as cur:
