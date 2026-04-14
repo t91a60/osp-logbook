@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from psycopg2 import IntegrityError
 from backend.db import get_db, get_cursor
 from backend.helpers import login_required, build_date_where, paginate, parse_positive_int, normalize_iso_date
+from backend.services.cache_service import get_vehicles_cached
 
 
 class ValidationError(Exception):
@@ -34,8 +35,7 @@ def register_routes(app):
         conn = get_db()
         cur = get_cursor(conn)
         try:
-            cur.execute('SELECT * FROM vehicles ORDER BY name')
-            vehicles = cur.fetchall()
+            vehicles = get_vehicles_cached()
 
             if request.method == 'POST':
                 f = request.form
@@ -180,7 +180,7 @@ def register_routes(app):
         cur = get_cursor(conn)
         try:
             cur.execute('''
-                SELECT vehicle_id, odometer, description, notes, priority, due_date
+                SELECT vehicle_id, odometer, description, notes, priority, due_date, added_by
                 FROM maintenance WHERE id = %s
             ''', (eid,))
             row = cur.fetchone()
@@ -189,9 +189,7 @@ def register_routes(app):
                 flash('Nie znaleziono wpisu serwisowego.', 'error')
                 return redirect(url_for('maintenance'))
 
-            cur.execute('SELECT added_by FROM maintenance WHERE id = %s', (eid,))
-            owner_row = cur.fetchone()
-            if owner_row and owner_row['added_by'] != session['username'] and not session.get('is_admin'):
+            if row['added_by'] != session['username'] and not session.get('is_admin'):
                 abort(403)
 
             if row['due_date']:

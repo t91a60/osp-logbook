@@ -1,5 +1,6 @@
 from backend.db import get_db, get_cursor
 from backend.services.audit_service import AuditService
+from backend.services.cache_service import invalidate_prefix
 
 
 class VehicleService:
@@ -14,4 +15,5 @@ class VehicleService:
             conn.rollback()
             raise
 
+        invalidate_prefix('vehicles:')
         AuditService.log('Usunięcie', 'Pojazd', f"Usunięto pojazd ID: {vehicle_id}")

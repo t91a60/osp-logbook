@@ -5,6 +5,7 @@ from psycopg2 import sql
 from backend.db import get_db, get_cursor
 from backend.helpers import login_required, admin_required
 from backend.services.vehicle_service import VehicleService
+from backend.services.cache_service import invalidate_prefix
 
 MIN_PASSWORD_LEN = 8
 
@@ -51,6 +52,7 @@ def register_routes(app):
                     (f['name'].strip(), f.get('plate', '').strip(), f.get('type', '').strip())
                 )
                 conn.commit()
+                invalidate_prefix('vehicles:')
                 flash('Pojazd dodany.', 'success')
                 return redirect(url_for('vehicles'))
 
@@ -191,6 +193,7 @@ def register_routes(app):
                         (name, f.get('plate', '').strip(), f.get('type', '').strip(), vid)
                     )
                     conn.commit()
+                    invalidate_prefix('vehicles:')
                     flash('Pojazd zaktualizowany.', 'success')
                     return redirect(url_for('vehicles'))
         finally:

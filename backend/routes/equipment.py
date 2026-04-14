@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from backend.db import get_db, get_cursor
 from backend.helpers import login_required, admin_required
 from backend.services.audit_service import AuditService
+from backend.services.cache_service import get_vehicles_cached
 
 equipment_bp = Blueprint('equipment', __name__)
 
@@ -89,8 +90,7 @@ def equipment_list():
     cur = get_cursor(conn)
     try:
         vid = request.args.get('vehicle_id', '')
-        cur.execute('SELECT * FROM vehicles ORDER BY name')
-        vehicles = cur.fetchall()
+        vehicles = get_vehicles_cached()
 
         eq_query = '''
             SELECT e.*, v.name AS vname
@@ -185,8 +185,7 @@ def equipment_edit(eid):
             flash('Sprzęt zaktualizowany.', 'success')
             return redirect(url_for('equipment.equipment_list', vehicle_id=item['vehicle_id']))
 
-        cur.execute('SELECT * FROM vehicles ORDER BY name')
-        vehicles = cur.fetchall()
+        vehicles = get_vehicles_cached()
     finally:
         cur.close()
 
