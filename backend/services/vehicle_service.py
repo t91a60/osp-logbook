@@ -5,7 +5,7 @@ from backend.services.cache_service import invalidate_prefix
 
 class VehicleService:
     @staticmethod
-    def delete_vehicle(vehicle_id, user_id=None):
+    def delete_vehicle(vehicle_id: int, user_id: int | None = None) -> None:
         conn = get_db()
         try:
             with get_cursor(conn) as cur:

@@ -1,22 +1,22 @@
 import os
 import time
 import logging
+from collections.abc import Callable
+
 import psycopg2
 from psycopg2.pool import SimpleConnectionPool
 from psycopg2.extras import RealDictCursor
-from flask import g
+from flask import g, Flask
 
 logger = logging.getLogger(__name__)
 
-_db_pool = None
+_db_pool: SimpleConnectionPool | None = None
 
 
-def _create_pool():
+def _create_pool() -> SimpleConnectionPool:
     """Create a new connection pool."""
-    minconn = int(os.environ.get('DB_POOL_MIN', '1'))
+    minconn = max(1, int(os.environ.get('DB_POOL_MIN', '1')))
     maxconn = int(os.environ.get('DB_POOL_MAX', '10'))
-    if minconn < 1:
-        minconn = 1
     if maxconn < minconn:
         maxconn = minconn
 
@@ -25,18 +25,18 @@ def _create_pool():
         maxconn=maxconn,
         dsn=os.environ.get('DATABASE_URL'),
         sslmode='require',
-        connect_timeout=5
+        connect_timeout=5,
     )
 
 
-def get_pool():
+def get_pool() -> SimpleConnectionPool:
     global _db_pool
     if _db_pool is None:
         _db_pool = _create_pool()
     return _db_pool
 
 
-def reset_pool():
+def reset_pool() -> SimpleConnectionPool:
     """Close all connections and create a fresh pool."""
     global _db_pool
     if _db_pool is not None:
@@ -60,7 +60,7 @@ def get_cursor(conn):
     return conn.cursor(cursor_factory=RealDictCursor)
 
 
-def close_db(e=None):
+def close_db(e: BaseException | None = None) -> None:
     db = g.pop('db', None)
     if db is not None:
         pool = _db_pool
@@ -90,7 +90,7 @@ def close_db(e=None):
                 pass
 
 
-def _retry_on_connection_failure(func, max_retries=3, delay=1):
+def _retry_on_connection_failure[T](func: Callable[[], T], max_retries: int = 3, delay: int = 1) -> T:
     """Retry a function on connection failure (e.g., DB restart on Render)."""
     for attempt in range(max_retries):
         try:
@@ -109,9 +109,11 @@ def _retry_on_connection_failure(func, max_retries=3, delay=1):
             else:
                 logger.error("DB connection failed after %d attempts: %s", max_retries, e)
                 raise
+    # Unreachable when max_retries >= 1, but satisfies the type checker.
+    raise RuntimeError("max_retries must be >= 1")
 
 
-def check_db_health():
+def check_db_health() -> bool:
     """Check if the database connection is healthy."""
     try:
         conn = get_db()
@@ -126,6 +128,6 @@ def check_db_health():
         return False
 
 
-def register_db(app):
+def register_db(app: Flask) -> None:
     """Registers DB teardown cleanup with the app context."""
     app.teardown_appcontext(close_db)
