@@ -1,14 +1,15 @@
 from collections import OrderedDict
+from collections.abc import Callable
 from threading import Lock
 from time import monotonic
-from typing import Any, Callable
+from typing import Any
 
 _cache_lock = Lock()
 _cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
-_CACHE_MAX_SIZE = 1024
+_CACHE_MAX_SIZE: int = 1024
 
 
-def get_or_set(key: str, ttl_seconds: int, loader: Callable[[], Any]) -> Any:
+def get_or_set[T](key: str, ttl_seconds: int, loader: Callable[[], T]) -> T:
     now = monotonic()
     with _cache_lock:
         entry = _cache.get(key)
@@ -35,11 +36,11 @@ def invalidate_prefix(prefix: str) -> None:
             _cache.pop(key, None)
 
 
-def get_vehicles_cached():
+def get_vehicles_cached() -> list[dict]:
     """Return all vehicles ordered by name, cached for 300 s."""
     from backend.db import get_db, get_cursor
 
-    def _load():
+    def _load() -> list[dict]:
         conn = get_db()
         cur = get_cursor(conn)
         try:

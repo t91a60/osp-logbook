@@ -1,5 +1,6 @@
-from flask import request, jsonify, session, current_app
+from flask import Response, request, jsonify, session, current_app
 from datetime import date
+
 from backend.db import get_db, get_cursor
 from backend.helpers import login_required, normalize_iso_date
 from backend.services.core_service import TripService, VehicleService
@@ -10,11 +11,11 @@ class ValidationError(Exception):
     """Raised when request data fails validation."""
 
 
-def _json_error(message, status_code):
+def _json_error(message: str, status_code: int) -> tuple[Response, int]:
     return jsonify({'success': False, 'message': message}), status_code
 
 
-def _get_active_vehicle(cur, vehicle_id):
+def _get_active_vehicle(cur, vehicle_id: str | int | None) -> dict | None:
     """Zwraca pojazd jeśli istnieje, inaczej None."""
     try:
         vid = int(vehicle_id)
@@ -24,7 +25,7 @@ def _get_active_vehicle(cur, vehicle_id):
     return cur.fetchone()
 
 
-def _optional_int(value, field_name):
+def _optional_int(value: str | int | None, field_name: str) -> int | None:
     if value in (None, ''):
         return None
     try:
@@ -33,7 +34,7 @@ def _optional_int(value, field_name):
         raise ValidationError(f'{field_name} musi być liczbą całkowitą.')
 
 
-def _optional_float(value, field_name):
+def _optional_float(value: str | float | None, field_name: str) -> float | None:
     if value in (None, ''):
         return None
     try:

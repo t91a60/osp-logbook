@@ -1,5 +1,5 @@
 # Etap budowy
-FROM python:3.11-slim-bullseye AS builder
+FROM python:3.14-slim-bookworm AS builder
 WORKDIR /app
 RUN apt-get update && apt-get install -y libpq-dev gcc \
     && rm -rf /var/lib/apt/lists/*
@@ -7,7 +7,7 @@ COPY requirements.txt .
 RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
 
 # Środowisko docelowe
-FROM python:3.11-slim-bullseye
+FROM python:3.14-slim-bookworm
 WORKDIR /app
 COPY --from=builder /app/wheels /wheels
 COPY --from=builder /app/requirements.txt .

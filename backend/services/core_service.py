@@ -1,16 +1,17 @@
 from datetime import date, timedelta
+
 from backend.db import get_db, get_cursor
-from backend.helpers import normalize_iso_date, days_since_iso_date
+from backend.helpers import normalize_iso_date
 from backend.services.audit_service import AuditService
 
 
-def _to_int(value):
+def _to_int(value: str | int | None) -> int | None:
     if value in (None, ''):
         return None
     return int(value)
 
 
-def _to_float(value):
+def _to_float(value: str | float | None) -> float | None:
     if value in (None, ''):
         return None
     return float(value)
@@ -18,7 +19,7 @@ def _to_float(value):
 
 class VehicleService:
     @staticmethod
-    def get_last_km(vid: int):
+    def get_last_km(vid: int) -> tuple[int | None, str | None]:
         conn = get_db()
         cur = get_cursor(conn)
         try:
@@ -50,7 +51,7 @@ class VehicleService:
         return None, None
 
     @staticmethod
-    def get_recent_drivers(days: int = 90):
+    def get_recent_drivers(days: int = 90) -> list[str]:
         cutoff = (date.today() - timedelta(days=days)).isoformat()
         conn = get_db()
         cur = get_cursor(conn)
@@ -65,10 +66,23 @@ class VehicleService:
         cur.close()
         return [r['driver'] for r in rows]
 
+
 class TripService:
     @staticmethod
-    def add_trip(vehicle_id, date_val, driver, odo_start, odo_end, purpose, notes, added_by,
-                 time_start=None, time_end=None, equipment_used=None):
+    def add_trip(
+        vehicle_id: int | str | None,
+        date_val: str,
+        driver: str,
+        odo_start: int | str | None,
+        odo_end: int | str | None,
+        purpose: str,
+        notes: str,
+        added_by: str,
+        *,
+        time_start: str | None = None,
+        time_end: str | None = None,
+        equipment_used: list[dict] | None = None,
+    ) -> None:
         """
         equipment_used: list of dicts [{equipment_id, quantity_used, minutes_used, notes}]
         """
@@ -84,12 +98,12 @@ class TripService:
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 ''', (
-                    vehicle_id, date_val, driver, odo_start, odo_end, purpose, notes, added_by, time_start, time_end
+                    vehicle_id, date_val, driver, odo_start, odo_end, purpose, notes, added_by, time_start, time_end,
                 ))
                 trip_id = cur.fetchone()['id']
 
                 if equipment_used:
-                    eq_rows = []
+                    eq_rows: list[tuple] = []
                     for eq in equipment_used:
                         eq_id = _to_int(eq.get('equipment_id'))
                         if eq_id:
@@ -113,7 +127,16 @@ class TripService:
         AuditService.log('Dodanie', 'Wyjazd', f'Pojazd ID: {vehicle_id}, Kierowca: {driver}, Data: {date_val}')
 
     @staticmethod
-    def add_fuel(vehicle_id, date_val, driver, odometer, liters, cost, notes, added_by):
+    def add_fuel(
+        vehicle_id: int | str | None,
+        date_val: str,
+        driver: str,
+        odometer: int | str | None,
+        liters: float | str | None,
+        cost: float | str | None,
+        notes: str,
+        added_by: str,
+    ) -> None:
         conn = get_db()
         vehicle_id = _to_int(vehicle_id)
         odometer = _to_int(odometer)
@@ -126,7 +149,7 @@ class TripService:
                     INSERT INTO fuel (vehicle_id, date, driver, odometer, liters, cost, notes, added_by)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ''', (
-                    vehicle_id, date_val, driver, odometer, liters, cost, notes, added_by
+                    vehicle_id, date_val, driver, odometer, liters, cost, notes, added_by,
                 ))
             conn.commit()
         except Exception:
@@ -135,7 +158,18 @@ class TripService:
         AuditService.log('Dodanie', 'Tankowanie', f'Pojazd ID: {vehicle_id}, Litry: {liters}, Data: {date_val}')
 
     @staticmethod
-    def add_maintenance(vehicle_id, date_val, odometer, description, cost, notes, added_by, status, priority, due_date):
+    def add_maintenance(
+        vehicle_id: int | str | None,
+        date_val: str,
+        odometer: int | str | None,
+        description: str,
+        cost: float | str | None,
+        notes: str,
+        added_by: str,
+        status: str,
+        priority: str,
+        due_date: str | None,
+    ) -> None:
         conn = get_db()
         vehicle_id = _to_int(vehicle_id)
         odometer = _to_int(odometer)
@@ -147,7 +181,7 @@ class TripService:
                     INSERT INTO maintenance (vehicle_id, date, odometer, description, cost, notes, added_by, status, priority, due_date)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ''', (
-                    vehicle_id, date_val, odometer, description, cost, notes, added_by, status, priority, due_date
+                    vehicle_id, date_val, odometer, description, cost, notes, added_by, status, priority, due_date,
                 ))
             conn.commit()
         except Exception:
