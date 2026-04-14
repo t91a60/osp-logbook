@@ -92,6 +92,8 @@ def close_db(e: BaseException | None = None) -> None:
 
 def _retry_on_connection_failure[T](func: Callable[[], T], max_retries: int = 3, delay: int = 1) -> T:
     """Retry a function on connection failure (e.g., DB restart on Render)."""
+    if max_retries < 1:
+        raise ValueError("max_retries must be >= 1")
     for attempt in range(max_retries):
         try:
             return func()
@@ -109,8 +111,7 @@ def _retry_on_connection_failure[T](func: Callable[[], T], max_retries: int = 3,
             else:
                 logger.error("DB connection failed after %d attempts: %s", max_retries, e)
                 raise
-    # Unreachable when max_retries >= 1, but satisfies the type checker.
-    raise RuntimeError("max_retries must be >= 1")
+    raise RuntimeError("Unreachable")
 
 
 def check_db_health() -> bool:

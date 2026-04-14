@@ -5,19 +5,19 @@ from collections.abc import Callable
 from flask import session, redirect, url_for, abort
 
 
-def login_required[F: Callable](f: F) -> F:
+def login_required[**P, R](f: Callable[P, R]) -> Callable[P, R]:
     @wraps(f)
-    def decorated(*args, **kwargs):
+    def decorated(*args: P.args, **kwargs: P.kwargs) -> R:
         if 'user_id' not in session:
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated
 
 
-def admin_required[F: Callable](f: F) -> F:
+def admin_required[**P, R](f: Callable[P, R]) -> Callable[P, R]:
     """Wymaga zalogowania ORAZ flagi is_admin w sesji."""
     @wraps(f)
-    def decorated(*args, **kwargs):
+    def decorated(*args: P.args, **kwargs: P.kwargs) -> R:
         if 'user_id' not in session:
             return redirect(url_for('login'))
         if not session.get('is_admin'):
