@@ -3,6 +3,7 @@ from datetime import date
 from psycopg2 import IntegrityError
 from backend.db import get_db, get_cursor
 from backend.helpers import login_required, build_date_where, paginate, parse_positive_int
+from backend.services.cache_service import get_vehicles_cached
 
 
 class ValidationError(Exception):
@@ -34,8 +35,7 @@ def register_routes(app):
         conn = get_db()
         cur = get_cursor(conn)
         try:
-            cur.execute('SELECT * FROM vehicles ORDER BY name')
-            vehicles = cur.fetchall()
+            vehicles = get_vehicles_cached()
 
             if request.method == 'POST':
                 f = request.form

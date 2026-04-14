@@ -21,39 +21,26 @@ class VehicleService:
     def get_last_km(vid: int):
         conn = get_db()
         cur = get_cursor(conn)
-        
-        cur.execute(
-            "SELECT MAX(odo_end) as km, MAX(date) as dt FROM trips WHERE vehicle_id = %s AND odo_end IS NOT NULL",
-            (vid,)
-        )
-        trip_row = cur.fetchone()
-        
-        cur.execute(
-            "SELECT MAX(odometer) as km, MAX(date) as dt FROM fuel WHERE vehicle_id = %s AND odometer IS NOT NULL",
-            (vid,)
-        )
-        fuel_row = cur.fetchone()
-        cur.close()
+        try:
+            cur.execute('''
+                SELECT km, dt FROM (
+                    SELECT MAX(odo_end) AS km, MAX(date) AS dt
+                    FROM trips WHERE vehicle_id = %s AND odo_end IS NOT NULL
+                    UNION ALL
+                    SELECT MAX(odometer) AS km, MAX(date) AS dt
+                    FROM fuel WHERE vehicle_id = %s AND odometer IS NOT NULL
+                ) combined
+                WHERE km IS NOT NULL
+                ORDER BY dt DESC NULLS LAST
+                LIMIT 1
+            ''', (vid, vid))
+            row = cur.fetchone()
+        finally:
+            cur.close()
 
-        trip_km = trip_row['km'] if trip_row and trip_row['km'] else None
-        fuel_km = fuel_row['km'] if fuel_row and fuel_row['km'] else None
-        trip_dt = normalize_iso_date(trip_row['dt']) if trip_row and trip_row['dt'] else None
-        fuel_dt = normalize_iso_date(fuel_row['dt']) if fuel_row and fuel_row['dt'] else None
-
-        km = None
-        dt = None
-        
-        if trip_km is not None and fuel_km is not None:
-            if (trip_dt or '') >= (fuel_dt or ''):
-                km, dt = trip_km, trip_dt
-            else:
-                km, dt = fuel_km, fuel_dt
-        elif trip_km is not None:
-            km, dt = trip_km, trip_dt
-        elif fuel_km is not None:
-            km, dt = fuel_km, fuel_dt
-
-        return km, dt
+        if row and row['km'] is not None:
+            return row['km'], normalize_iso_date(row['dt'])
+        return None, None
 
     @staticmethod
     def get_recent_drivers(days: int = 90):
@@ -95,20 +82,23 @@ class TripService:
                 trip_id = cur.fetchone()['id']
 
                 if equipment_used:
+                    eq_rows = []
                     for eq in equipment_used:
                         eq_id = _to_int(eq.get('equipment_id'))
-                        qty = max(1, _to_int(eq.get('quantity_used')) or 1)
-                        mins = _to_int(eq.get('minutes_used'))
-                        eq_notes = str(eq.get('notes') or '').strip()
                         if eq_id:
-                            cur.execute('''
-                                INSERT INTO trip_equipment (trip_id, equipment_id, quantity_used, minutes_used, notes)
-                                VALUES (%s, %s, %s, %s, %s)
-                                ON CONFLICT (trip_id, equipment_id) DO UPDATE
-                                SET quantity_used = EXCLUDED.quantity_used,
-                                    minutes_used  = EXCLUDED.minutes_used,
-                                    notes         = EXCLUDED.notes
-                            ''', (trip_id, eq_id, qty, mins, eq_notes))
+                            qty = max(1, _to_int(eq.get('quantity_used')) or 1)
+                            mins = _to_int(eq.get('minutes_used'))
+                            eq_notes = str(eq.get('notes') or '').strip()
+                            eq_rows.append((trip_id, eq_id, qty, mins, eq_notes))
+                    if eq_rows:
+                        cur.executemany('''
+                            INSERT INTO trip_equipment (trip_id, equipment_id, quantity_used, minutes_used, notes)
+                            VALUES (%s, %s, %s, %s, %s)
+                            ON CONFLICT (trip_id, equipment_id) DO UPDATE
+                            SET quantity_used = EXCLUDED.quantity_used,
+                                minutes_used  = EXCLUDED.minutes_used,
+                                notes         = EXCLUDED.notes
+                        ''', eq_rows)
             conn.commit()
         except Exception:
             conn.rollback()

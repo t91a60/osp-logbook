@@ -2,6 +2,7 @@ from flask import render_template, request, abort
 from datetime import date, timedelta
 from backend.db import get_db, get_cursor
 from backend.helpers import login_required, parse_positive_int
+from backend.services.cache_service import get_vehicles_cached
 
 
 _POLISH_MONTHS = [
@@ -72,8 +73,7 @@ def register_routes(app):
             last_day = date(year, month + 1, 1) - timedelta(days=1)
         last_day = last_day.isoformat()
 
-        cur.execute('SELECT * FROM vehicles ORDER BY name')
-        vehicles = cur.fetchall()
+        vehicles = get_vehicles_cached()
         report_vehicle = next((v for v in vehicles if str(v['id']) == selected_vehicle), None)
         period_label = f'{_POLISH_MONTHS[month - 1]} {year}'
 
