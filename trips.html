@@ -16,7 +16,7 @@
         <div class="form-field">
           <label class="form-label" for="vehicle_id">Pojazd</label>
           <select name="vehicle_id" id="vehicle_id" class="form-select" required
-                  onchange="rememberVehicle(this.value,'trips'); loadLastKm(this.value,'lastKmHint');">
+                  onchange="rememberVehicle(this.value,'trips'); loadLastKm(this.value,'lastKmHint'); loadEquipment(this.value);">
             <option value="">– Wybierz pojazd –</option>
             {% for v in vehicles %}
             <option value="{{ v.id }}" {% if selected_vehicle == v.id|string %}selected{% endif %}>
@@ -31,6 +31,18 @@
         <div class="form-field">
           <label class="form-label" for="trip_date">Data</label>
           <input type="date" name="date" id="trip_date" class="form-input" value="{{ today }}" required>
+        </div>
+
+        <!-- Time start -->
+        <div class="form-field">
+          <label class="form-label" for="trip_time_start">Godz. wyjazdu</label>
+          <input type="time" name="time_start" id="trip_time_start" class="form-input" placeholder="HH:MM">
+        </div>
+
+        <!-- Time end -->
+        <div class="form-field">
+          <label class="form-label" for="trip_time_end">Godz. powrotu</label>
+          <input type="time" name="time_end" id="trip_time_end" class="form-input" placeholder="HH:MM">
         </div>
 
         <!-- Driver -->
@@ -95,6 +107,29 @@
                     placeholder="Dodatkowe notatki..."></textarea>
         </div>
 
+      </div>
+
+      <!-- Użyty sprzęt -->
+      <div id="equipmentSection" style="display:none;margin-top:20px;">
+        <div class="form-section-title" style="margin-bottom:12px;">Użyty sprzęt</div>
+
+        <!-- Wyszukiwarka + lista do wyboru -->
+        <div id="equipmentPicker">
+          <input type="text" id="equipmentSearch" class="form-input"
+                 placeholder="Szukaj sprzętu..."
+                 style="margin-bottom:8px;"
+                 oninput="filterEquipment(this.value)">
+          <div id="equipmentCategoryList" style="max-height:260px;overflow-y:auto;border-radius:10px;border:1px solid var(--border);"></div>
+          <p id="equipmentEmpty" style="font-size:0.82rem;color:var(--text-dimmer);display:none;padding:8px 0;">
+            Brak sprzętu przypisanego do tego pojazdu.
+          </p>
+        </div>
+
+        <!-- Wybrany sprzęt -->
+        <div id="selectedEquipment" style="margin-top:12px;"></div>
+
+        <!-- Ukryte pola — generowane dynamicznie, zawsze zsynchronizowane -->
+        <div id="equipmentHiddenInputs"></div>
       </div>
 
       <button type="submit" class="btn btn-primary" id="tripSubmitBtn">
@@ -203,7 +238,7 @@
 
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function() {
   setupAutoSave('tripForm');
   setupFormKeyboardShortcuts('tripForm');
@@ -239,5 +274,135 @@ function submitTrip() {
     document.getElementById('vehicle_id').focus();
   });
 }
+
+// ── Sprzęt picker ────────────────────────────────────────────
+var _allEquipment = [];
+var _selectedEquipment = {};
+
+function loadEquipment(vehicleId) {
+  var section = document.getElementById('equipmentSection');
+  var catList = document.getElementById('equipmentCategoryList');
+  var empty   = document.getElementById('equipmentEmpty');
+  var search  = document.getElementById('equipmentSearch');
+  if (!section) return;
+  if (!vehicleId) {
+    section.style.display = 'none';
+    _allEquipment = [];
+    _selectedEquipment = {};
+    _renderSelected();
+    return;
+  }
+  section.style.display = 'block';
+  catList.innerHTML = '<div style="padding:12px;color:var(--text-dimmer);font-size:0.85rem;">Ładowanie…</div>';
+  empty.style.display = 'none';
+  if (search) search.value = '';
+
+  fetch('/api/vehicle/' + vehicleId + '/equipment')
+    .then(function(r) { return r.json(); })
+    .then(function(items) {
+      _allEquipment = items;
+      _selectedEquipment = {};
+      _renderSelected();
+      _renderCategoryList('');
+    })
+    .catch(function() {
+      catList.innerHTML = '';
+      empty.style.display = 'block';
+    });
+}
+
+function filterEquipment(query) { _renderCategoryList(query); }
+
+function _renderCategoryList(query) {
+  var catList = document.getElementById('equipmentCategoryList');
+  var empty   = document.getElementById('equipmentEmpty');
+  if (!catList) return;
+  var q = (query || '').toLowerCase().trim();
+  var filtered = q ? _allEquipment.filter(function(e) { return e.name.toLowerCase().includes(q); }) : _allEquipment;
+  if (!filtered.length && !_allEquipment.length) { catList.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  var byCategory = {};
+  filtered.forEach(function(eq) {
+    var cat = eq.category || 'Pozostałe';
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push(eq);
+  });
+  var html = '';
+  Object.keys(byCategory).sort().forEach(function(cat) {
+    html += '<div style="padding:5px 12px 3px;font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);background:var(--bg-lighter);">' + _esc(cat) + '</div>';
+    byCategory[cat].forEach(function(eq) {
+      var sel = !!_selectedEquipment[eq.id];
+      html += '<div onclick="toggleEquipment(' + eq.id + ','' + _esc(eq.name) + '','' + _esc(eq.unit) + '',' + eq.quantity + ')" ' +
+        'style="display:flex;align-items:center;padding:11px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 100ms;user-select:none;' +
+        (sel ? 'background:rgba(255,94,0,0.10);' : '') + '">' +
+        '<div style="flex:1;">' +
+          '<span style="font-size:0.9rem;font-weight:' + (sel?'700':'500') + ';color:' + (sel?'var(--accent)':'var(--text)') + ';">' + _esc(eq.name) + '</span>' +
+          '<span style="font-size:0.75rem;color:var(--text-dimmer);margin-left:6px;">' + eq.quantity + ' ' + _esc(eq.unit) + '</span>' +
+        '</div>' +
+        '<div style="width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;' +
+             'background:' + (sel?'var(--accent)':'var(--bg-lightest)') + ';color:' + (sel?'#fff':'var(--text-dimmer)') + ';font-size:15px;font-weight:700;">' +
+          (sel ? '✓' : '+') +
+        '</div>' +
+      '</div>';
+    });
+  });
+  catList.innerHTML = html || '<div style="padding:12px;color:var(--text-dimmer);font-size:0.85rem;">Brak wyników.</div>';
+}
+
+function toggleEquipment(id, name, unit, maxQty) {
+  if (_selectedEquipment[id]) { delete _selectedEquipment[id]; }
+  else { _selectedEquipment[id] = { name: name, unit: unit, maxQty: maxQty, minutes: '' }; }
+  var q = (document.getElementById('equipmentSearch') || {}).value || '';
+  _renderCategoryList(q);
+  _renderSelected();
+}
+
+function _renderSelected() {
+  var container = document.getElementById('selectedEquipment');
+  var hidden    = document.getElementById('equipmentHiddenInputs');
+  if (!container) return;
+  var ids = Object.keys(_selectedEquipment);
+  if (!ids.length) { container.innerHTML = ''; if (hidden) hidden.innerHTML = ''; return; }
+  var html = '<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);margin-bottom:8px;">Wybrany sprzęt (' + ids.length + ')</div>';
+  ids.forEach(function(id) {
+    var eq = _selectedEquipment[id];
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,94,0,0.07);border:1px solid rgba(255,94,0,0.25);border-radius:10px;margin-bottom:8px;">' +
+      '<div style="flex:1;font-size:0.88rem;font-weight:600;color:var(--text);">' + _esc(eq.name) + '</div>' +
+      '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
+        '<label style="font-size:0.72rem;color:var(--text-dimmer);">min</label>' +
+        '<input type="number" min="1" max="1440" value="' + (eq.minutes||'') + '" placeholder="—" ' +
+               'oninput="_updateMinutes(' + id + ',this.value)" ' +
+               'style="width:64px;background:var(--bg-lighter);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:6px 8px;font-size:0.9rem;text-align:center;">' +
+      '</div>' +
+      '<button type="button" onclick="toggleEquipment(' + id + ','' + _esc(eq.name) + '','' + _esc(eq.unit) + '',' + eq.maxQty + ')" ' +
+              'style="background:none;border:none;color:var(--text-dimmer);cursor:pointer;font-size:20px;padding:0 2px;line-height:1;flex-shrink:0;">×</button>' +
+    '</div>';
+  });
+  container.innerHTML = html;
+  _syncHidden();
+}
+
+function _updateMinutes(id, val) {
+  if (_selectedEquipment[id]) { _selectedEquipment[id].minutes = val; _syncHidden(); }
+}
+
+function _syncHidden() {
+  var hidden = document.getElementById('equipmentHiddenInputs');
+  if (!hidden) return;
+  var h = '';
+  Object.keys(_selectedEquipment).forEach(function(id) {
+    var eq = _selectedEquipment[id];
+    h += '<input type="hidden" name="eq_id[]" value="' + id + '">';
+    h += '<input type="hidden" name="eq_min[]" value="' + (eq.minutes||'') + '">';
+  });
+  hidden.innerHTML = h;
+}
+
+function _esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;');
+}
 </script>
 {% endblock %}
+
+
+
