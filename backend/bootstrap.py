@@ -10,7 +10,7 @@ from backend.db import get_pool, get_cursor
 logger = logging.getLogger(__name__)
 
 
-def ensure_bootstrap_admin(app: Flask) -> None:
+def ensure_bootstrap_admin(_app: Flask) -> None:
     """Create or update bootstrap admin from env vars when explicitly configured."""
     username = os.environ.get('BOOTSTRAP_ADMIN_USERNAME', 'admin').strip()
     password = os.environ.get('BOOTSTRAP_ADMIN_PASSWORD', '').strip()
