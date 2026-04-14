@@ -7,13 +7,6 @@
     <span class="section-title">Logi Zdarzeń{% if total is defined %} ({{ total }}){% endif %}</span>
   </div>
 
-  <div class="tab-nav no-print">
-    <a href="{{ url_for('vehicles') }}" class="tab-link {% if request.endpoint == 'vehicles' %}active{% endif %}">Pojazdy</a>
-    <a href="{{ url_for('users') }}" class="tab-link {% if request.endpoint == 'users' %}active{% endif %}">Użytkownicy</a>
-    <a href="{{ url_for('report') }}" class="tab-link {% if request.endpoint == 'report' %}active{% endif %}">Raport</a>
-    <a href="{{ url_for('logs.logs_list') }}" class="tab-link {% if request.endpoint == 'logs.logs_list' %}active{% endif %}">Logs</a>
-  </div>
-
   {% if logs %}
   <div style="overflow-x:auto; margin-bottom:24px;">
     <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
