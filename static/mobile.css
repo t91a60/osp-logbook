@@ -269,15 +269,6 @@ body {
   transform-origin: left center;
 }
 
-.form-field:has(.form-input:focus) .form-label,
-.form-field:has(.form-textarea:focus) .form-label,
-.form-field:has(.form-select:focus) .form-label,
-.form-field:has(.form-input:not(:placeholder-shown)) .form-label,
-.form-field:has(.form-textarea:not(:placeholder-shown)) .form-label {
-  transform: translateY(-22px) scale(0.82);
-  color: var(--accent);
-}
-
 .form-input,
 .form-select,
 .form-textarea {
