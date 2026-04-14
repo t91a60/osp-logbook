@@ -1,4 +1,4 @@
-from flask import request, jsonify, session, current_app
+from flask import Response, request, jsonify, session, current_app
 from datetime import date
 
 from backend.db import get_db, get_cursor
@@ -11,7 +11,7 @@ class ValidationError(Exception):
     """Raised when request data fails validation."""
 
 
-def _json_error(message: str, status_code: int) -> tuple:
+def _json_error(message: str, status_code: int) -> tuple[Response, int]:
     return jsonify({'success': False, 'message': message}), status_code
 
 
