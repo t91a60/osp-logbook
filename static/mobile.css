@@ -7,6 +7,7 @@
   padding: 0;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
+  touch-action: manipulation;
 }
 
 :root {
@@ -105,11 +106,13 @@ body {
   color: var(--accent);
   text-decoration: none;
   font-weight: 600;
-  padding: 6px 10px;
+  padding: 6px 12px;
   border-radius: 8px;
-  min-height: 36px;
+  min-height: 44px;
+  min-width: 44px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   transition: background var(--transition);
 }
 
@@ -471,7 +474,7 @@ body {
 .chip {
   display: inline-flex;
   align-items: center;
-  padding: 8px 14px;
+  padding: 10px 14px;
   border-radius: 20px;
   font-size: 0.82rem;
   font-weight: 600;
@@ -480,7 +483,7 @@ body {
   color: var(--text-dim);
   background: var(--bg-lighter);
   transition: all var(--transition);
-  min-height: 36px;
+  min-height: 44px;
 }
 
 .chip:active,
@@ -647,6 +650,19 @@ body {
   table { border-collapse: collapse; width: 100%; }
   th, td { border: 1px solid #ccc !important; padding: 6px 8px !important; color: #000 !important; font-size: 10pt; }
   thead { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* ── Hide bottom nav when virtual keyboard is open (iOS) ──────────── */
+/* 440px threshold: typical iPhone SE viewport is ~554px; when keyboard opens,
+   the visual viewport shrinks to ~280-380px, well below this breakpoint. */
+
+@media (max-height: 440px) {
+  .bottom-nav {
+    display: none;
+  }
+  body {
+    padding-bottom: 16px;
+  }
 }
 
 /* ── Motion fallback ──────────────────────────────────────────────── */
