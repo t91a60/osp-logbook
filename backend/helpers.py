@@ -98,14 +98,33 @@ def build_date_where(okres, od, do_, alias='t'):
 
 
 def paginate(conn, cur, count_sql, count_params, data_sql, data_params, page, page_size=50):
+    page = max(1, page)
+    offset = (page - 1) * page_size
+
+    # Fast path: fetch page data and total rows in one query via window function.
+    window_sql = f'''
+        SELECT page_rows.*, COUNT(*) OVER() AS __total_count
+        FROM ({data_sql}) AS page_rows
+        LIMIT %s OFFSET %s
+    '''
+    cur.execute(window_sql, data_params + [page_size, offset])
+    rows = cur.fetchall()
+
+    if rows:
+        total = rows[0]['__total_count']
+        total_pages = max(1, (total + page_size - 1) // page_size)
+        entries = [{k: v for k, v in row.items() if k != '__total_count'} for row in rows]
+        return entries, total, total_pages, page
+
+    # Fallback for out-of-range pages while keeping behavior stable.
     cur.execute(count_sql, count_params)
-    row = cur.fetchone()
-    total = row[0] if isinstance(row, tuple) else row['count'] if row else 0
+    count_row = cur.fetchone()
+    total = count_row[0] if isinstance(count_row, tuple) else count_row['count'] if count_row else 0
     total_pages = max(1, (total + page_size - 1) // page_size)
     page = max(1, min(page, total_pages))
     offset = (page - 1) * page_size
-    cur.execute(
-        data_sql + " LIMIT %s OFFSET %s", data_params + [page_size, offset]
-    )
-    entries = cur.fetchall()
+
+    cur.execute(window_sql, data_params + [page_size, offset])
+    rows = cur.fetchall()
+    entries = [{k: v for k, v in row.items() if k != '__total_count'} for row in rows]
     return entries, total, total_pages, page

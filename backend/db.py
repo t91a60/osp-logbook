@@ -13,9 +13,16 @@ _db_pool = None
 
 def _create_pool():
     """Create a new connection pool."""
+    minconn = int(os.environ.get('DB_POOL_MIN', '1'))
+    maxconn = int(os.environ.get('DB_POOL_MAX', '10'))
+    if minconn < 1:
+        minconn = 1
+    if maxconn < minconn:
+        maxconn = minconn
+
     return SimpleConnectionPool(
-        minconn=1,
-        maxconn=10,
+        minconn=minconn,
+        maxconn=maxconn,
         dsn=os.environ.get('DATABASE_URL'),
         sslmode='require',
         connect_timeout=5

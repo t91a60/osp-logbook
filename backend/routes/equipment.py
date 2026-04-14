@@ -225,18 +225,23 @@ def equipment_preload(eid):
         if not cur.fetchone():
             flash('Pojazd nie istnieje.', 'error')
             return redirect(url_for('equipment.equipment_list'))
-        added = 0
-        for name, qty, unit, cat in DUCATO_EQUIPMENT:
-            cur.execute(
-                'SELECT id FROM equipment WHERE vehicle_id = %s AND name = %s',
-                (eid, name)
+
+        cur.execute('SELECT name FROM equipment WHERE vehicle_id = %s', (eid,))
+        existing_names = {row['name'] for row in cur.fetchall()}
+
+        to_insert = [
+            (eid, name, qty, unit, cat)
+            for name, qty, unit, cat in DUCATO_EQUIPMENT
+            if name not in existing_names
+        ]
+
+        if to_insert:
+            cur.executemany(
+                'INSERT INTO equipment (vehicle_id, name, quantity, unit, category) VALUES (%s,%s,%s,%s,%s)',
+                to_insert,
             )
-            if not cur.fetchone():
-                cur.execute(
-                    'INSERT INTO equipment (vehicle_id, name, quantity, unit, category) VALUES (%s,%s,%s,%s,%s)',
-                    (eid, name, qty, unit, cat)
-                )
-                added += 1
+        added = len(to_insert)
+
         conn.commit()
         AuditService.log('Dodanie', 'Sprzęt', f'Preload Ducato dla pojazdu ID: {eid}, dodano: {added} pozycji')
         flash(f'Dodano {added} pozycji sprzętu Ducato.', 'success')

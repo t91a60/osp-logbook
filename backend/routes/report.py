@@ -84,17 +84,41 @@ def register_routes(app):
             trip_params.append(str(vid))
 
         cur.execute(f'''
-            SELECT t.*, v.name AS vname
+            SELECT
+                t.id,
+                t.date,
+                t.driver,
+                t.purpose,
+                t.odo_start,
+                t.odo_end,
+                t.time_start,
+                t.time_end,
+                t.notes,
+                t.created_at,
+                v.name AS vname
             FROM trips t JOIN vehicles v ON t.vehicle_id = v.id
             {trip_where}
             ORDER BY t.date, t.created_at
         ''', trip_params)
         trip_entries = cur.fetchall()
-        total_km = sum(
-            (entry['odo_end'] - entry['odo_start'])
-            for entry in trip_entries
-            if entry['odo_start'] is not None and entry['odo_end'] is not None
-        )
+
+        total_km_where = "WHERE date BETWEEN %s AND %s"
+        total_km_params = [first_day, last_day]
+        if vid:
+            total_km_where += " AND vehicle_id = %s"
+            total_km_params.append(vid)
+
+        cur.execute(f'''
+            SELECT COALESCE(SUM(
+                CASE
+                    WHEN odo_end IS NOT NULL AND odo_start IS NOT NULL THEN odo_end - odo_start
+                    ELSE 0
+                END
+            ), 0) AS total_km
+            FROM trips
+            {total_km_where}
+        ''', total_km_params)
+        total_km = cur.fetchone()['total_km']
 
         summary_where = "WHERE t.date BETWEEN %s AND %s"
         summary_params = [first_day, last_day]

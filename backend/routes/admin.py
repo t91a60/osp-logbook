@@ -1,6 +1,7 @@
 from flask import render_template, request, flash, redirect, url_for, session, abort
 from werkzeug.security import generate_password_hash
 from psycopg2 import IntegrityError
+from psycopg2 import sql
 from backend.db import get_db, get_cursor
 from backend.helpers import login_required, admin_required
 from backend.services.vehicle_service import VehicleService
@@ -208,7 +209,10 @@ def register_routes(app):
         cur = get_cursor(conn)
         try:
             # Pobierz wpis, żeby sprawdzić autora
-            cur.execute(f'SELECT added_by FROM {table} WHERE id = %s', (eid,))
+            cur.execute(
+                sql.SQL('SELECT added_by FROM {} WHERE id = %s').format(sql.Identifier(table)),
+                (eid,),
+            )
             entry = cur.fetchone()
             if not entry:
                 flash('Wpis nie istnieje.', 'error')
@@ -218,7 +222,10 @@ def register_routes(app):
             if entry['added_by'] != session['username'] and not session.get('is_admin'):
                 abort(403)
 
-            cur.execute(f'DELETE FROM {table} WHERE id = %s', (eid,))
+            cur.execute(
+                sql.SQL('DELETE FROM {} WHERE id = %s').format(sql.Identifier(table)),
+                (eid,),
+            )
             conn.commit()
         finally:
             cur.close()

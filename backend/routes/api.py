@@ -1,8 +1,9 @@
 from flask import request, jsonify, session, current_app
-from datetime import date, timedelta
+from datetime import date
 from backend.db import get_db, get_cursor
 from backend.helpers import login_required, normalize_iso_date
-from backend.services.core_service import TripService
+from backend.services.core_service import TripService, VehicleService
+from backend.services.cache_service import get_or_set
 
 
 class ValidationError(Exception):
@@ -48,38 +49,12 @@ def register_routes(app):
     @login_required
     @limiter.limit('120 per minute')
     def api_vehicle_last_km(vid):
-        conn = get_db()
-        cur = get_cursor(conn)
-        try:
-            cur.execute(
-                "SELECT MAX(odo_end) as km, MAX(date) as dt FROM trips WHERE vehicle_id = %s AND odo_end IS NOT NULL",
-                (vid,)
-            )
-            trip_row = cur.fetchone()
-            cur.execute(
-                "SELECT MAX(odometer) as km, MAX(date) as dt FROM fuel WHERE vehicle_id = %s AND odometer IS NOT NULL",
-                (vid,)
-            )
-            fuel_row = cur.fetchone()
-        finally:
-            cur.close()
-
-        trip_km = trip_row['km'] if trip_row and trip_row['km'] else None
-        fuel_km = fuel_row['km'] if fuel_row and fuel_row['km'] else None
-        trip_dt = trip_row['dt'] if trip_row and trip_row['dt'] else None
-        fuel_dt = fuel_row['dt'] if fuel_row and fuel_row['dt'] else None
-
-        km = None
-        dt = None
-        if trip_km is not None and fuel_km is not None:
-            if (trip_dt or '') >= (fuel_dt or ''):
-                km, dt = trip_km, trip_dt
-            else:
-                km, dt = fuel_km, fuel_dt
-        elif trip_km is not None:
-            km, dt = trip_km, trip_dt
-        elif fuel_km is not None:
-            km, dt = fuel_km, fuel_dt
+        cache_key = f'api:last_km:{vid}'
+        km, dt = get_or_set(
+            cache_key,
+            ttl_seconds=30,
+            loader=lambda: VehicleService.get_last_km(vid),
+        )
 
         days_ago = None
         if dt:
@@ -94,21 +69,12 @@ def register_routes(app):
     @login_required
     @limiter.limit('120 per minute')
     def api_drivers():
-        cutoff = (date.today() - timedelta(days=90)).isoformat()
-        conn = get_db()
-        cur = get_cursor(conn)
-        try:
-            cur.execute('''
-                SELECT DISTINCT driver FROM (
-                    SELECT driver FROM trips WHERE date >= %s
-                    UNION
-                    SELECT driver FROM fuel WHERE date >= %s
-                ) AS combined ORDER BY driver ASC
-            ''', (cutoff, cutoff))
-            rows = cur.fetchall()
-        finally:
-            cur.close()
-        return jsonify([r['driver'] for r in rows])
+        drivers = get_or_set(
+            'api:drivers:90d',
+            ttl_seconds=300,
+            loader=lambda: VehicleService.get_recent_drivers(days=90),
+        )
+        return jsonify(drivers)
 
     @app.route('/api/trips', methods=['POST'], endpoint='api_add_trip')
     @login_required

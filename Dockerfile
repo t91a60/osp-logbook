@@ -19,4 +19,4 @@ COPY . /app
 ENV FLASK_ENV=production
 
 EXPOSE 5000
-CMD ["sh", "-c", "gunicorn -w 1 --bind 0.0.0.0:${PORT:-10000} app:app"]
+CMD ["sh", "-c", "gunicorn --workers ${GUNICORN_WORKERS:-2} --threads ${GUNICORN_THREADS:-2} --timeout ${GUNICORN_TIMEOUT:-60} --max-requests ${GUNICORN_MAX_REQUESTS:-1000} --max-requests-jitter ${GUNICORN_MAX_REQUESTS_JITTER:-100} --bind 0.0.0.0:${PORT:-10000} app:app"]

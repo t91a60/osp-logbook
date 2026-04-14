@@ -20,6 +20,16 @@ services:
         generateValue: true
       - key: RATELIMIT_STORAGE_URI
         value: memory://
+      - key: GUNICORN_WORKERS
+        value: "2"
+      - key: GUNICORN_THREADS
+        value: "2"
+      - key: GUNICORN_TIMEOUT
+        value: "60"
+      - key: DB_POOL_MIN
+        value: "1"
+      - key: DB_POOL_MAX
+        value: "10"
 
 databases:
   - name: osp-logbook-db
