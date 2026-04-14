@@ -24,14 +24,21 @@ class VehicleService:
         try:
             cur.execute('''
                 SELECT km, dt FROM (
-                    SELECT MAX(odo_end) AS km, MAX(date) AS dt
-                    FROM trips WHERE vehicle_id = %s AND odo_end IS NOT NULL
-                    UNION ALL
-                    SELECT MAX(odometer) AS km, MAX(date) AS dt
-                    FROM fuel WHERE vehicle_id = %s AND odometer IS NOT NULL
-                ) combined
-                WHERE km IS NOT NULL
-                ORDER BY dt DESC NULLS LAST
+                     SELECT odo_end AS km, date AS dt, created_at
+                     FROM trips
+                     WHERE vehicle_id = %s AND odo_end IS NOT NULL
+                     ORDER BY date DESC NULLS LAST, created_at DESC NULLS LAST
+                     LIMIT 1
+                 ) latest_trip
+                 UNION ALL
+                 SELECT km, dt FROM (
+                     SELECT odometer AS km, date AS dt, created_at
+                     FROM fuel
+                     WHERE vehicle_id = %s AND odometer IS NOT NULL
+                     ORDER BY date DESC NULLS LAST, created_at DESC NULLS LAST
+                     LIMIT 1
+                 ) latest_fuel
+                 ORDER BY dt DESC NULLS LAST, created_at DESC NULLS LAST
                 LIMIT 1
             ''', (vid, vid))
             row = cur.fetchone()

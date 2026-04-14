@@ -6,6 +6,14 @@
   padding: 0;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
+}
+a,
+button,
+input,
+select,
+textarea,
+label,
+[role="button"] {
   touch-action: manipulation;
 }
 
@@ -1006,12 +1014,12 @@ body {
 /* Hide bottom nav when virtual keyboard is open (iOS) */
 /* 440px threshold: typical iPhone SE viewport is ~554px; when keyboard opens,
    the visual viewport shrinks to ~280-380px, well below this breakpoint. */
-@media (max-height: 440px) {
+@media (max-height: 440px) and (orientation: portrait) {
   .bottom-nav {
     display: none;
   }
   body {
-    padding-bottom: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
   }
 }
 
