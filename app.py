@@ -133,6 +133,11 @@ def create_app(config_class=None):
     api.register_routes(app)
     app.register_blueprint(logs.logs_bp)
 
+    from backend.routes.equipment import equipment_bp
+    from backend.routes.more import more_bp
+    app.register_blueprint(equipment_bp)
+    app.register_blueprint(more_bp)
+
     return app
 
 

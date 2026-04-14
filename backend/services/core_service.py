@@ -73,7 +73,11 @@ class VehicleService:
 
 class TripService:
     @staticmethod
-    def add_trip(vehicle_id, date_val, driver, odo_start, odo_end, purpose, notes, added_by, time_start=None, time_end=None):
+    def add_trip(vehicle_id, date_val, driver, odo_start, odo_end, purpose, notes, added_by,
+                 time_start=None, time_end=None, equipment_used=None):
+        """
+        equipment_used: list of dicts [{equipment_id, quantity_used, minutes_used, notes}]
+        """
         conn = get_db()
         vehicle_id = _to_int(vehicle_id)
         odo_start = _to_int(odo_start)
@@ -84,9 +88,27 @@ class TripService:
                 cur.execute('''
                     INSERT INTO trips (vehicle_id, date, driver, odo_start, odo_end, purpose, notes, added_by, time_start, time_end)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
                 ''', (
                     vehicle_id, date_val, driver, odo_start, odo_end, purpose, notes, added_by, time_start, time_end
                 ))
+                trip_id = cur.fetchone()['id']
+
+                if equipment_used:
+                    for eq in equipment_used:
+                        eq_id = _to_int(eq.get('equipment_id'))
+                        qty = max(1, _to_int(eq.get('quantity_used')) or 1)
+                        mins = _to_int(eq.get('minutes_used'))
+                        eq_notes = str(eq.get('notes') or '').strip()
+                        if eq_id:
+                            cur.execute('''
+                                INSERT INTO trip_equipment (trip_id, equipment_id, quantity_used, minutes_used, notes)
+                                VALUES (%s, %s, %s, %s, %s)
+                                ON CONFLICT (trip_id, equipment_id) DO UPDATE
+                                SET quantity_used = EXCLUDED.quantity_used,
+                                    minutes_used  = EXCLUDED.minutes_used,
+                                    notes         = EXCLUDED.notes
+                            ''', (trip_id, eq_id, qty, mins, eq_notes))
             conn.commit()
         except Exception:
             conn.rollback()

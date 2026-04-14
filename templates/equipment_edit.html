@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Edytuj sprzęt – OSP Logbook{% endblock %}
+{% block content %}
+<div class="page">
+  <div class="section-header">
+    <a href="{{ url_for('equipment.equipment_list', vehicle_id=item.vehicle_id) }}"
+       style="font-size:0.85rem;color:var(--accent);text-decoration:none;">← Powrót do sprzętu</a>
+    <span class="section-title" style="margin-top:8px;">Edytuj sprzęt</span>
+  </div>
+
+  <div class="form-section">
+    <form method="POST">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid">
+        <div class="form-field full">
+          <label class="form-label">Pojazd</label>
+          <input type="text" class="form-input" value="{{ item.vname }}" disabled>
+        </div>
+        <div class="form-field full">
+          <label class="form-label">Nazwa *</label>
+          <input type="text" name="name" class="form-input" required value="{{ item.name }}">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Kategoria</label>
+          <select name="category" class="form-select">
+            {% for cat in categories %}
+            <option value="{{ cat }}" {% if cat == item.category %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Ilość</label>
+          <input type="number" name="quantity" class="form-input" value="{{ item.quantity }}" min="1">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Jednostka</label>
+          <input type="text" name="unit" class="form-input" value="{{ item.unit }}" placeholder="szt / m / l">
+        </div>
+        <div class="form-field full">
+          <label class="form-label">Notatki</label>
+          <input type="text" name="notes" class="form-input" value="{{ item.notes or '' }}">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

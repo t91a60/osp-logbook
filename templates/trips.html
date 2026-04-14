@@ -16,7 +16,7 @@
         <div class="form-field">
           <label class="form-label" for="vehicle_id">Pojazd</label>
           <select name="vehicle_id" id="vehicle_id" class="form-select" required
-                  onchange="rememberVehicle(this.value,'trips'); loadLastKm(this.value,'lastKmHint');">
+                  onchange="rememberVehicle(this.value,'trips'); loadLastKm(this.value,'lastKmHint'); loadEquipment(this.value);">
             <option value="">– Wybierz pojazd –</option>
             {% for v in vehicles %}
             <option value="{{ v.id }}" {% if selected_vehicle == v.id|string %}selected{% endif %}>
@@ -107,6 +107,15 @@
                     placeholder="Dodatkowe notatki..."></textarea>
         </div>
 
+      </div>
+
+      <!-- Użyty sprzęt -->
+      <div id="equipmentSection" style="display:none;margin-top:16px;">
+        <div class="form-section-title" style="margin-bottom:10px;">Użyty sprzęt</div>
+        <div id="equipmentList" style="margin-bottom:10px;"></div>
+        <p id="equipmentEmpty" style="font-size:0.82rem;color:var(--text-dimmer);display:none;">
+          Brak sprzętu przypisanego do tego pojazdu.
+        </p>
       </div>
 
       <button type="submit" class="btn btn-primary" id="tripSubmitBtn">
@@ -250,6 +259,52 @@ function submitTrip() {
   return submitForm('tripForm', '{{ url_for("api_add_trip") }}', function() {
     document.getElementById('vehicle_id').focus();
   });
+}
+
+function loadEquipment(vehicleId) {
+  var section = document.getElementById('equipmentSection');
+  var list = document.getElementById('equipmentList');
+  var empty = document.getElementById('equipmentEmpty');
+  if (!section) return;
+  if (!vehicleId) { section.style.display = 'none'; return; }
+
+  section.style.display = 'block';
+  list.innerHTML = '<span class="skeleton skeleton-line" style="display:block;height:14px;margin-bottom:8px;"></span>';
+  empty.style.display = 'none';
+
+  fetch('/api/vehicle/' + vehicleId + '/equipment')
+    .then(function(r) { return r.json(); })
+    .then(function(items) {
+      list.innerHTML = '';
+      if (!items.length) {
+        empty.style.display = 'block';
+        return;
+      }
+      items.forEach(function(eq) {
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);';
+        row.innerHTML =
+          '<input type="checkbox" name="eq_id[]" value="' + eq.id + '" id="eq_' + eq.id + '"' +
+          ' style="width:18px;height:18px;flex-shrink:0;cursor:pointer;">' +
+          '<label for="eq_' + eq.id + '" style="flex:1;font-size:0.88rem;cursor:pointer;">' +
+            '<span style="font-weight:600;">' + eq.name + '</span>' +
+            '<span style="color:var(--text-dimmer);font-size:0.78rem;"> · ' + eq.quantity + ' ' + eq.unit + '</span>' +
+          '</label>' +
+          '<input type="number" name="eq_qty[]" value="1" min="1" max="' + eq.quantity + '"' +
+          ' style="width:52px;background:var(--bg-lighter);border:1px solid var(--border);border-radius:6px;' +
+          'color:var(--text);padding:4px 6px;font-size:0.82rem;text-align:center;" placeholder="szt">' +
+          '<input type="number" name="eq_min[]" min="1" max="1440"' +
+          ' style="width:60px;background:var(--bg-lighter);border:1px solid var(--border);border-radius:6px;' +
+          'color:var(--text);padding:4px 6px;font-size:0.82rem;text-align:center;" placeholder="min">';
+        list.appendChild(row);
+      });
+      var hdr = document.createElement('div');
+      hdr.style.cssText = 'display:flex;justify-content:flex-end;gap:46px;padding:4px 0 8px;';
+      hdr.innerHTML = '<span style="font-size:0.72rem;color:var(--text-dimmer);width:52px;text-align:center;">szt</span>' +
+                      '<span style="font-size:0.72rem;color:var(--text-dimmer);width:60px;text-align:center;">min</span>';
+      list.insertBefore(hdr, list.firstChild);
+    })
+    .catch(function() { list.innerHTML = ''; empty.style.display = 'block'; });
 }
 </script>
 {% endblock %}

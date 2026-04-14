@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Więcej – OSP Logbook{% endblock %}
+{% block content %}
+<div class="page">
+  <div class="section-header">
+    <span class="section-title">Więcej</span>
+  </div>
+
+  <div class="list-section" style="margin-bottom:20px;">
+    <a href="{{ url_for('report') }}" class="list-row tappable" style="text-decoration:none;color:inherit;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:14px;color:var(--accent);flex-shrink:0;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <div>
+        <div style="font-weight:600;font-size:0.95rem;">Raport</div>
+        <div style="font-size:0.8rem;color:var(--text-dimmer);">Miesięczne zestawienie i karta drogowa</div>
+      </div>
+    </a>
+    <a href="{{ url_for('equipment.equipment_list') }}" class="list-row tappable" style="text-decoration:none;color:inherit;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:14px;color:var(--accent);flex-shrink:0;"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+      <div>
+        <div style="font-weight:600;font-size:0.95rem;">Sprzęt</div>
+        <div style="font-size:0.8rem;color:var(--text-dimmer);">Inwentarz wyposażenia pojazdów</div>
+      </div>
+    </a>
+  </div>
+
+  {% if session.get('is_admin') %}
+  <p class="section-title">Panel administratora</p>
+  <div class="list-section">
+    <a href="{{ url_for('vehicles') }}" class="list-row tappable" style="text-decoration:none;color:inherit;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:14px;color:var(--text-dim);flex-shrink:0;"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      <div>
+        <div style="font-weight:600;font-size:0.95rem;">Pojazdy</div>
+        <div style="font-size:0.8rem;color:var(--text-dimmer);">Dodawanie, edycja i usuwanie pojazdów</div>
+      </div>
+    </a>
+    <a href="{{ url_for('users') }}" class="list-row tappable" style="text-decoration:none;color:inherit;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:14px;color:var(--text-dim);flex-shrink:0;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <div>
+        <div style="font-weight:600;font-size:0.95rem;">Użytkownicy</div>
+        <div style="font-size:0.8rem;color:var(--text-dimmer);">Zarządzanie kontami i rolami</div>
+      </div>
+    </a>
+    <a href="{{ url_for('logs.logs_list') }}" class="list-row tappable" style="text-decoration:none;color:inherit;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:14px;color:var(--text-dim);flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <div>
+        <div style="font-weight:600;font-size:0.95rem;">Logi systemowe</div>
+        <div style="font-size:0.8rem;color:var(--text-dimmer);">Historia działań w systemie</div>
+      </div>
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -74,14 +74,14 @@
     <span>Serwis</span>
   </a>
   {% if session.get('is_admin') %}
-  <a href="{{ url_for('vehicles') }}" class="nav-link {% if request.endpoint in ('vehicles','users','report','logs.logs_list') %}active{% endif %}" aria-label="Więcej">
+  <a href="{{ url_for('more.more') }}" class="nav-link {% if request.endpoint in ('more.more','vehicles','users','report','logs.logs_list','equipment.equipment_list','equipment.equipment_edit') %}active{% endif %}" aria-label="Więcej">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     <span>Więcej</span>
   </a>
   {% else %}
-  <a href="{{ url_for('report') }}" class="nav-link {% if request.endpoint == 'report' %}active{% endif %}" aria-label="Raport">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-    <span>Raport</span>
+  <a href="{{ url_for('more.more') }}" class="nav-link {% if request.endpoint in ('more.more','report','equipment.equipment_list') %}active{% endif %}" aria-label="Więcej">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <span>Więcej</span>
   </a>
   {% endif %}
 </nav>

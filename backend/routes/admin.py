@@ -167,6 +167,35 @@ def register_routes(app):
             cur.close()
         return redirect(url_for('vehicles'))
 
+    @app.route('/pojazdy/<int:vid>/edytuj', methods=['GET', 'POST'], endpoint='edit_vehicle')
+    @admin_required
+    def edit_vehicle(vid):
+        conn = get_db()
+        cur = get_cursor(conn)
+        try:
+            cur.execute('SELECT * FROM vehicles WHERE id = %s', (vid,))
+            vehicle = cur.fetchone()
+            if not vehicle:
+                flash('Pojazd nie istnieje.', 'error')
+                return redirect(url_for('vehicles'))
+
+            if request.method == 'POST':
+                f = request.form
+                name = f.get('name', '').strip()
+                if not name:
+                    flash('Nazwa pojazdu jest wymagana.', 'error')
+                else:
+                    cur.execute(
+                        'UPDATE vehicles SET name=%s, plate=%s, type=%s WHERE id=%s',
+                        (name, f.get('plate', '').strip(), f.get('type', '').strip(), vid)
+                    )
+                    conn.commit()
+                    flash('Pojazd zaktualizowany.', 'success')
+                    return redirect(url_for('vehicles'))
+        finally:
+            cur.close()
+        return render_template('vehicle_edit.html', vehicle=vehicle)
+
     @app.route('/usun/<string:kind>/<int:eid>', methods=['POST'], endpoint='delete_entry')
     @login_required
     def delete_entry_view(kind, eid):

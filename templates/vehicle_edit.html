@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Edytuj pojazd – OSP Logbook{% endblock %}
+{% block content %}
+<div class="page">
+  <div class="section-header">
+    <a href="{{ url_for('vehicles') }}"
+       style="font-size:0.85rem;color:var(--accent);text-decoration:none;">← Powrót do pojazdów</a>
+    <span class="section-title" style="margin-top:8px;">Edytuj pojazd</span>
+  </div>
+
+  <div class="form-section">
+    <form method="POST">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid full">
+        <div class="form-field">
+          <label class="form-label">Nazwa pojazdu *</label>
+          <input type="text" name="name" class="form-input" required
+                 value="{{ vehicle.name }}" placeholder="np. Fiat Ducato">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Nr rejestracyjny</label>
+          <input type="text" name="plate" class="form-input"
+                 value="{{ vehicle.plate or '' }}" placeholder="np. SBI 12345"
+                 style="text-transform:uppercase;">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Typ pojazdu</label>
+          <select name="type" class="form-select">
+            {% for t in ['', 'GBA', 'GCBA', 'SLRr', 'SLKw', 'SLOp', 'SLRR', 'Inne'] %}
+            <option value="{{ t }}" {% if t == vehicle.type %}selected{% endif %}>
+              {% if t %}{{ t }}{% else %}— wybierz —{% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
+    </form>
+  </div>
+
+  <div class="form-section" style="margin-top:16px;">
+    <div class="form-section-title">Sprzęt pojazdu</div>
+    <a href="{{ url_for('equipment.equipment_list', vehicle_id=vehicle.id) }}"
+       class="btn btn-secondary" style="margin-top:0;">Zarządzaj sprzętem</a>
+  </div>
+</div>
+{% endblock %}

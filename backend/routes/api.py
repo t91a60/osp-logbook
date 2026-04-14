@@ -142,6 +142,18 @@ def register_routes(app):
             odo_start = _optional_int(f.get('odo_start'), 'Km start')
             odo_end = _optional_int(f.get('odo_end'), 'Km koniec')
 
+            eq_ids = request.form.getlist('eq_id[]')
+            eq_qtys = request.form.getlist('eq_qty[]')
+            eq_mins = request.form.getlist('eq_min[]')
+            equipment_used = []
+            for i, eq_id in enumerate(eq_ids):
+                if eq_id:
+                    equipment_used.append({
+                        'equipment_id': eq_id,
+                        'quantity_used': eq_qtys[i] if i < len(eq_qtys) else 1,
+                        'minutes_used': eq_mins[i] if i < len(eq_mins) else None,
+                    })
+
             TripService.add_trip(
                 vehicle['id'],
                 trip_date,
@@ -153,6 +165,7 @@ def register_routes(app):
                 session['username'],
                 time_start=f.get('time_start') or None,
                 time_end=f.get('time_end') or None,
+                equipment_used=equipment_used or None,
             )
         except ValidationError as exc:
             return _json_error(str(exc), 400)

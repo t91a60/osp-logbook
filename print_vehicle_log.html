@@ -3,231 +3,337 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Formularz pojazdu OSP - {{ vehicle.name }} - {{ period_label }}</title>
+<title>Ewidencja przebiegu pojazdu – {{ vehicle.name }} – {{ period_label }}</title>
 <style>
-  @page {
-    size: A4 portrait;
-    margin: 10mm;
-  }
+@page {
+  size: A4 portrait;
+  margin: 8mm 8mm 12mm 8mm;
+}
 
-  * {
-    box-sizing: border-box;
-  }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  body {
-    margin: 0;
-    font-family: "Times New Roman", Times, serif;
-    color: #000;
-    background: #fff;
-    font-size: 11px;
-    line-height: 1.25;
-  }
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9pt;
+  color: #000;
+  background: #fff;
+  line-height: 1.3;
+}
 
-  .no-print {
-    margin: 12px;
-    display: flex;
-    gap: 10px;
-  }
+/* ── Górny pasek (ekranowy) ── */
+.screen-bar {
+  background: #1e1e22;
+  color: #f0f0f0;
+  padding: 10px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+}
 
-  .no-print button,
-  .no-print a {
-    border: 1px solid #000;
-    background: #fff;
-    color: #000;
-    text-decoration: none;
-    padding: 6px 10px;
-    font-size: 12px;
-    cursor: pointer;
-  }
+.screen-bar button,
+.screen-bar a {
+  background: #ff5e00;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
 
+.screen-bar a {
+  background: #2a2a30;
+  color: #f0f0f0;
+}
+
+.screen-bar span {
+  flex: 1;
+  color: #a0a0aa;
+  font-size: 12px;
+}
+
+/* ── Arkusz A4 ── */
+.sheet { width: 100%; }
+
+/* ── Nagłówek ── */
+.doc-header {
+  border: 1px solid #000;
+  padding: 5px 8px 6px;
+  margin-bottom: 5px;
+}
+
+.doc-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 3px;
+}
+
+.doc-period {
+  font-size: 8.5pt;
+  font-weight: 700;
+}
+
+.doc-year {
+  font-size: 9pt;
+}
+
+.doc-title {
+  text-align: center;
+  font-size: 11pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 4px 0 2px;
+}
+
+.doc-subtitle {
+  text-align: center;
+  font-size: 8.5pt;
+  margin-bottom: 5px;
+  line-height: 1.4;
+}
+
+.doc-vehicle-row {
+  display: flex;
+  gap: 20px;
+  font-size: 9pt;
+  border-top: 1px solid #ccc;
+  padding-top: 4px;
+  margin-top: 2px;
+}
+
+.doc-vehicle-row span { font-weight: 400; }
+.doc-vehicle-row strong { font-weight: 700; }
+
+/* ── Tabela ewidencji ── */
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin-bottom: 5px;
+}
+
+.log-table th,
+.log-table td {
+  border: 1px solid #000;
+  padding: 2px 3px;
+  vertical-align: top;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Nagłówek — dwa poziomy */
+.log-table thead th {
+  text-align: center;
+  font-size: 8pt;
+  font-weight: 700;
+  background: #f0f0f0;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  line-height: 1.25;
+}
+
+.log-table thead .col-no     { font-size: 7.5pt; }
+.log-table thead .col-note   { font-size: 7.5pt; }
+
+/* Kolumny — szerokości */
+.col-no      { width: 4%; }
+.col-date    { width: 9%; }
+.col-driver  { width: 16%; }
+.col-purpose { width: 28%; }
+.col-km      { width: 7%; }
+.col-odo     { width: 16%; }
+.col-time    { width: 11%; }
+.col-note    { width: 9%; }
+
+/* Wiersze danych */
+.log-table tbody td {
+  min-height: 24px;
+  height: 24px;
+  font-size: 8.5pt;
+}
+
+.log-table tbody td.center { text-align: center; }
+.log-table tbody td.right  { text-align: right; }
+
+.log-table tbody tr:nth-child(even) td {
+  background: #fafafa;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.empty-row td { height: 24px !important; }
+
+/* ── Stopka z podsumowaniem ── */
+.totals-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.totals-box {
+  border: 1px solid #000;
+  padding: 4px 8px;
+  font-size: 8.5pt;
+  line-height: 1.6;
+  flex: 1;
+}
+
+.totals-box .total-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.totals-box .total-line strong {
+  white-space: nowrap;
+}
+
+.totals-box .total-line .val {
+  font-weight: 700;
+  text-align: right;
+  min-width: 40px;
+}
+
+.confirm-box {
+  border: 1px solid #000;
+  padding: 5px 8px;
+  font-size: 8.5pt;
+  line-height: 1.55;
+  flex: 1.2;
+}
+
+.confirm-box p { margin-bottom: 2px; }
+
+/* ── Podpisy ── */
+.signatures {
+  display: flex;
+  gap: 8mm;
+  margin-top: 10mm;
+  align-items: flex-end;
+}
+
+.sig-block {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.sig-space { height: 18mm; }
+
+.sig-line {
+  border-top: 1px solid #000;
+  margin-bottom: 2mm;
+}
+
+.sig-label {
+  text-align: center;
+  font-size: 8pt;
+}
+
+.stamp-block {
+  width: 50mm;
+  flex-shrink: 0;
+}
+
+.stamp-box {
+  border: 1px solid #000;
+  height: 22mm;
+  margin-bottom: 2mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #bbb;
+  font-size: 8pt;
+}
+
+/* ── Druk ── */
+@media print {
+  .screen-bar { display: none !important; }
+  body { margin: 0; }
+}
+
+@media screen {
+  body { background: #e8e8e8; }
   .sheet {
-    width: 100%;
+    background: #fff;
+    max-width: 210mm;
     margin: 0 auto;
+    padding: 8mm;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
   }
-
-  .title {
-    text-align: center;
-    font-weight: 700;
-    font-size: 14px;
-    text-transform: uppercase;
-    margin-bottom: 2px;
-  }
-
-  .subtitle {
-    text-align: center;
-    font-size: 11px;
-    margin-bottom: 8px;
-  }
-
-  .meta {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 8px;
-  }
-
-  .meta td {
-    border: 1px solid #000;
-    padding: 4px 6px;
-    vertical-align: top;
-  }
-
-  .meta .label {
-    width: 18%;
-    font-weight: 700;
-  }
-
-  .log-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-  }
-
-  .log-table th,
-  .log-table td {
-    border: 1px solid #000;
-    padding: 3px 4px;
-    vertical-align: top;
-    word-wrap: break-word;
-  }
-
-  .log-table th {
-    text-align: center;
-    font-weight: 700;
-    font-size: 10px;
-  }
-
-  .center {
-    text-align: center;
-  }
-
-  .empty-row td {
-    height: 21px;
-  }
-
-  .totals {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 8px;
-  }
-
-  .totals td {
-    border: 1px solid #000;
-    padding: 4px 6px;
-    font-size: 11px;
-  }
-
-  .totals td:first-child {
-    font-weight: 700;
-  }
-
-  .totals .value {
-    width: 22%;
-    text-align: right;
-    font-weight: 700;
-  }
-
-  .signatures {
-    margin-top: 14mm;
-    display: flex;
-    gap: 10mm;
-    align-items: flex-end;
-  }
-
-  .signature-block {
-    flex: 1;
-    min-height: 28mm;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-  }
-
-  .signature-line {
-    border-top: 1px solid #000;
-    height: 0;
-    margin-bottom: 2mm;
-  }
-
-  .signature-label {
-    text-align: center;
-    font-size: 11px;
-  }
-
-  .stamp-block {
-    width: 55mm;
-    min-height: 28mm;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-  }
-
-  .stamp-box {
-    border: 1px solid #000;
-    height: 22mm;
-    margin-bottom: 2mm;
-  }
-
-  @media print {
-    .no-print {
-      display: none !important;
-    }
-
-    body {
-      margin: 0;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-  }
+}
 </style>
 </head>
 <body>
 
-<div class="no-print">
-  <button type="button" onclick="window.print()">Drukuj formularz</button>
-  <a href="{{ url_for('report', vehicle_id=vehicle.id) }}">Powrót do raportu</a>
+<!-- Pasek ekranowy -->
+<div class="screen-bar">
+  <button type="button" onclick="window.print()">Drukuj / Zapisz PDF</button>
+  <a href="{{ url_for('report', vehicle_id=vehicle.id) }}">← Powrót do raportu</a>
+  <span>{{ vehicle.name }}{% if vehicle.plate %} · {{ vehicle.plate }}{% endif %} · {{ period_label }}</span>
 </div>
 
 <div class="sheet">
-  <div class="title">Podatnik dotyczący każdego wykorzystania tego pojazdu</div>
-  <div class="subtitle">Formularz rozliczeniowy pojazdu OSP</div>
 
-  <table class="meta">
-    <tr>
-      <td class="label">Pojazd</td>
-      <td>{{ vehicle.name }}{% if vehicle.plate %} ({{ vehicle.plate }}){% endif %}</td>
-      <td class="label">Okres</td>
-      <td>{{ period_label }}</td>
-    </tr>
-    <tr>
-      <td class="label">Zakres dat</td>
-      <td>{{ first_day }} - {{ last_day }}</td>
-      <td class="label">Data wydruku</td>
-      <td>{{ generated_on }}</td>
-    </tr>
-  </table>
+  <!-- Nagłówek urzędowy -->
+  <div class="doc-header">
+    <div class="doc-meta-row">
+      <div class="doc-period">OKRES ROZLICZENIOWY (miesiąc / kwartał):&nbsp;&nbsp;{{ period_label }}</div>
+      <div class="doc-year">{{ last_day[:4] }} r.</div>
+    </div>
+    <div class="doc-title">Ewidencja przebiegu pojazdu</div>
+    <div class="doc-subtitle">
+      WPIS OSOBY KIERUJĄCEJ POJAZDEM SAMOCHODOWYM, BĘDĄCEJ PRACOWNIKIEM PODATNIKA,<br>
+      DOTYCZĄCY KAŻDEGO WYKORZYSTANIA TEGO POJAZDU
+    </div>
+    <div class="doc-vehicle-row">
+      <span><strong>Pojazd:</strong> {{ vehicle.name }}</span>
+      <span><strong>Nr rejestracyjny:</strong> {{ vehicle.plate or '——————' }}</span>
+      <span><strong>Typ:</strong> {{ vehicle.type or '——————' }}</span>
+      <span><strong>Zakres dat:</strong> {{ first_day }} – {{ last_day }}</span>
+    </div>
+  </div>
 
+  <!-- Tabela ewidencji -->
   <table class="log-table">
     <colgroup>
-      <col style="width: 5%;">
-      <col style="width: 9%;">
-      <col style="width: 15%;">
-      <col style="width: 16%;">
-      <col style="width: 8%;">
-      <col style="width: 8%;">
-      <col style="width: 8%;">
-      <col style="width: 16%;">
-      <col style="width: 15%;">
+      <col class="col-no">
+      <col class="col-date">
+      <col class="col-driver">
+      <col class="col-purpose">
+      <col class="col-km">
+      <col class="col-odo">
+      <col class="col-time">
+      <col class="col-note">
     </colgroup>
     <thead>
+      <!-- Wiersz z numerami kolumn (jak w fizycznej książce) -->
       <tr>
-        <th>Kolejny numer wpisu</th>
-        <th>Data wyjazdu</th>
-        <th>Imię i nazwisko kierowcy</th>
-        <th>Cel wyjazdu</th>
-        <th>Km start</th>
-        <th>Km koniec</th>
-        <th>Przejechano km</th>
-        <th>Opis trasy (skąd-dokąd)</th>
-        <th>Uwagi</th>
+        <th class="col-no">– 1 –</th>
+        <th class="col-date">– 2 –</th>
+        <th class="col-driver">– 3 –</th>
+        <th class="col-purpose">– 4 –</th>
+        <th class="col-km">– 5 –</th>
+        <th class="col-odo" colspan="2">– 6 –</th>
+        <th class="col-note">– 7 –</th>
+      </tr>
+      <!-- Wiersz z nazwami kolumn -->
+      <tr>
+        <th class="col-no">Kolejny numer wpisu</th>
+        <th class="col-date">Data wyjazdu</th>
+        <th class="col-driver">Imię i nazwisko osoby kierującej pojazdem</th>
+        <th class="col-purpose">Cel wyjazdu / Opis trasy (skąd – dokąd)</th>
+        <th class="col-km">Liczba przejechanych kilometrów</th>
+        <th class="col-odo">Stan licznika<br>wyjazd / powrót</th>
+        <th class="col-time">Godzina<br>wyjazdu / powrotu</th>
+        <th class="col-note">Uwagi</th>
       </tr>
     </thead>
     <tbody>
@@ -237,66 +343,103 @@
         <td class="center">{{ row.date }}</td>
         <td>{{ row.driver }}</td>
         <td>{{ row.purpose }}</td>
-        <td class="center">{{ row.odo_start }}</td>
-        <td class="center">{{ row.odo_end }}</td>
-        <td class="center">{{ row.trip_km }}</td>
-        <td>{{ row.route_desc }}</td>
+        <td class="center">{% if row.trip_km != '' %}{{ row.trip_km }}{% endif %}</td>
+        <td class="center">
+          {% if row.odo_start != '' or row.odo_end != '' %}
+          {{ row.odo_start }} / {{ row.odo_end }}
+          {% endif %}
+        </td>
+        <td class="center">{{ row.godziny }}</td>
         <td>{{ row.remarks }}</td>
       </tr>
       {% endfor %}
 
+      <!-- Puste wiersze do ręcznego uzupełnienia -->
       {% set min_rows = 20 %}
-      {% set missing_rows = min_rows - (rows|length) %}
-      {% if missing_rows > 0 %}
-        {% for _ in range(missing_rows) %}
+      {% set missing = min_rows - (rows|length) %}
+      {% if missing > 0 %}
+        {% for _ in range(missing) %}
         <tr class="empty-row">
-          <td>&nbsp;</td>
-          <td>&nbsp;</td>
-          <td>&nbsp;</td>
-          <td>&nbsp;</td>
-          <td>&nbsp;</td>
-          <td>&nbsp;</td>
-          <td>&nbsp;</td>
-          <td>&nbsp;</td>
-          <td>&nbsp;</td>
+          <td>&nbsp;</td><td></td><td></td><td></td>
+          <td></td><td></td><td></td><td></td>
         </tr>
         {% endfor %}
       {% endif %}
     </tbody>
   </table>
 
-  <table class="totals">
-    <tr>
-      <td>Suma folio</td>
-      <td class="value">{{ folio_sum }}</td>
-    </tr>
-    <tr>
-      <td>Z przeniesienia z poprzedniej strony</td>
-      <td class="value">{{ carry_over }}</td>
-    </tr>
-    <tr>
-      <td>Razem na koniec okresu rozliczeniowego</td>
-      <td class="value">{{ period_total }}</td>
-    </tr>
-  </table>
-
-  <div class="signatures">
-    <div class="signature-block">
-      <div class="signature-line"></div>
-      <div class="signature-label">Podpis kierowcy</div>
+  <!-- Stopka: podsumowanie + potwierdzenie -->
+  <div class="totals-row">
+    <div class="totals-box">
+      <div class="total-line">
+        <strong>Suma folio:</strong>
+        <span class="val">{{ folio_sum or '______' }} km</span>
+      </div>
+      <div class="total-line">
+        <strong>Z przeniesienia z poprzedniej strony:</strong>
+        <span class="val">________ km</span>
+      </div>
+      <div class="total-line">
+        <strong>Razem na koniec okresu rozliczeniowego:</strong>
+        <span class="val">{{ period_total or '______' }} km</span>
+      </div>
+      <div class="total-line" style="margin-top:4px;">
+        <strong>Stan licznika na koniec okresu:</strong>
+        <span class="val">________ km</span>
+      </div>
     </div>
 
-    <div class="signature-block">
-      <div class="signature-line"></div>
-      <div class="signature-label">Podpis Naczelnika OSP</div>
+    <div class="confirm-box">
+      <p>Potwierdzam autentyczność dokonanych przez kierującego pojazdem wpisów za bieżący
+         okres rozliczeniowy. Stwierdzam ich zgodność ze stanem faktycznym.</p>
+      <p style="margin-top:6px;font-size:7.5pt;color:#555;">
+        Wpisy nie wymagają potwierdzenia przez kierującego pojazdem, gdy jest on podatnikiem.
+      </p>
+      <div style="margin-top:8px;font-size:8.5pt;">
+        Data i podpis podatnika: &nbsp;____________________________
+      </div>
+    </div>
+  </div>
+
+  <!-- Podpisy -->
+  <div class="signatures">
+    <div class="sig-block">
+      <div class="sig-space"></div>
+      <div class="sig-line"></div>
+      <div class="sig-label">Podpis kierowcy</div>
+    </div>
+
+    <div class="sig-block">
+      <div class="sig-space"></div>
+      <div class="sig-line"></div>
+      <div class="sig-label">Podpis Naczelnika OSP</div>
+    </div>
+
+    <div class="sig-block">
+      <div class="sig-space"></div>
+      <div class="sig-line"></div>
+      <div class="sig-label">Podpis dysponenta pojazdu</div>
     </div>
 
     <div class="stamp-block">
-      <div class="stamp-box"></div>
-      <div class="signature-label">Miejsce na pieczątkę</div>
+      <div class="stamp-box">Pieczątka OSP</div>
+      <div class="sig-label">Miejsce na pieczątkę</div>
     </div>
   </div>
-</div>
 
+  <!-- Stopka dokumentu -->
+  <div style="margin-top:8mm;border-top:1px solid #ccc;padding-top:3px;display:flex;justify-content:space-between;font-size:7pt;color:#888;">
+    <span>OSP Logbook · Wydrukowano: {{ generated_on }}</span>
+    <span>{{ vehicle.name }}{% if vehicle.plate %} · {{ vehicle.plate }}{% endif %} · {{ period_label }}</span>
+  </div>
+
+</div><!-- /.sheet -->
+
+<script nonce="{{ csp_nonce() }}">
+document.addEventListener('DOMContentLoaded', function() {
+  // Auto-druk po otwarciu strony (opcjonalnie — odkomentuj jeśli chcesz)
+  // window.print();
+});
+</script>
 </body>
 </html>
