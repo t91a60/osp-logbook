@@ -34,13 +34,13 @@ def parse_positive_int(value: str | int | None, default: int = 1) -> int:
     return parsed if parsed > 0 else default
 
 
-def parse_trip_equipment_form(form, error_cls=ValueError) -> list[dict]:
+def parse_trip_equipment_form(form) -> list[dict]:
     """Parse and validate trip equipment rows from submitted form data.
 
     Expects parallel arrays: ``eq_id[]``, ``eq_qty[]``, ``eq_min[]``.
     Returns normalized rows for TripService in shape:
     ``{'equipment_id': int, 'quantity_used': int, 'minutes_used': int}``.
-    Raises ``error_cls`` with user-facing validation messages on invalid input.
+    Raises ``ValueError`` with user-facing validation messages on invalid input.
     """
     eq_ids = form.getlist('eq_id[]')
     eq_qtys = form.getlist('eq_qty[]')
@@ -59,27 +59,27 @@ def parse_trip_equipment_form(form, error_cls=ValueError) -> list[dict]:
         try:
             eq_id = int(eq_id_raw)
         except (TypeError, ValueError):
-            raise error_cls('Wybierz poprawny sprzęt.')
+            raise ValueError('Wybierz poprawny sprzęt.')
         if eq_id <= 0:
-            raise error_cls('Wybierz poprawny sprzęt.')
+            raise ValueError('Wybierz poprawny sprzęt.')
 
         if not eq_min_raw:
-            raise error_cls('Podaj czas użycia sprzętu (minuty).')
+            raise ValueError('Podaj czas użycia sprzętu (minuty).')
         try:
             eq_min = int(eq_min_raw)
         except (TypeError, ValueError):
-            raise error_cls('Czas użycia sprzętu musi być liczbą całkowitą.')
+            raise ValueError('Czas użycia sprzętu musi być liczbą całkowitą.')
         if eq_min <= 0:
-            raise error_cls('Czas użycia sprzętu musi być większy od 0.')
+            raise ValueError('Czas użycia sprzętu musi być większy od 0.')
 
         eq_qty = 1
         if eq_qty_raw:
             try:
                 eq_qty = int(eq_qty_raw)
             except (TypeError, ValueError):
-                raise error_cls('Ilość sprzętu musi być liczbą całkowitą.')
+                raise ValueError('Ilość sprzętu musi być liczbą całkowitą.')
             if eq_qty <= 0:
-                raise error_cls('Ilość sprzętu musi być większa od 0.')
+                raise ValueError('Ilość sprzętu musi być większa od 0.')
 
         equipment_used.append({
             'equipment_id': eq_id,

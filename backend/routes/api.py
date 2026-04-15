@@ -109,7 +109,10 @@ def register_routes(app):
             odo_start = _optional_int(f.get('odo_start'), 'Km start')
             odo_end = _optional_int(f.get('odo_end'), 'Km koniec')
 
-            equipment_used = parse_trip_equipment_form(request.form, ValidationError)
+            try:
+                equipment_used = parse_trip_equipment_form(request.form)
+            except ValueError as exc:
+                raise ValidationError(str(exc))
 
             TripService.add_trip(
                 vehicle['id'],

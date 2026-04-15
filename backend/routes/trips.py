@@ -59,7 +59,10 @@ def register_routes(app):
                     flash(str(exc), 'error')
                     return redirect(url_for('trips'))
 
-                equipment_used = parse_trip_equipment_form(request.form, ValidationError)
+                try:
+                    equipment_used = parse_trip_equipment_form(request.form)
+                except ValueError as exc:
+                    raise ValidationError(str(exc))
 
                 try:
                     TripService.add_trip(
