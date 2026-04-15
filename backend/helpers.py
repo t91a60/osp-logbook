@@ -35,6 +35,13 @@ def parse_positive_int(value: str | int | None, default: int = 1) -> int:
 
 
 def parse_trip_equipment_form(form, error_cls=ValueError) -> list[dict]:
+    """Parse and validate trip equipment rows from submitted form data.
+
+    Expects parallel arrays: ``eq_id[]``, ``eq_qty[]``, ``eq_min[]``.
+    Returns normalized rows for TripService in shape:
+    ``{'equipment_id': int, 'quantity_used': int, 'minutes_used': int}``.
+    Raises ``error_cls`` with user-facing validation messages on invalid input.
+    """
     eq_ids = form.getlist('eq_id[]')
     eq_qtys = form.getlist('eq_qty[]')
     eq_mins = form.getlist('eq_min[]')
