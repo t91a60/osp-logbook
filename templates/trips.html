@@ -363,13 +363,13 @@ function validateEquipmentUsage() {
       mins && mins.focus();
       return false;
     }
-    if (!/^\d+$/.test(minsVal)) {
+    var minsInt = Number(minsVal);
+    if (!Number.isInteger(minsInt)) {
       showToast('Czas użycia sprzętu musi być liczbą całkowitą.', 'error');
       mins && mins.focus();
       return false;
     }
-    var minsInt = Number(minsVal);
-    if (Number.isNaN(minsInt) || minsInt <= 0) {
+    if (minsInt <= 0) {
       showToast('Czas użycia sprzętu musi być liczbą większą od 0.', 'error');
       mins && mins.focus();
       return false;
