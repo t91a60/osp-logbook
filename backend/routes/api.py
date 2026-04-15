@@ -2,7 +2,7 @@ from flask import Response, request, jsonify, session, current_app
 from datetime import date
 
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required, normalize_iso_date
+from backend.helpers import login_required, normalize_iso_date, parse_trip_equipment_form
 from backend.services.core_service import TripService, VehicleService
 from backend.services.cache_service import get_or_set
 
@@ -109,17 +109,10 @@ def register_routes(app):
             odo_start = _optional_int(f.get('odo_start'), 'Km start')
             odo_end = _optional_int(f.get('odo_end'), 'Km koniec')
 
-            eq_ids = request.form.getlist('eq_id[]')
-            eq_qtys = request.form.getlist('eq_qty[]')
-            eq_mins = request.form.getlist('eq_min[]')
-            equipment_used = []
-            for i, eq_id in enumerate(eq_ids):
-                if eq_id:
-                    equipment_used.append({
-                        'equipment_id': eq_id,
-                        'quantity_used': eq_qtys[i] if i < len(eq_qtys) else 1,
-                        'minutes_used': eq_mins[i] if i < len(eq_mins) else None,
-                    })
+            try:
+                equipment_used = parse_trip_equipment_form(request.form)
+            except ValueError as exc:
+                raise ValidationError(str(exc))
 
             TripService.add_trip(
                 vehicle['id'],

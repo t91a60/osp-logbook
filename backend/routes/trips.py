@@ -2,7 +2,7 @@ from flask import render_template, request, flash, redirect, url_for, session
 from datetime import date
 from psycopg2 import IntegrityError
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required, build_date_where, paginate, parse_positive_int
+from backend.helpers import login_required, build_date_where, paginate, parse_positive_int, parse_trip_equipment_form
 from backend.services.core_service import TripService
 from backend.services.cache_service import get_vehicles_cached
 
@@ -59,18 +59,10 @@ def register_routes(app):
                     flash(str(exc), 'error')
                     return redirect(url_for('trips'))
 
-                # Zbierz użyty sprzęt z formularza (eq_id[], eq_qty[], eq_min[])
-                eq_ids = request.form.getlist('eq_id[]')
-                eq_qtys = request.form.getlist('eq_qty[]')
-                eq_mins = request.form.getlist('eq_min[]')
-                equipment_used = []
-                for i, eq_id in enumerate(eq_ids):
-                    if eq_id:
-                        equipment_used.append({
-                            'equipment_id': eq_id,
-                            'quantity_used': eq_qtys[i] if i < len(eq_qtys) else 1,
-                            'minutes_used': eq_mins[i] if i < len(eq_mins) else None,
-                        })
+                try:
+                    equipment_used = parse_trip_equipment_form(request.form)
+                except ValueError as exc:
+                    raise ValidationError(str(exc))
 
                 try:
                     TripService.add_trip(

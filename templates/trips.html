@@ -109,12 +109,19 @@
 
       </div>
 
-      <!-- Użyty sprzęt -->
+      <!-- Użycie sprzętu -->
       <div id="equipmentSection" style="display:none;margin-top:16px;">
-        <div class="form-section-title" style="margin-bottom:10px;">Użyty sprzęt</div>
+        <div class="form-section-title" style="margin-bottom:10px;">Użycie sprzętu</div>
+        <button type="button" class="btn btn-secondary" id="equipmentAddBtn"
+                style="margin-top:0;margin-bottom:10px;display:none;">
+          + Dodaj pozycję
+        </button>
         <div id="equipmentList" style="margin-bottom:10px;"></div>
         <p id="equipmentEmpty" style="font-size:0.82rem;color:var(--text-dimmer);display:none;">
           Brak sprzętu przypisanego do tego pojazdu.
+        </p>
+        <p id="equipmentHint" style="font-size:0.82rem;color:var(--text-dimmer);display:none;">
+          Dodaj pozycję i wpisz czas użycia w minutach.
         </p>
       </div>
 
@@ -230,11 +237,15 @@ document.addEventListener('DOMContentLoaded', function() {
   setupFormKeyboardShortcuts('tripForm');
   restoreVehicle('vehicle_id', 'trips');
   loadDrivers('driversList');
+  document.getElementById('equipmentAddBtn')?.addEventListener('click', function() {
+    addEquipmentUsageRow();
+  });
 
   // If ?add=1 or vehicle pre-selected from dashboard, trigger last-km hint
   const sel = document.getElementById('vehicle_id');
   if (sel && sel.value) {
     loadLastKm(sel.value, 'lastKmHint');
+    loadEquipment(sel.value);
   }
 
   {% if add_open %}
@@ -243,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function() {
   {% if selected_vehicle %}
   // Pre-select vehicle from query param
   const vs = document.getElementById('vehicle_id');
-  if (vs) { vs.value = '{{ selected_vehicle }}'; loadLastKm('{{ selected_vehicle }}', 'lastKmHint'); }
+  if (vs) { vs.value = '{{ selected_vehicle }}'; loadLastKm('{{ selected_vehicle }}', 'lastKmHint'); loadEquipment('{{ selected_vehicle }}'); }
   {% endif %}
   {% endif %}
 });
@@ -256,58 +267,157 @@ function submitTrip() {
     const pc = document.getElementById('purposeCustom');
     if (!pc || !pc.value.trim()) { showToast('Opisz cel wyjazdu.', 'error'); return false; }
   }
+  if (!validateEquipmentUsage()) { return false; }
   return submitForm('tripForm', '{{ url_for("api_add_trip") }}', function() {
     document.getElementById('vehicle_id').focus();
   });
+}
+
+var tripEquipmentOptions = [];
+
+function updateEquipmentHint() {
+  var hint = document.getElementById('equipmentHint');
+  var rows = document.querySelectorAll('[data-equipment-row]');
+  if (!hint) return;
+  hint.style.display = (tripEquipmentOptions.length && rows.length === 0) ? 'block' : 'none';
+}
+
+function addEquipmentUsageRow(selectedId, minutes) {
+  var list = document.getElementById('equipmentList');
+  if (!list || !tripEquipmentOptions.length) return;
+
+  var row = document.createElement('div');
+  row.setAttribute('data-equipment-row', '1');
+  row.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:nowrap;';
+
+  var select = document.createElement('select');
+  select.name = 'eq_id[]';
+  select.className = 'form-select';
+  select.style.minHeight = '44px';
+  select.style.flex = '1';
+  var placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Sprzęt';
+  select.appendChild(placeholder);
+  tripEquipmentOptions.forEach(function(eq) {
+    var option = document.createElement('option');
+    option.value = String(eq.id);
+    option.textContent = eq.name;
+    if (selectedId && String(selectedId) === String(eq.id)) option.selected = true;
+    select.appendChild(option);
+  });
+
+  var minutesInput = document.createElement('input');
+  minutesInput.type = 'number';
+  minutesInput.name = 'eq_min[]';
+  minutesInput.className = 'form-input';
+  minutesInput.placeholder = 'min';
+  minutesInput.min = '1';
+  minutesInput.step = '1';
+  minutesInput.inputMode = 'numeric';
+  minutesInput.style.width = '90px';
+  minutesInput.style.minHeight = '44px';
+  if (minutes) minutesInput.value = String(minutes);
+
+  var qtyInput = document.createElement('input');
+  qtyInput.type = 'hidden';
+  qtyInput.name = 'eq_qty[]';
+  qtyInput.value = '1';
+
+  var removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'btn btn-danger btn-sm';
+  removeBtn.style.minHeight = '44px';
+  removeBtn.textContent = 'Usuń';
+  removeBtn.addEventListener('click', function() {
+    row.remove();
+    updateEquipmentHint();
+  });
+
+  row.appendChild(select);
+  row.appendChild(minutesInput);
+  row.appendChild(qtyInput);
+  row.appendChild(removeBtn);
+  list.appendChild(row);
+  updateEquipmentHint();
+}
+
+function validateEquipmentUsage() {
+  var rows = document.querySelectorAll('[data-equipment-row]');
+  for (var i = 0; i < rows.length; i++) {
+    var eq = rows[i].querySelector('select[name="eq_id[]"]');
+    var mins = rows[i].querySelector('input[name="eq_min[]"]');
+    var eqVal = (eq && eq.value ? eq.value : '').trim();
+    var minsVal = (mins && mins.value ? mins.value : '').trim();
+
+    if (!eqVal && !minsVal) {
+      showToast('Usuń pustą pozycję sprzętu albo uzupełnij sprzęt i czas użycia.', 'error');
+      eq && eq.focus();
+      return false;
+    }
+    if (!eqVal) {
+      showToast('Wybierz sprzęt dla każdej dodanej pozycji.', 'error');
+      eq && eq.focus();
+      return false;
+    }
+    if (!minsVal) {
+      showToast('Podaj czas użycia sprzętu (minuty).', 'error');
+      mins && mins.focus();
+      return false;
+    }
+    if (!/^\d+$/.test(minsVal)) {
+      showToast('Czas użycia sprzętu musi być liczbą całkowitą.', 'error');
+      mins && mins.focus();
+      return false;
+    }
+    var minsInt = Number(minsVal);
+    if (minsInt <= 0) {
+      showToast('Czas użycia sprzętu musi być liczbą większą od 0.', 'error');
+      mins && mins.focus();
+      return false;
+    }
+  }
+  return true;
 }
 
 function loadEquipment(vehicleId) {
   var section = document.getElementById('equipmentSection');
   var list = document.getElementById('equipmentList');
   var empty = document.getElementById('equipmentEmpty');
+  var addBtn = document.getElementById('equipmentAddBtn');
+  var hint = document.getElementById('equipmentHint');
   if (!section) return;
-  if (!vehicleId) { section.style.display = 'none'; return; }
+  if (!vehicleId) {
+    section.style.display = 'none';
+    tripEquipmentOptions = [];
+    if (list) list.innerHTML = '';
+    return;
+  }
 
   section.style.display = 'block';
   list.innerHTML = '<span class="skeleton skeleton-line" style="display:block;height:14px;margin-bottom:8px;"></span>';
   empty.style.display = 'none';
+  if (addBtn) addBtn.style.display = 'none';
+  if (hint) hint.style.display = 'none';
 
   fetch('/api/vehicle/' + vehicleId + '/equipment')
     .then(function(r) { return r.json(); })
     .then(function(items) {
+      tripEquipmentOptions = Array.isArray(items) ? items : [];
       list.innerHTML = '';
-      if (!items.length) {
+      if (!tripEquipmentOptions.length) {
         empty.style.display = 'block';
         return;
       }
-      items.forEach(function(eq) {
-        var row = document.createElement('div');
-        row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);';
-        row.innerHTML =
-          '<input type="checkbox" name="eq_id[]" value="' + eq.id + '" id="eq_' + eq.id + '"' +
-          ' style="width:18px;height:18px;flex-shrink:0;cursor:pointer;">' +
-          '<label for="eq_' + eq.id + '" style="flex:1;font-size:0.88rem;cursor:pointer;">' +
-            '<span style="font-weight:600;">' + eq.name + '</span>' +
-            '<span style="color:var(--text-dimmer);font-size:0.78rem;"> · ' + eq.quantity + ' ' + eq.unit + '</span>' +
-          '</label>' +
-          '<input type="number" name="eq_qty[]" value="1" min="1" max="' + eq.quantity + '"' +
-          ' style="width:52px;background:var(--bg-lighter);border:1px solid var(--border);border-radius:6px;' +
-          'color:var(--text);padding:4px 6px;font-size:0.82rem;text-align:center;" placeholder="szt">' +
-          '<input type="number" name="eq_min[]" min="1" max="1440"' +
-          ' style="width:60px;background:var(--bg-lighter);border:1px solid var(--border);border-radius:6px;' +
-          'color:var(--text);padding:4px 6px;font-size:0.82rem;text-align:center;" placeholder="min">';
-        list.appendChild(row);
-      });
-      var hdr = document.createElement('div');
-      hdr.style.cssText = 'display:flex;justify-content:flex-end;gap:46px;padding:4px 0 8px;';
-      hdr.innerHTML = '<span style="font-size:0.72rem;color:var(--text-dimmer);width:52px;text-align:center;">szt</span>' +
-                      '<span style="font-size:0.72rem;color:var(--text-dimmer);width:60px;text-align:center;">min</span>';
-      list.insertBefore(hdr, list.firstChild);
+      if (addBtn) addBtn.style.display = 'inline-flex';
+      updateEquipmentHint();
     })
-    .catch(function() { list.innerHTML = ''; empty.style.display = 'block'; });
+    .catch(function() {
+      tripEquipmentOptions = [];
+      list.innerHTML = '';
+      empty.style.display = 'block';
+      if (addBtn) addBtn.style.display = 'none';
+    });
 }
 </script>
 {% endblock %}
-
-
-
