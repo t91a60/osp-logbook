@@ -34,6 +34,55 @@ def parse_positive_int(value: str | int | None, default: int = 1) -> int:
     return parsed if parsed > 0 else default
 
 
+def parse_trip_equipment_form(form, error_cls=ValueError) -> list[dict]:
+    eq_ids = form.getlist('eq_id[]')
+    eq_qtys = form.getlist('eq_qty[]')
+    eq_mins = form.getlist('eq_min[]')
+    max_len = max(len(eq_ids), len(eq_qtys), len(eq_mins), 0)
+
+    equipment_used = []
+    for i in range(max_len):
+        eq_id_raw = (eq_ids[i] if i < len(eq_ids) else '').strip()
+        eq_qty_raw = (eq_qtys[i] if i < len(eq_qtys) else '').strip()
+        eq_min_raw = (eq_mins[i] if i < len(eq_mins) else '').strip()
+
+        if not (eq_id_raw or eq_qty_raw or eq_min_raw):
+            continue
+
+        try:
+            eq_id = int(eq_id_raw)
+        except (TypeError, ValueError):
+            raise error_cls('Wybierz poprawny sprzęt.')
+        if eq_id <= 0:
+            raise error_cls('Wybierz poprawny sprzęt.')
+
+        if not eq_min_raw:
+            raise error_cls('Podaj czas użycia sprzętu (minuty).')
+        try:
+            eq_min = int(eq_min_raw)
+        except (TypeError, ValueError):
+            raise error_cls('Czas użycia sprzętu musi być liczbą całkowitą.')
+        if eq_min <= 0:
+            raise error_cls('Czas użycia sprzętu musi być większy od 0.')
+
+        eq_qty = 1
+        if eq_qty_raw:
+            try:
+                eq_qty = int(eq_qty_raw)
+            except (TypeError, ValueError):
+                raise error_cls('Ilość sprzętu musi być liczbą całkowitą.')
+            if eq_qty <= 0:
+                raise error_cls('Ilość sprzętu musi być większa od 0.')
+
+        equipment_used.append({
+            'equipment_id': eq_id,
+            'quantity_used': eq_qty,
+            'minutes_used': eq_min,
+        })
+
+    return equipment_used
+
+
 def normalize_iso_date(value: str | date | datetime | None) -> str | None:
     """Normalize different DB date representations to YYYY-MM-DD string."""
     match value:

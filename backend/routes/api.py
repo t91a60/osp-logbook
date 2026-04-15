@@ -2,7 +2,7 @@ from flask import Response, request, jsonify, session, current_app
 from datetime import date
 
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required, normalize_iso_date
+from backend.helpers import login_required, normalize_iso_date, parse_trip_equipment_form
 from backend.services.core_service import TripService, VehicleService
 from backend.services.cache_service import get_or_set
 
@@ -41,55 +41,6 @@ def _optional_float(value: str | float | None, field_name: str) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         raise ValidationError(f'{field_name} musi być liczbą.')
-
-
-def _parse_trip_equipment(form) -> list[dict]:
-    eq_ids = form.getlist('eq_id[]')
-    eq_qtys = form.getlist('eq_qty[]')
-    eq_mins = form.getlist('eq_min[]')
-    max_len = max(len(eq_ids), len(eq_qtys), len(eq_mins), 0)
-
-    equipment_used = []
-    for i in range(max_len):
-        eq_id_raw = (eq_ids[i] if i < len(eq_ids) else '').strip()
-        eq_qty_raw = (eq_qtys[i] if i < len(eq_qtys) else '').strip()
-        eq_min_raw = (eq_mins[i] if i < len(eq_mins) else '').strip()
-
-        if not (eq_id_raw or eq_qty_raw or eq_min_raw):
-            continue
-
-        try:
-            eq_id = int(eq_id_raw)
-        except (TypeError, ValueError):
-            raise ValidationError('Wybierz poprawny sprzęt.')
-        if eq_id <= 0:
-            raise ValidationError('Wybierz poprawny sprzęt.')
-
-        if not eq_min_raw:
-            raise ValidationError('Podaj czas użycia sprzętu (minuty).')
-        try:
-            eq_min = int(eq_min_raw)
-        except (TypeError, ValueError):
-            raise ValidationError('Czas użycia sprzętu musi być liczbą całkowitą.')
-        if eq_min <= 0:
-            raise ValidationError('Czas użycia sprzętu musi być większy od 0.')
-
-        eq_qty = 1
-        if eq_qty_raw:
-            try:
-                eq_qty = int(eq_qty_raw)
-            except (TypeError, ValueError):
-                raise ValidationError('Ilość sprzętu musi być liczbą całkowitą.')
-            if eq_qty <= 0:
-                raise ValidationError('Ilość sprzętu musi być większa od 0.')
-
-        equipment_used.append({
-            'equipment_id': eq_id,
-            'quantity_used': eq_qty,
-            'minutes_used': eq_min,
-        })
-
-    return equipment_used
 
 
 def register_routes(app):
@@ -158,7 +109,7 @@ def register_routes(app):
             odo_start = _optional_int(f.get('odo_start'), 'Km start')
             odo_end = _optional_int(f.get('odo_end'), 'Km koniec')
 
-            equipment_used = _parse_trip_equipment(request.form)
+            equipment_used = parse_trip_equipment_form(request.form, ValidationError)
 
             TripService.add_trip(
                 vehicle['id'],

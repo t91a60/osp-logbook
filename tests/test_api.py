@@ -38,7 +38,7 @@ class TestValidationHelpers:
             _optional_float('not-a-number', 'cost')
 
     def test_parse_trip_equipment_valid(self):
-        from backend.routes.api import _parse_trip_equipment
+        from backend.helpers import parse_trip_equipment_form
 
         class DummyForm:
             def getlist(self, key):
@@ -49,13 +49,13 @@ class TestValidationHelpers:
                 }
                 return values.get(key, [])
 
-        assert _parse_trip_equipment(DummyForm()) == [
+        assert parse_trip_equipment_form(DummyForm()) == [
             {'equipment_id': 1, 'quantity_used': 1, 'minutes_used': 15},
             {'equipment_id': 2, 'quantity_used': 1, 'minutes_used': 45},
         ]
 
     def test_parse_trip_equipment_missing_minutes_raises(self):
-        from backend.routes.api import _parse_trip_equipment, ValidationError
+        from backend.helpers import parse_trip_equipment_form
 
         class DummyForm:
             def getlist(self, key):
@@ -66,8 +66,8 @@ class TestValidationHelpers:
                 }
                 return values.get(key, [])
 
-        with pytest.raises(ValidationError):
-            _parse_trip_equipment(DummyForm())
+        with pytest.raises(ValueError):
+            parse_trip_equipment_form(DummyForm())
 
     def test_get_active_vehicle_valid(self):
         from backend.routes.api import _get_active_vehicle
