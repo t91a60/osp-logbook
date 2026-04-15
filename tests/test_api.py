@@ -305,6 +305,58 @@ class TestApiTripEndpoint:
         assert response.status_code == 400
         mock_trip_service.add_trip.assert_not_called()
 
+    @patch('backend.routes.api.TripService')
+    @patch('backend.routes.api.get_cursor')
+    @patch('backend.routes.api.get_db')
+    def test_add_trip_with_equipment_non_integer_minutes_returns_400(self, mock_get_db, mock_get_cursor, mock_trip_service, authenticated_client):
+        """POST /api/trips with non-integer equipment minutes returns 400."""
+        mock_conn = MagicMock()
+        mock_get_db.return_value = mock_conn
+        mock_cur = MagicMock()
+        mock_get_cursor.return_value = mock_cur
+        mock_cur.fetchone.return_value = {'id': 1}
+
+        with authenticated_client.session_transaction() as sess:
+            csrf = sess['_csrf_token']
+
+        response = authenticated_client.post('/api/trips', data={
+            '_csrf_token': csrf,
+            'vehicle_id': '1',
+            'date': '2024-01-01',
+            'driver': 'Jan Kowalski',
+            'purpose': 'Ćwiczenia',
+            'eq_id[]': ['10'],
+            'eq_min[]': ['10.5'],
+        })
+        assert response.status_code == 400
+        mock_trip_service.add_trip.assert_not_called()
+
+    @patch('backend.routes.api.TripService')
+    @patch('backend.routes.api.get_cursor')
+    @patch('backend.routes.api.get_db')
+    def test_add_trip_with_equipment_zero_minutes_returns_400(self, mock_get_db, mock_get_cursor, mock_trip_service, authenticated_client):
+        """POST /api/trips with zero equipment minutes returns 400."""
+        mock_conn = MagicMock()
+        mock_get_db.return_value = mock_conn
+        mock_cur = MagicMock()
+        mock_get_cursor.return_value = mock_cur
+        mock_cur.fetchone.return_value = {'id': 1}
+
+        with authenticated_client.session_transaction() as sess:
+            csrf = sess['_csrf_token']
+
+        response = authenticated_client.post('/api/trips', data={
+            '_csrf_token': csrf,
+            'vehicle_id': '1',
+            'date': '2024-01-01',
+            'driver': 'Jan Kowalski',
+            'purpose': 'Ćwiczenia',
+            'eq_id[]': ['10'],
+            'eq_min[]': ['0'],
+        })
+        assert response.status_code == 400
+        mock_trip_service.add_trip.assert_not_called()
+
     def test_add_trip_requires_login(self, client):
         """POST /api/trips without login redirects to login."""
         response = client.post('/api/trips', data={'vehicle_id': '1'})

@@ -363,8 +363,13 @@ function validateEquipmentUsage() {
       mins && mins.focus();
       return false;
     }
-    var minsInt = parseInt(minsVal, 10);
-    if (!Number.isInteger(minsInt) || minsInt <= 0) {
+    if (!/^\d+$/.test(minsVal)) {
+      showToast('Czas użycia sprzętu musi być liczbą całkowitą.', 'error');
+      mins && mins.focus();
+      return false;
+    }
+    var minsInt = Number(minsVal);
+    if (Number.isNaN(minsInt) || minsInt <= 0) {
       showToast('Czas użycia sprzętu musi być liczbą większą od 0.', 'error');
       mins && mins.focus();
       return false;
@@ -414,4 +419,3 @@ function loadEquipment(vehicleId) {
 }
 </script>
 {% endblock %}
-
