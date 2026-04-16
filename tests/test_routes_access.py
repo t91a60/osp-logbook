@@ -1,6 +1,6 @@
 """Tests for the /health endpoint and admin/equipment route access control."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 
 class TestHealthEndpoint:

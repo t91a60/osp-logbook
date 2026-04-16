@@ -1,6 +1,6 @@
 """Tests for backend/services/audit_service.py — AuditService.log()."""
 
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock
 import psycopg2
 import pytest
 

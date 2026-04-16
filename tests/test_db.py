@@ -1,6 +1,6 @@
 """Tests for backend/db.py — database utilities, health check, retry logic."""
 
-from unittest.mock import patch, MagicMock, PropertyMock
+from unittest.mock import patch, MagicMock
 import pytest
 import psycopg2
 

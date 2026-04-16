@@ -1,26 +1,8 @@
 """Tests for backend/helpers.py — paginate() function."""
 
 from unittest.mock import MagicMock
-import pytest
 
 from backend.helpers import paginate
-
-
-def _make_cursor(window_rows, count_row=None):
-    """Build a mock cursor that returns window_rows on the first execute
-    and optionally count_row on the second (fallback path)."""
-    cur = MagicMock()
-    fetchall_results = [window_rows]
-    fetchone_results = []
-    if count_row is not None:
-        # Fallback path: first window returns [], then count query, then second window
-        fetchall_results = [[], window_rows]
-        fetchone_results = [count_row]
-
-    cur.fetchall = MagicMock(side_effect=fetchall_results)
-    if fetchone_results:
-        cur.fetchone = MagicMock(side_effect=fetchone_results)
-    return cur
 
 
 class TestPaginateBasic:

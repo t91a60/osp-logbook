@@ -1,6 +1,6 @@
 """Tests for backend/routes/report.py — _parse_period helper."""
 
-from datetime import date, timedelta
+from datetime import date
 
 from backend.routes.report import _parse_period
 

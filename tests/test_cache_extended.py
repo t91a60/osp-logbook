@@ -1,6 +1,6 @@
 """Tests for cache_service — get_vehicles_cached, FIFO eviction, and edge cases."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from backend.services import cache_service
 
 
