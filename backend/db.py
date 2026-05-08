@@ -1,7 +1,6 @@
 import os
 import time
 import logging
-import secrets
 from collections.abc import Callable
 
 import psycopg2
@@ -173,8 +172,6 @@ def log_schema_version() -> None:
             logger.warning('schema_version table missing or empty')
         else:
             logger.info('Schema version at startup: %s', version)
-    except psycopg2.errors.UndefinedTable:
-        logger.warning('schema_version table is not available yet')
     except Exception:
         logger.exception('Failed to log schema_version at startup')
     finally:
@@ -206,14 +203,12 @@ def init_db() -> None:
 
             cur.execute('SELECT id, password FROM users WHERE username = %s;', ('admin',))
             admin_row = cur.fetchone()
-            admin_password = os.environ.get('BOOTSTRAP_ADMIN_PASSWORD')
-            if not admin_password:
-                admin_password = secrets.token_urlsafe(32)
-                logger.warning(
-                    'BOOTSTRAP_ADMIN_PASSWORD is not set; using a randomized admin password hash. '
-                    'Set BOOTSTRAP_ADMIN_PASSWORD before running init_db() to control the admin credential.'
-                )
-            generated_password = generate_password_hash(admin_password)
+            needs_admin_password = admin_row is None or admin_row['password'] == 'CHANGE_ME_RUN_FLASK_INIT'
+            if needs_admin_password and not os.environ.get('BOOTSTRAP_ADMIN_PASSWORD'):
+                conn.rollback()
+                raise RuntimeError('Set BOOTSTRAP_ADMIN_PASSWORD before running init_db()')
+
+            generated_password = generate_password_hash(os.environ['BOOTSTRAP_ADMIN_PASSWORD']) if needs_admin_password else None
 
             if admin_row is None:
                 cur.execute(
