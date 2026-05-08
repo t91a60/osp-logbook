@@ -2,6 +2,7 @@ from datetime import date, datetime, timedelta
 from functools import wraps
 from collections.abc import Callable
 import re
+from threading import Lock
 
 from flask import session, redirect, url_for, abort
 
@@ -207,6 +208,8 @@ def paginate(
 
 
 _ISO_DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+_vehicles_has_active_column: bool | None = None
+_vehicle_schema_lock = Lock()
 
 
 def ensure_non_empty_text(value: str | None, field_name: str) -> str:
@@ -233,7 +236,7 @@ def validate_iso_date(
         raise ValueError(f'{field_name} musi mieć format YYYY-MM-DD.')
 
     if parsed > date.today() + timedelta(days=max_future_days):
-        raise ValueError(f'{field_name} nie może być późniejsza niż 1 rok w przyszłości.')
+        raise ValueError(f'{field_name} nie może być zbyt odległa w przyszłości.')
     return parsed.isoformat()
 
 
@@ -270,6 +273,7 @@ def validate_odometer_range(
 
 
 def get_active_vehicle(cur, vehicle_id: str | int | None) -> dict | None:
+    global _vehicles_has_active_column
     try:
         vid = int(vehicle_id)
     except (TypeError, ValueError):
@@ -277,15 +281,18 @@ def get_active_vehicle(cur, vehicle_id: str | int | None) -> dict | None:
     if vid <= 0:
         return None
 
-    cur.execute("""
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_name = 'vehicles' AND column_name = 'active'
-        LIMIT 1
-    """)
-    has_active = cur.fetchone() is not None
+    if _vehicles_has_active_column is None:
+        with _vehicle_schema_lock:
+            if _vehicles_has_active_column is None:
+                cur.execute("""
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_name = 'vehicles' AND column_name = 'active'
+                    LIMIT 1
+                """)
+                _vehicles_has_active_column = cur.fetchone() is not None
 
-    if has_active:
+    if _vehicles_has_active_column:
         cur.execute('''
             SELECT id
             FROM vehicles

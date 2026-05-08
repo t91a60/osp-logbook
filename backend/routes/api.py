@@ -25,6 +25,13 @@ def _json_error(message: str, status_code: int) -> tuple[Response, int]:
     return jsonify({'success': False, 'message': message}), status_code
 
 
+def _validate_or_raise(callable_obj, *args):
+    try:
+        return callable_obj(*args)
+    except ValueError as exc:
+        raise ValidationError(str(exc))
+
+
 def _get_active_vehicle(cur, vehicle_id: str | int | None) -> dict | None:
     return get_active_vehicle(cur, vehicle_id)
 
@@ -91,12 +98,12 @@ def register_routes(app):
 
             purpose_sel = f.get('purpose_select', '').strip()
             if purpose_sel == '__inne__':
-                purpose = ensure_non_empty_text(f.get('purpose_custom'), 'Cel wyjazdu')
+                purpose = _validate_or_raise(ensure_non_empty_text, f.get('purpose_custom'), 'Cel wyjazdu')
             else:
-                purpose = ensure_non_empty_text(purpose_sel or f.get('purpose'), 'Cel wyjazdu')
+                purpose = _validate_or_raise(ensure_non_empty_text, purpose_sel or f.get('purpose'), 'Cel wyjazdu')
 
-            driver = ensure_non_empty_text(f.get('driver'), 'Kierowca')
-            trip_date = validate_iso_date(f.get('date'), 'Data')
+            driver = _validate_or_raise(ensure_non_empty_text, f.get('driver'), 'Kierowca')
+            trip_date = _validate_or_raise(validate_iso_date, f.get('date'), 'Data')
 
             odo_start = _optional_int(f.get('odo_start'), 'Km start')
             odo_end = _optional_int(f.get('odo_end'), 'Km koniec')
@@ -120,8 +127,6 @@ def register_routes(app):
                 time_end=f.get('time_end') or None,
                 equipment_used=equipment_used or None,
             )
-        except ValueError as exc:
-            return _json_error(str(exc), 400)
         except ValidationError as exc:
             return _json_error(str(exc), 400)
         except Exception:
@@ -148,8 +153,8 @@ def register_routes(app):
             if liters_float is None:
                 raise ValidationError('Podaj ilość paliwa.')
 
-            driver = ensure_non_empty_text(f.get('driver'), 'Kierowca')
-            fuel_date = validate_iso_date(f.get('date'), 'Data')
+            driver = _validate_or_raise(ensure_non_empty_text, f.get('driver'), 'Kierowca')
+            fuel_date = _validate_or_raise(validate_iso_date, f.get('date'), 'Data')
             cost = _optional_float(f.get('cost'), 'Koszt')
             odometer = _optional_int(f.get('odometer'), 'Stan km')
 
@@ -163,9 +168,6 @@ def register_routes(app):
                 f.get('notes', '').strip(), session['username']
             ))
             conn.commit()
-        except ValueError as exc:
-            conn.rollback()
-            return _json_error(str(exc), 400)
         except ValidationError as exc:
             conn.rollback()
             return _json_error(str(exc), 400)
@@ -190,8 +192,8 @@ def register_routes(app):
             if not vehicle:
                 raise ValidationError('Nieprawidłowy pojazd.')
 
-            description = ensure_non_empty_text(f.get('description'), 'Opis')
-            maintenance_date = validate_iso_date(f.get('date'), 'Data')
+            description = _validate_or_raise(ensure_non_empty_text, f.get('description'), 'Opis')
+            maintenance_date = _validate_or_raise(validate_iso_date, f.get('date'), 'Data')
 
             priority = f.get('priority', 'medium')
             if priority not in ('low', 'medium', 'high'):
@@ -218,9 +220,6 @@ def register_routes(app):
                 f.get('due_date') or None,
             ))
             conn.commit()
-        except ValueError as exc:
-            conn.rollback()
-            return _json_error(str(exc), 400)
         except ValidationError as exc:
             conn.rollback()
             return _json_error(str(exc), 400)

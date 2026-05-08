@@ -61,8 +61,10 @@ def create_app(config_class=None):
             if 'user_id' in session and last_seen:
                 try:
                     started_at = datetime.fromisoformat(last_seen)
+                    lifetime = app.config.get('PERMANENT_SESSION_LIFETIME')
+                    ttl_seconds = lifetime.total_seconds() if lifetime else 8 * 3600
                     age_seconds = (datetime.now(timezone.utc) - started_at).total_seconds()
-                    if age_seconds > 8 * 3600:
+                    if age_seconds > ttl_seconds:
                         session.clear()
                         flash('Sesja wygasła. Zaloguj się ponownie.', 'error')
                         return redirect(url_for('login'))
