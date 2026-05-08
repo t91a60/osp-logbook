@@ -252,7 +252,11 @@ def init_db() -> None:
 def register_db(app: Flask) -> None:
     """Registers DB teardown cleanup with the app context."""
     app.teardown_appcontext(close_db)
-    init_db()
+    try:
+        init_db()
+    except Exception as exc:
+        logger.warning('init_db() failed during register_db(): %s', exc)
+        return
     try:
         log_schema_version()
     except Exception as exc:
