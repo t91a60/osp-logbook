@@ -255,9 +255,9 @@ def register_db(app: Flask) -> None:
     try:
         init_db()
     except (psycopg2.Error, RuntimeError) as exc:
-        logger.warning('init_db() failed during register_db(): %s', exc)
+        logger.warning('init_db() failed during register_db(); app will continue without startup DB initialization: %s', exc)
         return
     try:
         log_schema_version()
     except (psycopg2.Error, RuntimeError) as exc:
-        logger.warning('Failed to log schema_version after init_db(): %s', exc)
+        logger.warning('Failed to log schema_version after init_db(); continuing startup: %s', exc)
