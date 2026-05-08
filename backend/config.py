@@ -28,6 +28,13 @@ class ProductionConfig(Config):
     SESSION_COOKIE_SAMESITE: str = 'Lax'
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
 
+    # Future SQLAlchemy reference for Neon idle/stale-connection behavior.
+    # The active runtime uses psycopg2 pool handling in backend/db.py.
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+    }
+
 
 def get_config() -> type[Config]:
     match os.environ.get('FLASK_ENV', 'development'):
