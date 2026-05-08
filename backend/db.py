@@ -24,7 +24,6 @@ def _create_pool() -> SimpleConnectionPool:
         sslmode='require',
         connect_timeout=10,
         application_name='osp-logbook',
-        options='-c statement_timeout=30000',
     )
 
 
@@ -253,4 +252,12 @@ def init_db() -> None:
 def register_db(app: Flask) -> None:
     """Registers DB teardown cleanup with the app context."""
     app.teardown_appcontext(close_db)
-    log_schema_version()
+    try:
+        init_db()
+    except (psycopg2.Error, RuntimeError) as exc:
+        logger.warning('init_db() failed during register_db(); app will continue without startup DB initialization: %s', exc)
+        return
+    try:
+        log_schema_version()
+    except (psycopg2.Error, RuntimeError) as exc:
+        logger.warning('Failed to log schema_version after init_db(); continuing startup: %s', exc)
