@@ -109,16 +109,17 @@ class TripService:
                         if eq_id:
                             qty = max(1, _to_int(eq.get('quantity_used')) or 1)
                             mins = _to_int(eq.get('minutes_used'))
-                            eq_notes = str(eq.get('notes') or '').strip()
-                            eq_rows.append((trip_id, eq_id, qty, mins, eq_notes))
+                            eq_rows.append((trip_id, eq_id, qty, mins))
                     if eq_rows:
                         cur.executemany('''
-                            INSERT INTO trip_equipment (trip_id, equipment_id, quantity_used, minutes_used, notes)
-                            VALUES (%s, %s, %s, %s, %s)
-                            ON CONFLICT (trip_id, equipment_id) DO UPDATE
-                            SET quantity_used = EXCLUDED.quantity_used,
-                                minutes_used  = EXCLUDED.minutes_used,
-                                notes         = EXCLUDED.notes
+                            MERGE INTO trip_equipment AS target
+                            USING (VALUES (%s, %s, %s, %s)) AS source(trip_id, equipment_id, quantity_used, minutes_used)
+                            ON target.trip_id = source.trip_id AND target.equipment_id = source.equipment_id
+                            WHEN MATCHED THEN
+                              UPDATE SET quantity_used = source.quantity_used, minutes_used = source.minutes_used
+                            WHEN NOT MATCHED THEN
+                              INSERT (trip_id, equipment_id, quantity_used, minutes_used)
+                              VALUES (source.trip_id, source.equipment_id, source.quantity_used, source.minutes_used)
                         ''', eq_rows)
             conn.commit()
         except Exception:

@@ -6,6 +6,7 @@ from collections.abc import Callable
 import psycopg2
 from psycopg2.pool import SimpleConnectionPool
 from psycopg2.extras import RealDictCursor
+from werkzeug.security import generate_password_hash
 from flask import g, Flask
 
 logger = logging.getLogger(__name__)
@@ -15,17 +16,14 @@ _db_pool: SimpleConnectionPool | None = None
 
 def _create_pool() -> SimpleConnectionPool:
     """Create a new connection pool."""
-    minconn = max(1, int(os.environ.get('DB_POOL_MIN', '1')))
-    maxconn = int(os.environ.get('DB_POOL_MAX', '10'))
-    if maxconn < minconn:
-        maxconn = minconn
-
     return SimpleConnectionPool(
-        minconn=minconn,
-        maxconn=maxconn,
+        minconn=1,
+        maxconn=5,
         dsn=os.environ.get('DATABASE_URL'),
         sslmode='require',
-        connect_timeout=5,
+        connect_timeout=10,
+        application_name='osp-logbook',
+        options='-c statement_timeout=30000',
     )
 
 
@@ -105,7 +103,7 @@ def close_db(e: BaseException | None = None) -> None:
 
 
 def _retry_on_connection_failure[T](func: Callable[[], T], max_retries: int = 3, delay: int = 1) -> T:
-    """Retry a function on connection failure (e.g., DB restart on Render)."""
+    """Retry a function on connection failure."""
     if max_retries < 1:
         raise ValueError("max_retries must be >= 1")
     for attempt in range(max_retries):
@@ -143,6 +141,111 @@ def check_db_health() -> bool:
         return False
 
 
+def _fetch_schema_version(conn) -> int | None:
+    with get_cursor(conn) as cur:
+        cur.execute(
+            '''
+            SELECT EXISTS (
+                SELECT 1
+                FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_name = 'schema_version'
+            ) AS exists;
+            '''
+        )
+        exists = bool(cur.fetchone()['exists'])
+        if not exists:
+            return None
+
+        cur.execute('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1;')
+        row = cur.fetchone()
+        return int(row['version']) if row else None
+
+
+def log_schema_version() -> None:
+    conn = None
+    pool = get_pool()
+    try:
+        conn = pool.getconn()
+        conn.autocommit = True
+        version = _fetch_schema_version(conn)
+        if version is None:
+            logger.warning('schema_version table missing or empty')
+        else:
+            logger.info('Schema version at startup: %s', version)
+    except psycopg2.errors.UndefinedTable:
+        logger.warning('schema_version table is not available yet')
+    except Exception:
+        logger.exception('Failed to log schema_version at startup')
+    finally:
+        if conn is not None:
+            pool.putconn(conn, close=conn.closed)
+
+
+def init_db() -> None:
+    """Validate baseline schema and ensure admin account is initialized."""
+    conn = None
+    pool = get_pool()
+    try:
+        conn = pool.getconn()
+        conn.autocommit = False
+
+        with get_cursor(conn) as cur:
+            cur.execute(
+                '''
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM information_schema.tables
+                    WHERE table_schema = 'public' AND table_name = 'users'
+                ) AS exists;
+                '''
+            )
+            if not bool(cur.fetchone()['exists']):
+                conn.rollback()
+                raise RuntimeError('Run: psql $DATABASE_URL -f schema.sql first')
+
+            cur.execute('SELECT id, password FROM users WHERE username = %s;', ('admin',))
+            admin_row = cur.fetchone()
+            generated_password = generate_password_hash(os.environ.get('BOOTSTRAP_ADMIN_PASSWORD', 'admin123'))
+
+            if admin_row is None:
+                cur.execute(
+                    '''
+                    INSERT INTO users (username, password, display_name, role, is_admin)
+                    VALUES (%s, %s, %s, %s, %s)
+                    RETURNING id;
+                    ''',
+                    ('admin', generated_password, 'Administrator', 'admin', True),
+                )
+                cur.fetchone()
+            elif admin_row['password'] == 'CHANGE_ME_RUN_FLASK_INIT':
+                cur.execute(
+                    '''
+                    UPDATE users
+                    SET password = %s,
+                        display_name = %s,
+                        role = %s,
+                        is_admin = %s
+                    WHERE id = %s;
+                    ''',
+                    (generated_password, 'Administrator', 'admin', True, admin_row['id']),
+                )
+
+        conn.commit()
+        version = _fetch_schema_version(conn)
+        if version is None:
+            logger.warning('schema_version table missing or empty')
+        else:
+            logger.info('Schema version at startup: %s', version)
+    except Exception:
+        if conn is not None and not conn.closed:
+            conn.rollback()
+        raise
+    finally:
+        if conn is not None:
+            pool.putconn(conn, close=conn.closed)
+
+
 def register_db(app: Flask) -> None:
     """Registers DB teardown cleanup with the app context."""
     app.teardown_appcontext(close_db)
+    log_schema_version()
