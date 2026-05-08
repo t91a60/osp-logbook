@@ -6,3 +6,6 @@ backend/__pycache__/
 backend/routes/__pycache__/
 .venv/
 .pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
