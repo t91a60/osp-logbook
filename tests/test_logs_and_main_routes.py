@@ -8,7 +8,7 @@ class TestLogsRoute:
     @patch('backend.routes.logs.render_template')
     @patch('backend.routes.logs.get_cursor')
     @patch('backend.routes.logs.get_db')
-    def test_logs_list_clamps_page_and_applies_offset(self, mock_get_db, mock_get_cursor, mock_render, admin_client):
+    def test_logs_list_clamps_page_and_applies_offset(self, mock_get_db, mock_get_cursor, mock_render, admin_client, monkeypatch):
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn
         mock_cur = MagicMock()
@@ -17,7 +17,7 @@ class TestLogsRoute:
         mock_cur.fetchall.return_value = [{'id': 1}]
         mock_render.return_value = 'logs-page'
 
-        admin_client.application.config['LOGS_PAGE_SIZE'] = 2
+        monkeypatch.setitem(admin_client.application.config, 'LOGS_PAGE_SIZE', 2)
         response = admin_client.get('/logs?page=99')
 
         assert response.status_code == 200
@@ -31,7 +31,7 @@ class TestLogsRoute:
     @patch('backend.routes.logs.render_template')
     @patch('backend.routes.logs.get_cursor')
     @patch('backend.routes.logs.get_db')
-    def test_logs_list_invalid_page_size_falls_back_to_default(self, mock_get_db, mock_get_cursor, mock_render, admin_client):
+    def test_logs_list_invalid_page_size_falls_back_to_default(self, mock_get_db, mock_get_cursor, mock_render, admin_client, monkeypatch):
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn
         mock_cur = MagicMock()
@@ -40,7 +40,7 @@ class TestLogsRoute:
         mock_cur.fetchall.return_value = []
         mock_render.return_value = 'logs-page'
 
-        admin_client.application.config['LOGS_PAGE_SIZE'] = 'abc'
+        monkeypatch.setitem(admin_client.application.config, 'LOGS_PAGE_SIZE', 'abc')
         response = admin_client.get('/logs?page=-3')
 
         assert response.status_code == 200
