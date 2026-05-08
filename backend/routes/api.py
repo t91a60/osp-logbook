@@ -15,10 +15,7 @@ from backend.helpers import (
 )
 from backend.services.core_service import TripService, VehicleService
 from backend.services.cache_service import get_or_set
-
-
-class ValidationError(Exception):
-    """Raised when request data fails validation."""
+from backend.helpers import ValidationError
 
 
 def _json_error(message: str, status_code: int) -> tuple[Response, int]:

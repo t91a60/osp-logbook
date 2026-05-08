@@ -53,6 +53,7 @@ def register_routes(app):
                 )
                 conn.commit()
                 invalidate_prefix('vehicles:')
+                invalidate_prefix('dashboard:')
                 flash('Pojazd dodany.', 'success')
                 return redirect(url_for('vehicles'))
 
@@ -165,6 +166,8 @@ def register_routes(app):
             if error:
                 flash(error, 'error')
             else:
+                invalidate_prefix('vehicles:')
+                invalidate_prefix('dashboard:')
                 flash('Pojazd usunięty.', 'success')
         finally:
             cur.close()
@@ -194,6 +197,7 @@ def register_routes(app):
                     )
                     conn.commit()
                     invalidate_prefix('vehicles:')
+                    invalidate_prefix('dashboard:')
                     flash('Pojazd zaktualizowany.', 'success')
                     return redirect(url_for('vehicles'))
         finally:

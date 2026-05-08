@@ -2,7 +2,7 @@ import os
 import hmac
 from datetime import datetime, timezone
 
-from flask import Flask, session, request, abort, url_for, g, jsonify, redirect, flash
+from flask import Flask, session, request, abort, url_for, g, jsonify, redirect, flash, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.exceptions import HTTPException
 from flask_limiter import Limiter
@@ -133,11 +133,11 @@ def create_app(config_class=None):
         app.logger.exception('Unhandled application error')
         if request.path.startswith('/api/'):
             return jsonify({'ok': False, 'error': 'Internal server error'}), 500
-        return (
-            '<!doctype html><html><head><title>Server error</title></head>'
-            '<body><h1>Internal server error</h1><p>Please try again later.</p></body></html>',
-            500,
-        )
+        return render_template(
+            'error.html',
+            title='Błąd serwera',
+            message='Wystąpił nieoczekiwany błąd. Spróbuj ponownie za chwilę.',
+        ), 500
 
     register_db(app)
     ensure_bootstrap_admin(app)

@@ -103,6 +103,9 @@ def close_db(e: BaseException | None = None) -> None:
 
 
 def _retry_on_connection_failure[T](func: Callable[[], T], max_retries: int = 3, delay: int = 1) -> T:
+    # TODO: This function is currently unused in production code (retry logic lives in get_db()).
+    # It is kept because tests in tests/test_db.py exercise it directly.
+    # If those tests are removed, delete this function as well.
     """Retry a function on connection failure."""
     if max_retries < 1:
         raise ValueError("max_retries must be >= 1")
@@ -203,13 +206,21 @@ def init_db() -> None:
 
             cur.execute('SELECT id, password FROM users WHERE username = %s;', ('admin',))
             admin_row = cur.fetchone()
-            needs_admin_password = admin_row is None or admin_row['password'] == ADMIN_PLACEHOLDER_PASSWORD
             admin_password = os.environ.get('BOOTSTRAP_ADMIN_PASSWORD')
-            if needs_admin_password and not admin_password:
-                conn.rollback()
-                raise RuntimeError('Set BOOTSTRAP_ADMIN_PASSWORD before running init_db()')
 
-            generated_password = generate_password_hash(admin_password) if needs_admin_password else None
+            if admin_row is None:
+                if not admin_password:
+                    conn.rollback()
+                    raise RuntimeError('Set BOOTSTRAP_ADMIN_PASSWORD before running init_db()')
+                generated_password = generate_password_hash(admin_password)
+            elif admin_row['password'] == ADMIN_PLACEHOLDER_PASSWORD:
+                if not admin_password:
+                    conn.rollback()
+                    raise RuntimeError('Set BOOTSTRAP_ADMIN_PASSWORD before running init_db()')
+                generated_password = generate_password_hash(admin_password)
+            else:
+                # Admin already has a real (bcrypt/scrypt) hash — nothing to do.
+                generated_password = None
 
             if admin_row is None:
                 cur.execute(

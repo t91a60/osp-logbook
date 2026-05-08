@@ -4,6 +4,12 @@ from threading import Lock
 from time import monotonic
 from typing import Any
 
+# NOTE: This cache is in-process memory (not shared between Gunicorn workers).
+# With 2 workers, effective cache hit rate is ~50% — each worker maintains
+# its own independent cache. This is acceptable for the current traffic level.
+# To share cache across workers, replace with Redis:
+# RATELIMIT_STORAGE_URI=redis://... in .env and use flask-caching with Redis backend.
+
 _cache_lock = Lock()
 _cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
 _CACHE_MAX_SIZE: int = 1024

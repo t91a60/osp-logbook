@@ -7,6 +7,10 @@ from threading import Lock
 from flask import session, redirect, url_for, abort
 
 
+class ValidationError(Exception):
+    """Raised when user-submitted data fails validation."""
+
+
 def login_required[**P, R](f: Callable[P, R]) -> Callable[P, R]:
     @wraps(f)
     def decorated(*args: P.args, **kwargs: P.kwargs) -> R:

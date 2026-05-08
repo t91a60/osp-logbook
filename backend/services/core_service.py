@@ -55,15 +55,17 @@ class VehicleService:
         cutoff = (date.today() - timedelta(days=days)).isoformat()
         conn = get_db()
         cur = get_cursor(conn)
-        cur.execute('''
-            SELECT DISTINCT driver FROM (
-                SELECT driver FROM trips WHERE date >= %s
-                UNION
-                SELECT driver FROM fuel WHERE date >= %s
-            ) ORDER BY driver ASC
-        ''', (cutoff, cutoff))
-        rows = cur.fetchall()
-        cur.close()
+        try:
+            cur.execute('''
+                SELECT DISTINCT driver FROM (
+                    SELECT driver FROM trips WHERE date >= %s
+                    UNION
+                    SELECT driver FROM fuel WHERE date >= %s
+                ) ORDER BY driver ASC
+            ''', (cutoff, cutoff))
+            rows = cur.fetchall()
+        finally:
+            cur.close()
         return [r['driver'] for r in rows]
 
 
