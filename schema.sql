@@ -1,5 +1,5 @@
 -- OSP Logbook — full schema for PostgreSQL 17 (Neon.tech)
--- Generated from migrations 0001–0011
+-- Generated from migrations 0001–000X
 -- Import: psql $DATABASE_URL -f schema.sql
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm;  -- for fast ILIKE search on driver/purpose

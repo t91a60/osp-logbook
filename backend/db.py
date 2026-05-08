@@ -12,6 +12,7 @@ from flask import g, Flask
 logger = logging.getLogger(__name__)
 
 _db_pool: SimpleConnectionPool | None = None
+ADMIN_PLACEHOLDER_PASSWORD = 'CHANGE_ME_RUN_FLASK_INIT'
 
 
 def _create_pool() -> SimpleConnectionPool:
@@ -203,7 +204,7 @@ def init_db() -> None:
 
             cur.execute('SELECT id, password FROM users WHERE username = %s;', ('admin',))
             admin_row = cur.fetchone()
-            needs_admin_password = admin_row is None or admin_row['password'] == 'CHANGE_ME_RUN_FLASK_INIT'
+            needs_admin_password = admin_row is None or admin_row['password'] == ADMIN_PLACEHOLDER_PASSWORD
             admin_password = os.environ.get('BOOTSTRAP_ADMIN_PASSWORD')
             if needs_admin_password and not admin_password:
                 conn.rollback()
@@ -221,7 +222,7 @@ def init_db() -> None:
                     ('admin', generated_password, 'Administrator', 'admin', True),
                 )
                 cur.fetchone()
-            elif admin_row['password'] == 'CHANGE_ME_RUN_FLASK_INIT':
+            elif admin_row['password'] == ADMIN_PLACEHOLDER_PASSWORD:
                 cur.execute(
                     '''
                     UPDATE users
