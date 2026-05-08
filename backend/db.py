@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+import secrets
 from collections.abc import Callable
 
 import psycopg2
@@ -205,7 +206,14 @@ def init_db() -> None:
 
             cur.execute('SELECT id, password FROM users WHERE username = %s;', ('admin',))
             admin_row = cur.fetchone()
-            generated_password = generate_password_hash(os.environ.get('BOOTSTRAP_ADMIN_PASSWORD', 'admin123'))
+            admin_password = os.environ.get('BOOTSTRAP_ADMIN_PASSWORD')
+            if not admin_password:
+                admin_password = secrets.token_urlsafe(32)
+                logger.warning(
+                    'BOOTSTRAP_ADMIN_PASSWORD is not set; using a randomized admin password hash. '
+                    'Set BOOTSTRAP_ADMIN_PASSWORD before running init_db() to control the admin credential.'
+                )
+            generated_password = generate_password_hash(admin_password)
 
             if admin_row is None:
                 cur.execute(
