@@ -125,8 +125,8 @@ CREATE INDEX IF NOT EXISTS idx_trips_driver_trgm ON trips USING gin(driver gin_t
 INSERT INTO schema_version (version) VALUES (10);
 -- version 10 = first unified schema, skip yoyo tracking
 
-INSERT INTO users (username, password, display_name, role)
-VALUES ('admin', 'CHANGE_ME_RUN_FLASK_INIT', 'Administrator', 'admin')
+INSERT INTO users (username, password, display_name, role, is_admin)
+VALUES ('admin', 'CHANGE_ME_RUN_FLASK_INIT', 'Administrator', 'admin', TRUE)
 ON CONFLICT (username) DO NOTHING;
 -- Run: flask shell → from backend.db import init_db; init_db()
 -- to replace CHANGE_ME with a real bcrypt hash

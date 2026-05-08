@@ -204,11 +204,12 @@ def init_db() -> None:
             cur.execute('SELECT id, password FROM users WHERE username = %s;', ('admin',))
             admin_row = cur.fetchone()
             needs_admin_password = admin_row is None or admin_row['password'] == 'CHANGE_ME_RUN_FLASK_INIT'
-            if needs_admin_password and not os.environ.get('BOOTSTRAP_ADMIN_PASSWORD'):
+            admin_password = os.environ.get('BOOTSTRAP_ADMIN_PASSWORD')
+            if needs_admin_password and not admin_password:
                 conn.rollback()
                 raise RuntimeError('Set BOOTSTRAP_ADMIN_PASSWORD before running init_db()')
 
-            generated_password = generate_password_hash(os.environ['BOOTSTRAP_ADMIN_PASSWORD']) if needs_admin_password else None
+            generated_password = generate_password_hash(admin_password) if needs_admin_password else None
 
             if admin_row is None:
                 cur.execute(
