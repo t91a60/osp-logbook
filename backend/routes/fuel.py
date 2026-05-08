@@ -2,7 +2,17 @@ from flask import render_template, request, flash, redirect, url_for, session
 from datetime import date
 from psycopg2 import IntegrityError
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required, build_date_where, paginate, parse_positive_int
+from backend.helpers import (
+    login_required,
+    build_date_where,
+    paginate,
+    parse_positive_int,
+    get_active_vehicle,
+    validate_iso_date,
+    ensure_non_empty_text,
+    parse_positive_float_field,
+    parse_positive_int_field,
+)
 from backend.services.cache_service import get_vehicles_cached
 
 
@@ -11,21 +21,17 @@ class ValidationError(Exception):
 
 
 def _require_float(value, field_name):
-    if value in (None, ''):
-        return None
     try:
-        return float(value)
-    except (TypeError, ValueError):
-        raise ValidationError(f'{field_name} musi być liczbą.')
+        return parse_positive_float_field(value, field_name)
+    except ValueError as exc:
+        raise ValidationError(str(exc))
 
 
 def _require_int(value, field_name):
-    if value in (None, ''):
-        return None
     try:
-        return int(value)
-    except (TypeError, ValueError):
-        raise ValidationError(f'{field_name} musi być liczbą całkowitą.')
+        return parse_positive_int_field(value, field_name)
+    except ValueError as exc:
+        raise ValidationError(str(exc))
 
 
 def register_routes(app):
@@ -44,20 +50,19 @@ def register_routes(app):
                     if not vehicle_id:
                         raise ValidationError('Wybierz pojazd.')
 
-                    fuel_date = f.get('date', '').strip()
-                    if not fuel_date:
-                        raise ValidationError('Data jest wymagana.')
+                    fuel_date = validate_iso_date(f.get('date'), 'Data')
 
-                    driver = f.get('driver', '').strip()
-                    if not driver:
-                        raise ValidationError('Kierowca jest wymagany.')
+                    driver = ensure_non_empty_text(f.get('driver'), 'Kierowca')
 
                     liters = _require_float(f.get('liters'), 'Litry')
-                    if liters is None or liters <= 0:
-                        raise ValidationError('Podaj poprawną ilość paliwa.')
+                    if liters is None:
+                        raise ValidationError('Podaj ilość paliwa.')
 
                     cost = _require_float(f.get('cost'), 'Koszt')
                     odometer = _require_int(f.get('odometer'), 'Stan km')
+                    vehicle = get_active_vehicle(cur, vehicle_id)
+                    if not vehicle:
+                        raise ValidationError('Nieprawidłowy pojazd.')
                 except ValidationError as exc:
                     flash(str(exc), 'error')
                     return redirect(url_for('fuel'))
@@ -67,7 +72,7 @@ def register_routes(app):
                         INSERT INTO fuel (vehicle_id, date, driver, odometer, liters, cost, notes, added_by)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     ''', (
-                        int(vehicle_id), fuel_date, driver,
+                        vehicle['id'], fuel_date, driver,
                         odometer, liters, cost,
                         f.get('notes', '').strip(), session['username']
                     ))

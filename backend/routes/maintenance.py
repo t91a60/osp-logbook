@@ -2,7 +2,18 @@ from flask import render_template, request, flash, redirect, url_for, session, a
 from datetime import date, timedelta
 from psycopg2 import IntegrityError
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required, build_date_where, paginate, parse_positive_int, normalize_iso_date
+from backend.helpers import (
+    login_required,
+    build_date_where,
+    paginate,
+    parse_positive_int,
+    normalize_iso_date,
+    get_active_vehicle,
+    validate_iso_date,
+    ensure_non_empty_text,
+    parse_positive_float_field,
+    parse_positive_int_field,
+)
 from backend.services.cache_service import get_vehicles_cached
 
 
@@ -11,21 +22,17 @@ class ValidationError(Exception):
 
 
 def _require_float(value, field_name):
-    if value in (None, ''):
-        return None
     try:
-        return float(value)
-    except (TypeError, ValueError):
-        raise ValidationError(f'{field_name} musi być liczbą.')
+        return parse_positive_float_field(value, field_name)
+    except ValueError as exc:
+        raise ValidationError(str(exc))
 
 
 def _require_int(value, field_name):
-    if value in (None, ''):
-        return None
     try:
-        return int(value)
-    except (TypeError, ValueError):
-        raise ValidationError(f'{field_name} musi być liczbą całkowitą.')
+        return parse_positive_int_field(value, field_name)
+    except ValueError as exc:
+        raise ValidationError(str(exc))
 
 
 def register_routes(app):
@@ -42,14 +49,13 @@ def register_routes(app):
                 vehicle_id = f.get('vehicle_id', '').strip()
                 if not vehicle_id:
                     raise ValidationError('Wybierz pojazd.')
+                vehicle = get_active_vehicle(cur, vehicle_id)
+                if not vehicle:
+                    raise ValidationError('Nieprawidłowy pojazd.')
 
-                maintenance_date = f.get('date', '').strip()
-                if not maintenance_date:
-                    raise ValidationError('Data jest wymagana.')
+                maintenance_date = validate_iso_date(f.get('date'), 'Data')
 
-                description = f.get('description', '').strip()
-                if not description:
-                    raise ValidationError('Opis jest wymagany.')
+                description = ensure_non_empty_text(f.get('description'), 'Opis')
 
                 priority = f.get('priority', 'medium')
                 if priority not in ('low', 'medium', 'high'):
@@ -71,7 +77,7 @@ def register_routes(app):
                         INSERT INTO maintenance (vehicle_id, date, odometer, description, cost, notes, added_by, status, priority, due_date)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ''', (
-                        int(vehicle_id), maintenance_date,
+                        vehicle['id'], maintenance_date,
                         odometer,
                         description,
                         cost,
