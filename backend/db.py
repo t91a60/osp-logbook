@@ -163,8 +163,8 @@ def _fetch_schema_version(conn) -> int | None:
 
 def log_schema_version() -> None:
     conn = None
-    pool = get_pool()
     try:
+        pool = get_pool()
         conn = pool.getconn()
         conn.autocommit = True
         version = _fetch_schema_version(conn)
