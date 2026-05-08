@@ -1,0 +1,10 @@
+workers = 2
+worker_class = "sync"
+timeout = 30
+keepalive = 5
+max_requests = 1000
+max_requests_jitter = 100
+preload_app = True
+accesslog = "-"
+errorlog = "-"
+loglevel = "info"

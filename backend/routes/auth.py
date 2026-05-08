@@ -1,6 +1,7 @@
 from flask import request, session, redirect, url_for, flash, render_template
 from werkzeug.security import check_password_hash
 import secrets
+from datetime import datetime, timezone
 from backend.db import get_db, get_cursor
 
 
@@ -9,7 +10,7 @@ def register_routes(app):
     from app import limiter
 
     @app.route('/login', methods=['GET', 'POST'], endpoint='login')
-    @limiter.limit("10 per minute; 30 per hour", error_message="Zbyt wiele prób logowania. Spróbuj za chwilę.")
+    @limiter.limit("10 per minute; 30 per hour", methods=['POST'], error_message="Zbyt wiele prób logowania. Spróbuj za chwilę.")
     def login():
         if 'user_id' in session:
             return redirect(url_for('dashboard'))
@@ -53,6 +54,8 @@ def register_routes(app):
                 session['display_name'] = user['display_name']
                 session['is_admin'] = is_admin
                 session['_csrf_token'] = secrets.token_hex(32)
+                session['session_started_at'] = datetime.now(timezone.utc).isoformat()
+                session.permanent = True
                 return redirect(url_for('dashboard'))
 
             flash('Nieprawidłowy login lub hasło.', 'error')

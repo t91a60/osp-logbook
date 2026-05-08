@@ -1,6 +1,7 @@
 from datetime import date, datetime, timedelta
 from functools import wraps
 from collections.abc import Callable
+import re
 
 from flask import session, redirect, url_for, abort
 
@@ -203,3 +204,95 @@ def paginate(
     rows = cur.fetchall()
     entries = [{k: v for k, v in row.items() if k != '__total_count'} for row in rows]
     return entries, total, total_pages, page
+
+
+_ISO_DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+
+
+def ensure_non_empty_text(value: str | None, field_name: str) -> str:
+    text = (value or '').strip()
+    if not text:
+        raise ValueError(f'{field_name} jest wymagany.')
+    return text
+
+
+def validate_iso_date(
+    value: str | None,
+    field_name: str = 'Data',
+    max_future_days: int = 365,
+) -> str:
+    text = (value or '').strip()
+    if not text:
+        raise ValueError(f'{field_name} jest wymagana.')
+    if not _ISO_DATE_RE.fullmatch(text):
+        raise ValueError(f'{field_name} musi mieć format YYYY-MM-DD.')
+
+    try:
+        parsed = date.fromisoformat(text)
+    except ValueError:
+        raise ValueError(f'{field_name} musi mieć format YYYY-MM-DD.')
+
+    if parsed > date.today() + timedelta(days=max_future_days):
+        raise ValueError(f'{field_name} nie może być późniejsza niż 1 rok w przyszłości.')
+    return parsed.isoformat()
+
+
+def parse_positive_int_field(value: str | int | None, field_name: str) -> int | None:
+    if value in (None, ''):
+        return None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        raise ValueError(f'{field_name} musi być liczbą całkowitą.')
+    if parsed <= 0:
+        raise ValueError(f'{field_name} musi być większy od 0.')
+    return parsed
+
+
+def parse_positive_float_field(value: str | float | None, field_name: str) -> float | None:
+    if value in (None, ''):
+        return None
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f'{field_name} musi być liczbą.')
+    if parsed <= 0:
+        raise ValueError(f'{field_name} musi być większy od 0.')
+    return parsed
+
+
+def validate_odometer_range(
+    odo_start: int | None,
+    odo_end: int | None,
+) -> None:
+    if odo_start is not None and odo_end is not None and odo_end < odo_start:
+        raise ValueError('Km koniec nie może być mniejszy niż km start.')
+
+
+def get_active_vehicle(cur, vehicle_id: str | int | None) -> dict | None:
+    try:
+        vid = int(vehicle_id)
+    except (TypeError, ValueError):
+        return None
+    if vid <= 0:
+        return None
+
+    cur.execute("""
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'vehicles' AND column_name = 'active'
+        LIMIT 1
+    """)
+    has_active = cur.fetchone() is not None
+
+    if has_active:
+        cur.execute('''
+            SELECT id
+            FROM vehicles
+            WHERE id = %s
+              AND COALESCE(active::text, '1') IN ('1', 'true', 't')
+            LIMIT 1
+        ''', (vid,))
+    else:
+        cur.execute('SELECT id FROM vehicles WHERE id = %s LIMIT 1', (vid,))
+    return cur.fetchone()

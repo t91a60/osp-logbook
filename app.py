@@ -1,8 +1,10 @@
 import os
 import hmac
+from datetime import datetime, timezone
 
 from flask import Flask, session, request, abort, url_for, g, jsonify, redirect, flash
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.exceptions import HTTPException
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import secrets
@@ -14,19 +16,9 @@ from backend.bootstrap import ensure_bootstrap_admin
 # Globalna instancja limitera — trasy importują ją przez `from app import limiter`
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=[os.environ.get('RATELIMIT_DEFAULT', '600 per hour')],
+    default_limits=[],
     storage_uri=os.environ.get('RATELIMIT_STORAGE_URI', 'memory://'),
 )
-
-
-def _validate_required_config(app):
-    env_name = os.environ.get('FLASK_ENV', 'development')
-    missing = [
-        key for key in ('SECRET_KEY', 'DATABASE_URL')
-        if not app.config.get(key)
-    ]
-    if missing and env_name == 'production':
-        raise RuntimeError(f"Missing required production settings: {', '.join(missing)}")
 
 
 def create_app(config_class=None):
@@ -35,7 +27,10 @@ def create_app(config_class=None):
 
     app = Flask(__name__, template_folder='templates')
     app.config.from_object(config_class)
-    _validate_required_config(app)
+    if not app.config.get('SECRET_KEY'):
+        raise RuntimeError('SECRET_KEY environment variable is not set.')
+    if not app.config.get('DATABASE_URL'):
+        raise RuntimeError('DATABASE_URL environment variable is not set.')
 
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
@@ -61,6 +56,20 @@ def create_app(config_class=None):
     @app.before_request
     def csrf_protect():
         g.csp_nonce = secrets.token_urlsafe(16)
+        if request.endpoint not in {'login', 'logout', 'health', 'static'}:
+            last_seen = session.get('session_started_at')
+            if 'user_id' in session and last_seen:
+                try:
+                    started_at = datetime.fromisoformat(last_seen)
+                    age_seconds = (datetime.now(timezone.utc) - started_at).total_seconds()
+                    if age_seconds > 8 * 3600:
+                        session.clear()
+                        flash('Sesja wygasła. Zaloguj się ponownie.', 'error')
+                        return redirect(url_for('login'))
+                except (TypeError, ValueError):
+                    session.clear()
+                    return redirect(url_for('login'))
+
         if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
             token = session.get('_csrf_token')
             req_token = (
@@ -95,13 +104,15 @@ def create_app(config_class=None):
     @app.after_request
     def add_security_headers(response):
         nonce = getattr(g, 'csp_nonce', '')
-        script_src = "script-src 'self'"
+        script_src = "script-src 'self' 'unsafe-inline'"
         if nonce:
-            script_src = f"script-src 'self' 'nonce-{nonce}'"
+            script_src = f"{script_src} 'nonce-{nonce}'"
 
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['X-XSS-Protection'] = '1; mode=block'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
         response.headers['Content-Security-Policy'] = (
             f"default-src 'self'; {script_src}; "
             "style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; "
@@ -112,6 +123,19 @@ def create_app(config_class=None):
             response.headers['Pragma'] = 'no-cache'
             response.headers['Expires'] = '0'
         return response
+
+    @app.errorhandler(Exception)
+    def handle_unexpected_error(error):
+        if isinstance(error, HTTPException):
+            return error
+        app.logger.exception('Unhandled application error')
+        if request.path.startswith('/api/'):
+            return jsonify({'ok': False, 'error': 'Internal server error'}), 500
+        return (
+            '<!doctype html><html><head><title>Server error</title></head>'
+            '<body><h1>Internal server error</h1><p>Please try again later.</p></body></html>',
+            500,
+        )
 
     register_db(app)
     ensure_bootstrap_admin(app)

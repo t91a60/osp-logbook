@@ -2,7 +2,17 @@ from flask import Response, request, jsonify, session, current_app
 from datetime import date
 
 from backend.db import get_db, get_cursor
-from backend.helpers import login_required, normalize_iso_date, parse_trip_equipment_form
+from backend.helpers import (
+    login_required,
+    normalize_iso_date,
+    parse_trip_equipment_form,
+    get_active_vehicle,
+    ensure_non_empty_text,
+    validate_iso_date,
+    parse_positive_int_field,
+    parse_positive_float_field,
+    validate_odometer_range,
+)
 from backend.services.core_service import TripService, VehicleService
 from backend.services.cache_service import get_or_set
 
@@ -16,31 +26,21 @@ def _json_error(message: str, status_code: int) -> tuple[Response, int]:
 
 
 def _get_active_vehicle(cur, vehicle_id: str | int | None) -> dict | None:
-    """Zwraca pojazd jeśli istnieje, inaczej None."""
-    try:
-        vid = int(vehicle_id)
-    except (TypeError, ValueError):
-        return None
-    cur.execute("SELECT id FROM vehicles WHERE id = %s", (vid,))
-    return cur.fetchone()
+    return get_active_vehicle(cur, vehicle_id)
 
 
 def _optional_int(value: str | int | None, field_name: str) -> int | None:
-    if value in (None, ''):
-        return None
     try:
-        return int(value)
-    except (TypeError, ValueError):
-        raise ValidationError(f'{field_name} musi być liczbą całkowitą.')
+        return parse_positive_int_field(value, field_name)
+    except ValueError as exc:
+        raise ValidationError(str(exc))
 
 
 def _optional_float(value: str | float | None, field_name: str) -> float | None:
-    if value in (None, ''):
-        return None
     try:
-        return float(value)
-    except (TypeError, ValueError):
-        raise ValidationError(f'{field_name} musi być liczbą.')
+        return parse_positive_float_field(value, field_name)
+    except ValueError as exc:
+        raise ValidationError(str(exc))
 
 
 def register_routes(app):
@@ -91,23 +91,16 @@ def register_routes(app):
 
             purpose_sel = f.get('purpose_select', '').strip()
             if purpose_sel == '__inne__':
-                purpose = f.get('purpose_custom', '').strip()
+                purpose = ensure_non_empty_text(f.get('purpose_custom'), 'Cel wyjazdu')
             else:
-                purpose = purpose_sel or f.get('purpose', '').strip()
+                purpose = ensure_non_empty_text(purpose_sel or f.get('purpose'), 'Cel wyjazdu')
 
-            if not purpose:
-                raise ValidationError('Cel wyjazdu jest wymagany.')
-
-            driver = f.get('driver', '').strip()
-            if not driver:
-                raise ValidationError('Kierowca jest wymagany.')
-
-            trip_date = f.get('date', '').strip()
-            if not trip_date:
-                raise ValidationError('Data jest wymagana.')
+            driver = ensure_non_empty_text(f.get('driver'), 'Kierowca')
+            trip_date = validate_iso_date(f.get('date'), 'Data')
 
             odo_start = _optional_int(f.get('odo_start'), 'Km start')
             odo_end = _optional_int(f.get('odo_end'), 'Km koniec')
+            validate_odometer_range(odo_start, odo_end)
 
             try:
                 equipment_used = parse_trip_equipment_form(request.form)
@@ -127,6 +120,8 @@ def register_routes(app):
                 time_end=f.get('time_end') or None,
                 equipment_used=equipment_used or None,
             )
+        except ValueError as exc:
+            return _json_error(str(exc), 400)
         except ValidationError as exc:
             return _json_error(str(exc), 400)
         except Exception:
@@ -149,22 +144,12 @@ def register_routes(app):
             if not vehicle:
                 raise ValidationError('Nieprawidłowy pojazd.')
 
-            liters = (f.get('liters') or '').strip()
-            if not liters:
+            liters_float = _optional_float(f.get('liters'), 'Litry')
+            if liters_float is None:
                 raise ValidationError('Podaj ilość paliwa.')
 
-            driver = f.get('driver', '').strip()
-            if not driver:
-                raise ValidationError('Kierowca jest wymagany.')
-
-            fuel_date = f.get('date', '').strip()
-            if not fuel_date:
-                raise ValidationError('Data jest wymagana.')
-
-            liters_float = _optional_float(liters, 'Litry')
-            if liters_float is None or liters_float <= 0:
-                raise ValidationError('Podaj poprawną ilość paliwa.')
-
+            driver = ensure_non_empty_text(f.get('driver'), 'Kierowca')
+            fuel_date = validate_iso_date(f.get('date'), 'Data')
             cost = _optional_float(f.get('cost'), 'Koszt')
             odometer = _optional_int(f.get('odometer'), 'Stan km')
 
@@ -178,6 +163,9 @@ def register_routes(app):
                 f.get('notes', '').strip(), session['username']
             ))
             conn.commit()
+        except ValueError as exc:
+            conn.rollback()
+            return _json_error(str(exc), 400)
         except ValidationError as exc:
             conn.rollback()
             return _json_error(str(exc), 400)
@@ -202,13 +190,8 @@ def register_routes(app):
             if not vehicle:
                 raise ValidationError('Nieprawidłowy pojazd.')
 
-            description = f.get('description', '').strip()
-            if not description:
-                raise ValidationError('Opis jest wymagany.')
-
-            maintenance_date = f.get('date', '').strip()
-            if not maintenance_date:
-                raise ValidationError('Data jest wymagana.')
+            description = ensure_non_empty_text(f.get('description'), 'Opis')
+            maintenance_date = validate_iso_date(f.get('date'), 'Data')
 
             priority = f.get('priority', 'medium')
             if priority not in ('low', 'medium', 'high'):
@@ -235,6 +218,9 @@ def register_routes(app):
                 f.get('due_date') or None,
             ))
             conn.commit()
+        except ValueError as exc:
+            conn.rollback()
+            return _json_error(str(exc), 400)
         except ValidationError as exc:
             conn.rollback()
             return _json_error(str(exc), 400)

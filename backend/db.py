@@ -50,8 +50,22 @@ def reset_pool() -> SimpleConnectionPool:
 
 def get_db():
     if 'db' not in g:
-        g.db = get_pool().getconn()
-        g.db.autocommit = False
+        last_error = None
+        for attempt in range(1, 4):
+            try:
+                conn = get_pool().getconn()
+                conn.autocommit = False
+                g.db = conn
+                break
+            except (psycopg2.OperationalError, psycopg2.InterfaceError) as exc:
+                last_error = exc
+                logger.warning("DB connection failed (attempt %d/3): %s", attempt, exc)
+                reset_pool()
+                if attempt < 3:
+                    time.sleep(1)
+        else:
+            logger.error("DB connection failed after 3 attempts: %s", last_error)
+            raise last_error
     return g.db
 
 

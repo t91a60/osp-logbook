@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 
 
 class Config:
@@ -23,6 +24,9 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     DEBUG: bool = False
     SESSION_COOKIE_SECURE: bool = True
+    SESSION_COOKIE_HTTPONLY: bool = True
+    SESSION_COOKIE_SAMESITE: str = 'Lax'
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
 
 
 def get_config() -> type[Config]:
