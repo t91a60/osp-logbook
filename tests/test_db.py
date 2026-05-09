@@ -1,4 +1,4 @@
-"""Tests for backend/db.py — database utilities, health check, retry logic."""
+"""Tests for backend/db.py — database utilities and health checks."""
 
 from unittest.mock import patch, MagicMock
 import pytest
@@ -50,88 +50,6 @@ class TestCheckDbHealth:
             result = db_module.check_db_health()
 
         assert result is False
-
-
-class TestRetryOnConnectionFailure:
-    """Test _retry_on_connection_failure decorator logic."""
-
-    def test_succeeds_first_try(self, app):
-        call_count = 0
-
-        def fn():
-            nonlocal call_count
-            call_count += 1
-            return 'ok'
-
-        with app.test_request_context():
-            result = db_module._retry_on_connection_failure(fn, max_retries=3, delay=0)
-
-        assert result == 'ok'
-        assert call_count == 1
-
-    @patch('backend.db.reset_pool')
-    @patch('backend.db.get_pool')
-    @patch('backend.db.time')
-    def test_retries_on_operational_error(self, mock_time, mock_get_pool, mock_reset_pool, app):
-        mock_time.sleep = MagicMock()
-        mock_pool = MagicMock()
-        mock_get_pool.return_value = mock_pool
-        call_count = 0
-
-        def fn():
-            nonlocal call_count
-            call_count += 1
-            if call_count < 3:
-                raise psycopg2.OperationalError("connection reset")
-            return 'recovered'
-
-        with app.test_request_context():
-            result = db_module._retry_on_connection_failure(fn, max_retries=3, delay=0)
-
-        assert result == 'recovered'
-        assert call_count == 3
-
-    @patch('backend.db.reset_pool')
-    @patch('backend.db.get_pool')
-    @patch('backend.db.time')
-    def test_raises_after_max_retries(self, mock_time, mock_get_pool, mock_reset_pool, app):
-        mock_time.sleep = MagicMock()
-        mock_get_pool.return_value = MagicMock()
-
-        def fn():
-            raise psycopg2.OperationalError("permanently down")
-
-        with app.test_request_context():
-            with pytest.raises(psycopg2.OperationalError, match="permanently down"):
-                db_module._retry_on_connection_failure(fn, max_retries=2, delay=0)
-
-    @patch('backend.db.reset_pool')
-    @patch('backend.db.get_pool')
-    @patch('backend.db.time')
-    def test_retries_on_interface_error(self, mock_time, mock_get_pool, mock_reset_pool, app):
-        mock_time.sleep = MagicMock()
-        mock_pool = MagicMock()
-        mock_get_pool.return_value = mock_pool
-        call_count = 0
-
-        def fn():
-            nonlocal call_count
-            call_count += 1
-            if call_count < 2:
-                raise psycopg2.InterfaceError("connection closed")
-            return 'ok'
-
-        with app.test_request_context():
-            result = db_module._retry_on_connection_failure(fn, max_retries=3, delay=0)
-
-        assert result == 'ok'
-        assert call_count == 2
-
-    def test_max_retries_less_than_one_raises_value_error(self, app):
-        with pytest.raises(ValueError, match="max_retries must be >= 1"):
-            db_module._retry_on_connection_failure(lambda: None, max_retries=0)
-
-
 class TestGetCursor:
     """Test get_cursor returns a RealDictCursor."""
 
@@ -173,7 +91,7 @@ class TestCreatePool:
         mock_pool_cls.assert_called_once()
         call_kwargs = mock_pool_cls.call_args[1]
         assert call_kwargs['minconn'] == 1
-        assert call_kwargs['maxconn'] == 10
+        assert call_kwargs['maxconn'] == 5
 
     @patch('backend.db.SimpleConnectionPool')
     def test_pool_maxconn_clamped_to_minconn(self, mock_pool_cls, monkeypatch):

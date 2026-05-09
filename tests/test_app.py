@@ -213,8 +213,8 @@ class TestValidateRequiredConfig:
         with pytest.raises(RuntimeError, match='DATABASE_URL'):
             create_app(config_class=BadConfig)
 
-    def test_missing_config_in_development_does_not_raise(self, monkeypatch):
-        """Missing config in development mode should NOT raise."""
+    def test_missing_config_in_development_still_raises(self, monkeypatch):
+        """Missing config in development mode should still fail fast."""
         monkeypatch.setenv('FLASK_ENV', 'development')
 
         from backend.config import DevelopmentConfig
@@ -223,9 +223,8 @@ class TestValidateRequiredConfig:
             SECRET_KEY = None
             DATABASE_URL = None
 
-        # Should not raise
-        app = create_app(config_class=LaxConfig)
-        assert app is not None
+        with pytest.raises(RuntimeError, match='SECRET_KEY'):
+            create_app(config_class=LaxConfig)
 
 
 class TestContextProcessors:

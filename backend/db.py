@@ -1,7 +1,6 @@
 import os
 import time
 import logging
-from collections.abc import Callable
 
 import psycopg2
 from psycopg2.pool import SimpleConnectionPool
@@ -100,35 +99,6 @@ def close_db(e: BaseException | None = None) -> None:
                 db.close()
             except Exception:
                 pass
-
-
-def _retry_on_connection_failure[T](func: Callable[[], T], max_retries: int = 3, delay: int = 1) -> T:
-    # TODO: This function is currently unused in production code (retry logic lives in get_db()).
-    # It is kept because tests in tests/test_db.py exercise it directly.
-    # If those tests are removed, delete this function as well.
-    """Retry a function on connection failure."""
-    if max_retries < 1:
-        raise ValueError("max_retries must be >= 1")
-    for attempt in range(max_retries):
-        try:
-            return func()
-        except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
-            if attempt < max_retries - 1:
-                logger.warning("DB connection failed (attempt %d/%d): %s", attempt + 1, max_retries, e)
-                time.sleep(delay)
-                db = g.pop('db', None)
-                if db is not None:
-                    try:
-                        get_pool().putconn(db, close=True)
-                    except Exception:
-                        pass
-                reset_pool()
-            else:
-                logger.error("DB connection failed after %d attempts: %s", max_retries, e)
-                raise
-    raise RuntimeError("Unreachable")
-
-
 def check_db_health() -> bool:
     """Check if the database connection is healthy."""
     try:
