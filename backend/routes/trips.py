@@ -58,7 +58,7 @@ def register_routes(app):
                     odo_start = _require_int(f.get('odo_start'), 'Km start')
                     odo_end = _require_int(f.get('odo_end'), 'Km koniec')
                     validate_odometer_range(odo_start, odo_end)
-                except ValidationError as exc:
+                except (ValidationError, ValueError) as exc:
                     flash(str(exc), 'error')
                     return redirect(url_for('trips'))
 

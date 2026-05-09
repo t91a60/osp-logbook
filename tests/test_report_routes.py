@@ -27,7 +27,7 @@ class TestReportRoute:
         mock_db.return_value = MagicMock()
         mock_cur = _make_cursor(
             fetchone_result={'total_km': 0},
-            side_effects=[[], [], []],
+            side_effects=[[], [], [], []],
         )
         mock_cur_fn.return_value = mock_cur
         mock_vehicles.return_value = [{'id': 1, 'name': 'GBA', 'plate': 'KR1'}]

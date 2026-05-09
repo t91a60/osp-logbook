@@ -195,11 +195,13 @@ class TestMaintenanceGetRoute:
 # ---------------------------------------------------------------------------
 
 class TestMaintenancePostRoute:
+    @patch('backend.routes.maintenance.get_vehicles_cached')
     @patch('backend.routes.maintenance.get_cursor')
     @patch('backend.routes.maintenance.get_db')
-    def test_post_missing_vehicle_redirects(self, mock_db, mock_cur_fn, authenticated_client):
+    def test_post_missing_vehicle_redirects(self, mock_db, mock_cur_fn, mock_vehicles, authenticated_client):
         mock_db.return_value = MagicMock()
         mock_cur_fn.return_value = _make_cursor()
+        mock_vehicles.return_value = []
 
         response = authenticated_client.post('/serwis', data={
             '_csrf_token': _csrf(authenticated_client),
@@ -209,13 +211,15 @@ class TestMaintenancePostRoute:
         })
         assert response.status_code == 302
 
+    @patch('backend.routes.maintenance.get_vehicles_cached')
     @patch('backend.routes.maintenance.get_active_vehicle')
     @patch('backend.routes.maintenance.get_cursor')
     @patch('backend.routes.maintenance.get_db')
-    def test_post_invalid_vehicle_redirects(self, mock_db, mock_cur_fn, mock_active_v, authenticated_client):
+    def test_post_invalid_vehicle_redirects(self, mock_db, mock_cur_fn, mock_active_v, mock_vehicles, authenticated_client):
         mock_db.return_value = MagicMock()
         mock_cur_fn.return_value = _make_cursor()
         mock_active_v.return_value = None
+        mock_vehicles.return_value = []
 
         response = authenticated_client.post('/serwis', data={
             '_csrf_token': _csrf(authenticated_client),

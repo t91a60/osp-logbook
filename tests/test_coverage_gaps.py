@@ -718,9 +718,9 @@ class TestApiExceptionHandling:
 
 class TestSessionTimeout:
     def test_expired_session_redirects_to_login(self, client):
-        """Session older than configured TTL should be cleared and redirect to login."""
-        # Place a session that started 9 hours ago (> 8h default TTL)
-        old_time = (datetime.now(timezone.utc) - timedelta(hours=9)).isoformat()
+        """Session older than Flask's PERMANENT_SESSION_LIFETIME should be cleared and redirect."""
+        # Flask's default PERMANENT_SESSION_LIFETIME is 31 days; use 32 days to exceed it.
+        old_time = (datetime.now(timezone.utc) - timedelta(days=32)).isoformat()
         with client.session_transaction() as sess:
             sess['user_id'] = 1
             sess['username'] = 'tester'
