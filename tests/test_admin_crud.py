@@ -282,7 +282,8 @@ class TestAdminVehicleManagement:
         })
         assert response.status_code == 302
         mock_conn.commit.assert_called()
-        mock_invalidate.assert_called_with('vehicles:')
+        mock_invalidate.assert_any_call('vehicles:')
+        mock_invalidate.assert_any_call('dashboard:')
 
     @patch('backend.routes.admin.get_cursor')
     @patch('backend.routes.admin.get_db')
@@ -351,7 +352,8 @@ class TestAdminVehicleManagement:
         })
         assert response.status_code == 302
         mock_conn.commit.assert_called()
-        mock_invalidate.assert_called_with('vehicles:')
+        mock_invalidate.assert_any_call('vehicles:')
+        mock_invalidate.assert_any_call('dashboard:')
 
     @patch('backend.routes.admin.invalidate_prefix')
     @patch('backend.routes.admin.get_cursor')

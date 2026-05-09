@@ -16,10 +16,7 @@ from backend.helpers import (
 )
 from backend.services.core_service import TripService
 from backend.services.cache_service import get_vehicles_cached
-
-
-class ValidationError(Exception):
-    """Raised when trip form input fails validation."""
+from backend.helpers import ValidationError
 
 
 def _require_int(value, field_name):

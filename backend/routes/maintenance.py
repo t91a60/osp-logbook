@@ -15,10 +15,7 @@ from backend.helpers import (
     parse_positive_int_field,
 )
 from backend.services.cache_service import get_vehicles_cached
-
-
-class ValidationError(Exception):
-    """Raised when maintenance form input fails validation."""
+from backend.helpers import ValidationError
 
 
 def _require_float(value, field_name):

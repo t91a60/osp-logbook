@@ -3,6 +3,13 @@
 import os
 import pytest
 
+# NOTE: These tests mock get_db() and get_cursor() — they verify routing
+# logic and input validation but do NOT execute real SQL queries.
+# For SQL and migration correctness, run integration tests against a
+# real PostgreSQL instance:
+#   docker run -e POSTGRES_PASSWORD=test -p 5432:5432 postgres:17
+#   DATABASE_URL=postgresql://postgres:test@localhost/test pytest tests/integration/
+
 # Ensure test environment is set before importing the app.
 os.environ.setdefault('FLASK_ENV', 'development')
 os.environ.setdefault('SECRET_KEY', 'test-secret-key-for-testing')

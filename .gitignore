@@ -1,4 +1,9 @@
 /.agents
+
+# SQLite databases — never commit
+*.db
+*.sqlite
+*.sqlite3
 logbook.db
 
 __pycache__/
