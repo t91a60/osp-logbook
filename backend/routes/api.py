@@ -104,7 +104,10 @@ def register_routes(app):
 
             odo_start = _optional_int(f.get('odo_start'), 'Km start')
             odo_end = _optional_int(f.get('odo_end'), 'Km koniec')
-            validate_odometer_range(odo_start, odo_end)
+            try:
+                validate_odometer_range(odo_start, odo_end)
+            except ValueError as exc:
+                raise ValidationError(str(exc))
 
             try:
                 equipment_used = parse_trip_equipment_form(request.form)
