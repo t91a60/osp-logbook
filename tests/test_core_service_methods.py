@@ -287,7 +287,7 @@ class TestTripServiceAddTrip:
 
     @patch('backend.services.core_service.AuditService')
     @patch('backend.services.core_service.TripRepository')
-    def test_add_trip_delegates_invalid_equipment_ids_to_repository(self, mock_trip_repository, mock_audit, app):
+    def test_add_trip_passes_equipment_without_filtering(self, mock_trip_repository, mock_audit, app):
         """Service forwards filtering responsibility for invalid equipment IDs to repository."""
         from backend.services.core_service import TripService
 

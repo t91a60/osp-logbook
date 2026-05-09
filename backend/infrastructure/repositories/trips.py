@@ -69,7 +69,7 @@ class TripRepository:
     @staticmethod
     def get_page(
         *,
-        vehicle_id: str | int | None = '',
+        vehicle_id: str | int | None = None,
         okres: str = '',
         od: str = '',
         do_: str = '',
