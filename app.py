@@ -136,7 +136,7 @@ def create_app(config_class=None):
         return render_template(
             'error.html',
             title='Błąd serwera',
-            message='Wystąpił nieoczekiwany błąd. Spróbuj ponownie za chwilę.',
+            message='Wystąpił nieoczekiwany błąd. Spróbuj ponownie.',
         ), 500
 
     register_db(app)
