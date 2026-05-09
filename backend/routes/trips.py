@@ -1,7 +1,7 @@
 from flask import render_template, request, flash, redirect, url_for, session
 from datetime import date
 from psycopg2 import IntegrityError
-from backend.db import get_db, get_cursor
+from backend.db import get_db, get_cursor  # backward-compatible patch targets for tests
 from backend.helpers import (
     login_required,
     build_date_where,
@@ -17,6 +17,7 @@ from backend.helpers import (
 from backend.services.core_service import TripService
 from backend.services.cache_service import get_vehicles_cached
 from backend.helpers import ValidationError
+from backend.infrastructure.repositories.trips import TripRepository
 
 
 def _require_int(value, field_name):
@@ -97,30 +98,12 @@ def register_routes(app):
             od = request.args.get('od', '')
             do_ = request.args.get('do', '')
             page = parse_positive_int(request.args.get('page'), default=1)
-
-            where_parts = []
-            params = []
-
-            if vid:
-                where_parts.append('t.vehicle_id = %s')
-                params.append(vid)
-
-            date_parts, date_params = build_date_where(okres, od, do_, alias='t')
-            where_parts += date_parts
-            params += date_params
-
-            where_sql = f"WHERE {' AND '.join(where_parts)}" if where_parts else ''
-
-            base_sql = f'''
-                SELECT t.*, v.name AS vname FROM trips t
-                JOIN vehicles v ON t.vehicle_id = v.id
-                {where_sql}
-                ORDER BY t.date DESC, t.created_at DESC
-            '''
-            count_sql = f'SELECT COUNT(*) AS count FROM trips t JOIN vehicles v ON t.vehicle_id = v.id {where_sql}'
-
-            entries, total, total_pages, page = paginate(
-                conn, cur, count_sql, params, base_sql, params, page
+            entries, total, total_pages, page = TripRepository.get_page(
+                vehicle_id=vid,
+                okres=okres,
+                od=od,
+                do_=do_,
+                page=page,
             )
 
             add_open = request.args.get('add', '') == '1'

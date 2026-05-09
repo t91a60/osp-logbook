@@ -232,18 +232,9 @@ class TestTripServiceAddTrip:
     """Test TripService.add_trip() with equipment usage."""
 
     @patch('backend.services.core_service.AuditService')
-    @patch('backend.services.core_service.get_cursor')
-    @patch('backend.services.core_service.get_db')
-    def test_add_trip_with_equipment(self, mock_get_db, mock_get_cursor, mock_audit, app):
+    @patch('backend.services.core_service.TripRepository')
+    def test_add_trip_with_equipment(self, mock_trip_repository, mock_audit, app):
         from backend.services.core_service import TripService
-
-        mock_conn = MagicMock()
-        mock_get_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_get_cursor.return_value = mock_cur
-        mock_cur.__enter__ = MagicMock(return_value=mock_cur)
-        mock_cur.__exit__ = MagicMock(return_value=False)
-        mock_cur.fetchone.return_value = {'id': 99}
 
         equipment = [
             {'equipment_id': 1, 'quantity_used': 2, 'minutes_used': 30, 'notes': 'test'},
@@ -257,26 +248,15 @@ class TestTripServiceAddTrip:
                 notes='', added_by='admin', equipment_used=equipment,
             )
 
-        mock_conn.commit.assert_called_once()
-        # executemany should be called for equipment insert
-        mock_cur.executemany.assert_called_once()
-        eq_call_args = mock_cur.executemany.call_args[0]
-        assert 'trip_equipment' in eq_call_args[0]
-        assert len(eq_call_args[1]) == 2
+        mock_trip_repository.add.assert_called_once()
+        call_kwargs = mock_trip_repository.add.call_args.kwargs
+        assert call_kwargs['equipment_used'] == equipment
+        mock_audit.log.assert_called_once()
 
     @patch('backend.services.core_service.AuditService')
-    @patch('backend.services.core_service.get_cursor')
-    @patch('backend.services.core_service.get_db')
-    def test_add_trip_without_equipment(self, mock_get_db, mock_get_cursor, mock_audit, app):
+    @patch('backend.services.core_service.TripRepository')
+    def test_add_trip_without_equipment(self, mock_trip_repository, mock_audit, app):
         from backend.services.core_service import TripService
-
-        mock_conn = MagicMock()
-        mock_get_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_get_cursor.return_value = mock_cur
-        mock_cur.__enter__ = MagicMock(return_value=mock_cur)
-        mock_cur.__exit__ = MagicMock(return_value=False)
-        mock_cur.fetchone.return_value = {'id': 1}
 
         with app.test_request_context():
             TripService.add_trip(
@@ -285,22 +265,14 @@ class TestTripServiceAddTrip:
                 notes='', added_by='admin',
             )
 
-        mock_conn.commit.assert_called_once()
-        mock_cur.executemany.assert_not_called()
+        mock_trip_repository.add.assert_called_once()
+        call_kwargs = mock_trip_repository.add.call_args.kwargs
+        assert call_kwargs['equipment_used'] is None
 
     @patch('backend.services.core_service.AuditService')
-    @patch('backend.services.core_service.get_cursor')
-    @patch('backend.services.core_service.get_db')
-    def test_add_trip_with_empty_equipment_list(self, mock_get_db, mock_get_cursor, mock_audit, app):
+    @patch('backend.services.core_service.TripRepository')
+    def test_add_trip_with_empty_equipment_list(self, mock_trip_repository, mock_audit, app):
         from backend.services.core_service import TripService
-
-        mock_conn = MagicMock()
-        mock_get_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_get_cursor.return_value = mock_cur
-        mock_cur.__enter__ = MagicMock(return_value=mock_cur)
-        mock_cur.__exit__ = MagicMock(return_value=False)
-        mock_cur.fetchone.return_value = {'id': 1}
 
         with app.test_request_context():
             TripService.add_trip(
@@ -309,23 +281,15 @@ class TestTripServiceAddTrip:
                 notes='', added_by='admin', equipment_used=[],
             )
 
-        mock_conn.commit.assert_called_once()
-        mock_cur.executemany.assert_not_called()
+        mock_trip_repository.add.assert_called_once()
+        call_kwargs = mock_trip_repository.add.call_args.kwargs
+        assert call_kwargs['equipment_used'] == []
 
     @patch('backend.services.core_service.AuditService')
-    @patch('backend.services.core_service.get_cursor')
-    @patch('backend.services.core_service.get_db')
-    def test_add_trip_equipment_skips_invalid_ids(self, mock_get_db, mock_get_cursor, mock_audit, app):
-        """Equipment rows with equipment_id=None or empty should be skipped."""
+    @patch('backend.services.core_service.TripRepository')
+    def test_add_trip_delegates_equipment_payload(self, mock_trip_repository, mock_audit, app):
+        """Service delegates raw equipment payload to repository layer."""
         from backend.services.core_service import TripService
-
-        mock_conn = MagicMock()
-        mock_get_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_get_cursor.return_value = mock_cur
-        mock_cur.__enter__ = MagicMock(return_value=mock_cur)
-        mock_cur.__exit__ = MagicMock(return_value=False)
-        mock_cur.fetchone.return_value = {'id': 1}
 
         equipment = [
             {'equipment_id': None, 'quantity_used': 1, 'minutes_used': 10},
@@ -339,5 +303,5 @@ class TestTripServiceAddTrip:
                 notes='', added_by='admin', equipment_used=equipment,
             )
 
-        # Invalid equipment_ids should be filtered out
-        mock_cur.executemany.assert_not_called()
+        call_kwargs = mock_trip_repository.add.call_args.kwargs
+        assert call_kwargs['equipment_used'] == equipment

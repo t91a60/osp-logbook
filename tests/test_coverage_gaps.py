@@ -549,17 +549,17 @@ class TestTripsRouteAdditional:
         assert response.status_code == 302
 
     @patch('backend.routes.trips.render_template')
-    @patch('backend.routes.trips.paginate')
+    @patch('backend.routes.trips.TripRepository')
     @patch('backend.routes.trips.get_vehicles_cached')
     @patch('backend.routes.trips.get_cursor')
     @patch('backend.routes.trips.get_db')
     def test_trips_get_with_add_param_opens_form(
-        self, mock_db, mock_cur_fn, mock_vehicles, mock_paginate, mock_render, authenticated_client
+        self, mock_db, mock_cur_fn, mock_vehicles, mock_trip_repository, mock_render, authenticated_client
     ):
         mock_db.return_value = MagicMock()
         mock_cur_fn.return_value = _make_cursor()
         mock_vehicles.return_value = []
-        mock_paginate.return_value = ([], 0, 1, 1)
+        mock_trip_repository.get_page.return_value = ([], 0, 1, 1)
         mock_render.return_value = 'trips-page'
 
         response = authenticated_client.get('/wyjazdy?add=1&vehicle_id=2')
@@ -569,17 +569,17 @@ class TestTripsRouteAdditional:
         assert ctx['selected_vehicle'] == '2'
 
     @patch('backend.routes.trips.render_template')
-    @patch('backend.routes.trips.paginate')
+    @patch('backend.routes.trips.TripRepository')
     @patch('backend.routes.trips.get_vehicles_cached')
     @patch('backend.routes.trips.get_cursor')
     @patch('backend.routes.trips.get_db')
     def test_trips_get_with_date_filters(
-        self, mock_db, mock_cur_fn, mock_vehicles, mock_paginate, mock_render, authenticated_client
+        self, mock_db, mock_cur_fn, mock_vehicles, mock_trip_repository, mock_render, authenticated_client
     ):
         mock_db.return_value = MagicMock()
         mock_cur_fn.return_value = _make_cursor()
         mock_vehicles.return_value = []
-        mock_paginate.return_value = ([], 0, 1, 1)
+        mock_trip_repository.get_page.return_value = ([], 0, 1, 1)
         mock_render.return_value = 'trips-page'
 
         response = authenticated_client.get('/wyjazdy?od=2024-01-01&do=2024-06-30&vehicle_id=3')
@@ -743,12 +743,12 @@ class TestSessionTimeout:
         # Should reach the actual route (may return 200 or be redirected for other reasons,
         # but NOT an expired-session 302 to /login via flash)
         with patch('backend.routes.trips.render_template') as mock_render, \
-             patch('backend.routes.trips.paginate') as mock_pag, \
+             patch('backend.routes.trips.TripRepository') as mock_trip_repository, \
              patch('backend.routes.trips.get_vehicles_cached') as mock_v, \
              patch('backend.routes.trips.get_cursor'), \
              patch('backend.routes.trips.get_db'):
             mock_render.return_value = 'ok'
-            mock_pag.return_value = ([], 0, 1, 1)
+            mock_trip_repository.get_page.return_value = ([], 0, 1, 1)
             mock_v.return_value = []
             response = client.get('/wyjazdy')
         assert response.status_code == 200

@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 from backend.db import get_db, get_cursor
 from backend.helpers import normalize_iso_date
+from backend.infrastructure.repositories.trips import TripRepository
 from backend.services.audit_service import AuditService
 
 
@@ -85,48 +86,19 @@ class TripService:
         time_end: str | None = None,
         equipment_used: list[dict] | None = None,
     ) -> None:
-        """
-        equipment_used: list of dicts [{equipment_id, quantity_used, minutes_used, notes}]
-        """
-        conn = get_db()
-        vehicle_id = _to_int(vehicle_id)
-        odo_start = _to_int(odo_start)
-        odo_end = _to_int(odo_end)
-
-        try:
-            with get_cursor(conn) as cur:
-                cur.execute('''
-                    INSERT INTO trips (vehicle_id, date, driver, odo_start, odo_end, purpose, notes, added_by, time_start, time_end)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    RETURNING id
-                ''', (
-                    vehicle_id, date_val, driver, odo_start, odo_end, purpose, notes, added_by, time_start, time_end,
-                ))
-                trip_id = cur.fetchone()['id']
-
-                if equipment_used:
-                    eq_rows: list[tuple] = []
-                    for eq in equipment_used:
-                        eq_id = _to_int(eq.get('equipment_id'))
-                        if eq_id:
-                            qty = max(1, _to_int(eq.get('quantity_used')) or 1)
-                            mins = _to_int(eq.get('minutes_used'))
-                            eq_rows.append((trip_id, eq_id, qty, mins))
-                    if eq_rows:
-                        cur.executemany('''
-                            MERGE INTO trip_equipment AS target
-                            USING (VALUES (%s, %s, %s, %s)) AS source(trip_id, equipment_id, quantity_used, minutes_used)
-                            ON target.trip_id = source.trip_id AND target.equipment_id = source.equipment_id
-                            WHEN MATCHED THEN
-                              UPDATE SET quantity_used = source.quantity_used, minutes_used = source.minutes_used
-                            WHEN NOT MATCHED THEN
-                              INSERT (trip_id, equipment_id, quantity_used, minutes_used)
-                              VALUES (source.trip_id, source.equipment_id, source.quantity_used, source.minutes_used)
-                        ''', eq_rows)
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
+        TripRepository.add(
+            vehicle_id=vehicle_id,
+            date_val=date_val,
+            driver=driver,
+            odo_start=odo_start,
+            odo_end=odo_end,
+            purpose=purpose,
+            notes=notes,
+            added_by=added_by,
+            time_start=time_start,
+            time_end=time_end,
+            equipment_used=equipment_used,
+        )
         AuditService.log('Dodanie', 'Wyjazd', f'Pojazd ID: {vehicle_id}, Kierowca: {driver}, Data: {date_val}')
 
     @staticmethod
