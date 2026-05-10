@@ -158,21 +158,19 @@ def register_routes(app):
             cost = _optional_float(f.get('cost'), 'Koszt')
             odometer = _optional_int(f.get('odometer'), 'Stan km')
 
-            cur.execute('''
-                INSERT INTO fuel (vehicle_id, date, driver, odometer, liters, cost, notes, added_by)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (
-                vehicle['id'], fuel_date, driver,
+            TripService.add_fuel(
+                vehicle['id'],
+                fuel_date,
+                driver,
                 odometer,
-                liters_float, cost,
-                f.get('notes', '').strip(), session['username']
-            ))
-            conn.commit()
+                liters_float,
+                cost,
+                f.get('notes', '').strip(),
+                session['username'],
+            )
         except ValidationError as exc:
-            conn.rollback()
             return _json_error(str(exc), 400)
         except Exception:
-            conn.rollback()
             current_app.logger.exception('Fuel API error')
             return _json_error('Nie udało się zapisać tankowania. Spróbuj ponownie.', 500)
         finally:
@@ -206,25 +204,21 @@ def register_routes(app):
             odometer = _optional_int(f.get('odometer'), 'Stan km')
             cost = _optional_float(f.get('cost'), 'Koszt')
 
-            cur.execute('''
-                INSERT INTO maintenance (vehicle_id, date, odometer, description, cost, notes, added_by, status, priority, due_date)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (
-                vehicle['id'], maintenance_date,
+            TripService.add_maintenance(
+                vehicle['id'],
+                maintenance_date,
                 odometer,
                 description,
                 cost,
                 f.get('notes', '').strip(),
                 session['username'],
-                status, priority,
+                status,
+                priority,
                 f.get('due_date') or None,
-            ))
-            conn.commit()
+            )
         except ValidationError as exc:
-            conn.rollback()
             return _json_error(str(exc), 400)
         except Exception:
-            conn.rollback()
             current_app.logger.exception('Maintenance API error')
             return _json_error('Nie udało się zapisać wpisu. Spróbuj ponownie.', 500)
         finally:

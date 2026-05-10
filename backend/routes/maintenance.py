@@ -1,13 +1,10 @@
 from flask import render_template, request, flash, redirect, url_for, session, abort
-from datetime import date, timedelta
+from datetime import date
 from psycopg2 import IntegrityError
 from backend.db import get_db, get_cursor
 from backend.helpers import (
     login_required,
-    build_date_where,
-    paginate,
     parse_positive_int,
-    normalize_iso_date,
     get_active_vehicle,
     validate_iso_date,
     ensure_non_empty_text,
@@ -16,6 +13,7 @@ from backend.helpers import (
 )
 from backend.services.cache_service import get_vehicles_cached
 from backend.helpers import ValidationError
+from backend.infrastructure.repositories.maintenance import MaintenanceRepository
 
 
 def _require_float(value, field_name):
@@ -103,43 +101,13 @@ def register_routes(app):
             od = request.args.get('od', '')
             do_ = request.args.get('do', '')
             page = parse_positive_int(request.args.get('page'), default=1)
-
-            where_parts = []
-            params_list = []
-
-            if selected_vehicle != 'all':
-                where_parts.append('m.vehicle_id = %s')
-                params_list.append(selected_vehicle)
-
-            if selected_status == 'pending':
-                where_parts.append("(m.status = 'pending' AND (m.due_date IS NULL OR m.due_date >= CURRENT_DATE))")
-            elif selected_status == 'completed':
-                where_parts.append("m.status = 'completed'")
-            elif selected_status == 'overdue':
-                where_parts.append("(m.status = 'pending' AND m.due_date IS NOT NULL AND m.due_date < CURRENT_DATE)")
-
-            date_parts, date_params = build_date_where(okres, od, do_, alias='m')
-            where_parts += date_parts
-            params_list += date_params
-
-            where_sql = f"WHERE {' AND '.join(where_parts)}" if where_parts else ''
-
-            base_sql = f'''
-                SELECT m.*, v.name AS vname,
-                       CASE
-                           WHEN m.status = 'completed' THEN 'completed'
-                           WHEN m.due_date IS NOT NULL AND m.due_date < CURRENT_DATE THEN 'overdue'
-                           ELSE 'pending'
-                       END AS effective_status
-                FROM maintenance m
-                JOIN vehicles v ON m.vehicle_id = v.id
-                {where_sql}
-                ORDER BY m.date DESC, m.created_at DESC
-            '''
-            count_sql = f'SELECT COUNT(*) AS count FROM maintenance m JOIN vehicles v ON m.vehicle_id = v.id {where_sql}'
-
-            entries, total, total_pages, page = paginate(
-                conn, cur, count_sql, params_list, base_sql, params_list, page
+            entries, total, total_pages, page = MaintenanceRepository.get_page(
+                vehicle_id=selected_vehicle,
+                status_filter=selected_status,
+                okres=okres,
+                od=od,
+                do_=do_,
+                page=page,
             )
         except ValidationError as exc:
             conn.rollback()
@@ -159,68 +127,23 @@ def register_routes(app):
     @app.route('/serwis/<int:eid>/complete', methods=['POST'], endpoint='complete_maintenance')
     @login_required
     def complete_maintenance_view(eid):
-        conn = get_db()
-        cur = get_cursor(conn)
-        try:
-            cur.execute('SELECT added_by FROM maintenance WHERE id = %s', (eid,))
-            row = cur.fetchone()
-            if not row:
-                flash('Nie znaleziono wpisu serwisowego.', 'error')
-                return redirect(url_for('maintenance'))
-            if row['added_by'] != session['username'] and not session.get('is_admin'):
-                abort(403)
-            cur.execute("UPDATE maintenance SET status = 'completed' WHERE id = %s", (eid,))
-            conn.commit()
-        finally:
-            cur.close()
+        row = MaintenanceRepository.complete(eid)
+        if not row:
+            flash('Nie znaleziono wpisu serwisowego.', 'error')
+            return redirect(url_for('maintenance'))
+        if row['added_by'] != session['username'] and not session.get('is_admin'):
+            abort(403)
         flash('Oznaczono jako wykonane.', 'success')
         return redirect(url_for('maintenance'))
 
     @app.route('/serwis/<int:eid>/next', methods=['POST'], endpoint='create_next_maintenance')
     @login_required
     def create_next_maintenance_view(eid):
-        conn = get_db()
-        cur = get_cursor(conn)
-        try:
-            cur.execute('''
-                SELECT vehicle_id, odometer, description, notes, priority, due_date, added_by
-                FROM maintenance WHERE id = %s
-            ''', (eid,))
-            row = cur.fetchone()
-
-            if not row:
-                flash('Nie znaleziono wpisu serwisowego.', 'error')
-                return redirect(url_for('maintenance'))
-
-            if row['added_by'] != session['username'] and not session.get('is_admin'):
-                abort(403)
-
-            if row['due_date']:
-                normalized_due = normalize_iso_date(row['due_date'])
-                if normalized_due is not None:
-                    next_due = (date.fromisoformat(normalized_due) + timedelta(days=90)).isoformat()
-                else:
-                    next_due = (date.today() + timedelta(days=90)).isoformat()
-            else:
-                next_due = (date.today() + timedelta(days=90)).isoformat()
-
-            cur.execute('''
-                INSERT INTO maintenance (vehicle_id, date, odometer, description, cost, notes, added_by, status, priority, due_date)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (
-                row['vehicle_id'],
-                date.today().isoformat(),
-                row['odometer'],
-                row['description'],
-                None,
-                row['notes'] or '',
-                session['username'],
-                'pending',
-                row['priority'] or 'medium',
-                next_due,
-            ))
-            conn.commit()
-        finally:
-            cur.close()
+        row = MaintenanceRepository.create_next(eid)
+        if not row:
+            flash('Nie znaleziono wpisu serwisowego.', 'error')
+            return redirect(url_for('maintenance'))
+        if row['added_by'] != session['username'] and not session.get('is_admin'):
+            abort(403)
         flash('Dodano kolejny wpis serwisowy.', 'success')
         return redirect(url_for('maintenance'))

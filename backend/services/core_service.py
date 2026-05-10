@@ -2,20 +2,10 @@ from datetime import date, timedelta
 
 from backend.db import get_db, get_cursor
 from backend.helpers import normalize_iso_date
+from backend.infrastructure.repositories.fuel import FuelRepository
+from backend.infrastructure.repositories.maintenance import MaintenanceRepository
 from backend.infrastructure.repositories.trips import TripRepository
 from backend.services.audit_service import AuditService
-
-
-def _to_int(value: str | int | None) -> int | None:
-    if value in (None, ''):
-        return None
-    return int(value)
-
-
-def _to_float(value: str | float | None) -> float | None:
-    if value in (None, ''):
-        return None
-    return float(value)
 
 
 class VehicleService:
@@ -112,24 +102,16 @@ class TripService:
         notes: str,
         added_by: str,
     ) -> None:
-        conn = get_db()
-        vehicle_id = _to_int(vehicle_id)
-        odometer = _to_int(odometer)
-        liters = _to_float(liters)
-        cost = _to_float(cost)
-
-        try:
-            with get_cursor(conn) as cur:
-                cur.execute('''
-                    INSERT INTO fuel (vehicle_id, date, driver, odometer, liters, cost, notes, added_by)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (
-                    vehicle_id, date_val, driver, odometer, liters, cost, notes, added_by,
-                ))
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
+        FuelRepository.add(
+            vehicle_id=vehicle_id,
+            date_val=date_val,
+            driver=driver,
+            odometer=odometer,
+            liters=liters,
+            cost=cost,
+            notes=notes,
+            added_by=added_by,
+        )
         AuditService.log('Dodanie', 'Tankowanie', f'Pojazd ID: {vehicle_id}, Litry: {liters}, Data: {date_val}')
 
     @staticmethod
@@ -145,21 +127,16 @@ class TripService:
         priority: str,
         due_date: str | None,
     ) -> None:
-        conn = get_db()
-        vehicle_id = _to_int(vehicle_id)
-        odometer = _to_int(odometer)
-        cost = _to_float(cost)
-
-        try:
-            with get_cursor(conn) as cur:
-                cur.execute('''
-                    INSERT INTO maintenance (vehicle_id, date, odometer, description, cost, notes, added_by, status, priority, due_date)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (
-                    vehicle_id, date_val, odometer, description, cost, notes, added_by, status, priority, due_date,
-                ))
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
+        MaintenanceRepository.add(
+            vehicle_id=vehicle_id,
+            date_val=date_val,
+            odometer=odometer,
+            description=description,
+            cost=cost,
+            notes=notes,
+            added_by=added_by,
+            status=status,
+            priority=priority,
+            due_date=due_date,
+        )
         AuditService.log('Dodanie', 'Serwis', f'Pojazd ID: {vehicle_id}, Opis: {description}, Data: {date_val}')

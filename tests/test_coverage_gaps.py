@@ -407,17 +407,17 @@ class TestFuelRouteAdditional:
         mock_conn.rollback.assert_called()
 
     @patch('backend.routes.fuel.render_template')
-    @patch('backend.routes.fuel.paginate')
+    @patch('backend.routes.fuel.FuelRepository.get_page')
     @patch('backend.routes.fuel.get_vehicles_cached')
     @patch('backend.routes.fuel.get_cursor')
     @patch('backend.routes.fuel.get_db')
     def test_fuel_get_with_add_param(
-        self, mock_db, mock_cur_fn, mock_vehicles, mock_paginate, mock_render, authenticated_client
+        self, mock_db, mock_cur_fn, mock_vehicles, mock_get_page, mock_render, authenticated_client
     ):
         mock_db.return_value = MagicMock()
         mock_cur_fn.return_value = _make_cursor()
         mock_vehicles.return_value = []
-        mock_paginate.return_value = ([], 0, 1, 1)
+        mock_get_page.return_value = ([], 0, 1, 1)
         mock_render.return_value = 'fuel-page'
 
         response = authenticated_client.get('/tankowania?add=1')
@@ -426,17 +426,17 @@ class TestFuelRouteAdditional:
         assert ctx['add_open'] is True
 
     @patch('backend.routes.fuel.render_template')
-    @patch('backend.routes.fuel.paginate')
+    @patch('backend.routes.fuel.FuelRepository.get_page')
     @patch('backend.routes.fuel.get_vehicles_cached')
     @patch('backend.routes.fuel.get_cursor')
     @patch('backend.routes.fuel.get_db')
     def test_fuel_get_with_date_filter(
-        self, mock_db, mock_cur_fn, mock_vehicles, mock_paginate, mock_render, authenticated_client
+        self, mock_db, mock_cur_fn, mock_vehicles, mock_get_page, mock_render, authenticated_client
     ):
         mock_db.return_value = MagicMock()
         mock_cur_fn.return_value = _make_cursor()
         mock_vehicles.return_value = []
-        mock_paginate.return_value = ([], 0, 1, 1)
+        mock_get_page.return_value = ([], 0, 1, 1)
         mock_render.return_value = 'fuel-page'
 
         response = authenticated_client.get('/tankowania?od=2024-01-01&do=2024-06-30')

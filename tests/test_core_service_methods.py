@@ -105,8 +105,8 @@ class TestTripServiceAddFuel:
     """Test TripService.add_fuel()."""
 
     @patch('backend.services.core_service.AuditService')
-    @patch('backend.services.core_service.get_cursor')
-    @patch('backend.services.core_service.get_db')
+    @patch('backend.infrastructure.repositories.fuel.get_cursor')
+    @patch('backend.infrastructure.repositories.fuel.get_db')
     def test_add_fuel_success(self, mock_get_db, mock_get_cursor, mock_audit, app):
         from backend.services.core_service import TripService
 
@@ -128,8 +128,8 @@ class TestTripServiceAddFuel:
         mock_audit.log.assert_called_once()
 
     @patch('backend.services.core_service.AuditService')
-    @patch('backend.services.core_service.get_cursor')
-    @patch('backend.services.core_service.get_db')
+    @patch('backend.infrastructure.repositories.fuel.get_cursor')
+    @patch('backend.infrastructure.repositories.fuel.get_db')
     def test_add_fuel_with_none_values(self, mock_get_db, mock_get_cursor, mock_audit, app):
         from backend.services.core_service import TripService
 
@@ -150,8 +150,8 @@ class TestTripServiceAddFuel:
         mock_conn.commit.assert_called_once()
 
     @patch('backend.services.core_service.AuditService')
-    @patch('backend.services.core_service.get_cursor')
-    @patch('backend.services.core_service.get_db')
+    @patch('backend.infrastructure.repositories.fuel.get_cursor')
+    @patch('backend.infrastructure.repositories.fuel.get_db')
     def test_add_fuel_db_error_rolls_back(self, mock_get_db, mock_get_cursor, mock_audit, app):
         from backend.services.core_service import TripService
 
@@ -179,8 +179,8 @@ class TestTripServiceAddMaintenance:
     """Test TripService.add_maintenance()."""
 
     @patch('backend.services.core_service.AuditService')
-    @patch('backend.services.core_service.get_cursor')
-    @patch('backend.services.core_service.get_db')
+    @patch('backend.infrastructure.repositories.maintenance.get_cursor')
+    @patch('backend.infrastructure.repositories.maintenance.get_db')
     def test_add_maintenance_success(self, mock_get_db, mock_get_cursor, mock_audit, app):
         from backend.services.core_service import TripService
 
@@ -203,8 +203,8 @@ class TestTripServiceAddMaintenance:
         mock_audit.log.assert_called_once()
 
     @patch('backend.services.core_service.AuditService')
-    @patch('backend.services.core_service.get_cursor')
-    @patch('backend.services.core_service.get_db')
+    @patch('backend.infrastructure.repositories.maintenance.get_cursor')
+    @patch('backend.infrastructure.repositories.maintenance.get_db')
     def test_add_maintenance_db_error_rolls_back(self, mock_get_db, mock_get_cursor, mock_audit, app):
         from backend.services.core_service import TripService
 
