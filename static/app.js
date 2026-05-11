@@ -1,12 +1,14 @@
 // OSP Logbook - Core JS (iOS-style interactions)
 
-function _hapticSuccess() {
-  if (navigator.vibrate) navigator.vibrate(8);
-}
+const Haptics = {
+  light: () => { if(navigator.vibrate) navigator.vibrate(5); },
+  success: () => { if(navigator.vibrate) navigator.vibrate([10, 30, 20]); },
+  error: () => { if(navigator.vibrate) navigator.vibrate([20, 40, 20, 40, 30]); },
+  longPress: () => { if(navigator.vibrate) navigator.vibrate(40); }
+};
 
-function _hapticError() {
-  if (navigator.vibrate) navigator.vibrate([10, 5, 10]);
-}
+function _hapticSuccess() { Haptics.success(); }
+function _hapticError() { Haptics.error(); }
 
 function _spinnerArcSVG() {
   return '<svg class="spinner-arc" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"></circle></svg>';
@@ -135,6 +137,32 @@ function submitForm(formId, endpoint, onSuccess) {
   var csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
   var csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute("content") : "";
 
+  // Background Sync / Offline Queue intercept
+  if (!navigator.onLine && 'serviceWorker' in navigator && 'SyncManager' in window) {
+    var formDataObj = {};
+    new FormData(form).forEach((value, key) => { formDataObj[key] = value; });
+    
+    _saveToOfflineQueue({
+      endpoint: endpoint,
+      payload: formDataObj,
+      csrfToken: csrfToken
+    }).then(() => {
+      return navigator.serviceWorker.ready;
+    }).then(reg => {
+      return reg.sync.register('sync-logbook-entries');
+    }).then(() => {
+      showToast("Jesteś offline. Zapisano w kolejce. Wpis zsynchronizuje się automatycznie.", "info", 4500);
+      clearFormAutosave(formId);
+      form.reset();
+      _flashButtonSuccess(btn, function () { _resetSubmitButton(btn, original); });
+      if (typeof onSuccess === "function") onSuccess();
+    }).catch(() => {
+      showToast("Nie udało się zapisać offline.", "error");
+      _resetSubmitButton(btn, original);
+    });
+    return false;
+  }
+
   fetch(endpoint, {
     method: "POST",
     body: new FormData(form),
@@ -179,6 +207,24 @@ function submitForm(formId, endpoint, onSuccess) {
     });
 
   return false;
+}
+
+// IndexedDB Helper for Offline Queue
+function _saveToOfflineQueue(item) {
+  return new Promise((resolve, reject) => {
+    var req = indexedDB.open('osp-offline-db', 1);
+    req.onupgradeneeded = function(e) {
+      e.target.result.createObjectStore('sync-queue', { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = function() {
+      var db = req.result;
+      var tx = db.transaction('sync-queue', 'readwrite');
+      var addReq = tx.objectStore('sync-queue').add(item);
+      addReq.onsuccess = () => resolve();
+      addReq.onerror = () => reject();
+    };
+    req.onerror = () => reject();
+  });
 }
 
 // Auto-save
@@ -424,23 +470,31 @@ function _setupPullToRefresh() {
       startY = e.touches[0].clientY;
       pull = 0;
       armed = false;
+      document.body.style.transition = 'none';
     }
   }, { passive: true });
 
   document.body.addEventListener("touchmove", function (e) {
     if (window.scrollY > 0 || !startY) return;
-    pull = e.touches[0].clientY - startY;
-    if (pull > 18) indicator.classList.add("visible");
-    if (pull > 60) armed = true;
-  }, { passive: true });
+    pull = (e.touches[0].clientY - startY) * 0.45; // Spring resistance
+    if (pull > 0) {
+      document.body.style.transform = "translateY(" + pull + "px)";
+    }
+    if (pull > 8) indicator.classList.add("visible");
+    if (pull > 65) armed = true;
+  }, { passive: false });
 
   document.body.addEventListener("touchend", function () {
+    if (!startY) return;
+    document.body.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    document.body.style.transform = '';
+    
     if (armed) {
       indicator.classList.add("visible");
-      _hapticSuccess();
+      Haptics.success();
       setTimeout(function () {
         window.location.reload();
-      }, 800);
+      }, 500);
     } else {
       indicator.classList.remove("visible");
     }
@@ -513,4 +567,15 @@ document.addEventListener("DOMContentLoaded", function () {
   _setupCountUp();
   _setupPullToRefresh();
   _setupSwipeToDelete();
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'SYNC_SUCCESS') {
+        showToast(event.data.message, 'success', 5000);
+        Haptics.success();
+        // Optional: reload to show new entries
+        setTimeout(() => window.location.reload(), 2000);
+      }
+    });
+  }
 });

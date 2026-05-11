@@ -20,3 +20,6 @@ coverage.xml
 /.py314deps
 /backend/routes/__pycache__
 /backend/__pycache__
+/backend/__pycache__
+/backend/routes/__pycache__
+/backend/routes/__pycache__

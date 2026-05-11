@@ -12,3 +12,7 @@ class NotFoundError(DomainError):
 
 class ForbiddenError(DomainError):
     """Raised when an operation is not allowed for current user."""
+
+
+class ConflictError(DomainError):
+    """Raised when a resource conflict prevents the operation (e.g. FK constraint)."""

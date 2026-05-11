@@ -54,6 +54,7 @@ body {
   line-height: 1.5;
   min-height: 100dvh;
   padding-bottom: calc(85px + env(safe-area-inset-bottom, 0px));
+  overscroll-behavior-y: none;
 }
 
 /* ── Layout ───────────────────────────────────────────────────────── */
@@ -362,6 +363,27 @@ body {
 
 .btn-sm { padding: 10px 14px; font-size: 0.85rem; min-height: 44px; }
 
+/* ── Floating Action Button (FAB) ─────────────────────────────────── */
+.fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(255, 94, 0, 0.35);
+  z-index: 60;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color var(--transition);
+  text-decoration: none;
+}
+.fab:active { transform: scale(0.88); background: var(--accent-dim); }
+.fab svg { width: 26px; height: 26px; stroke-width: 2.2; }
+
 @keyframes pulse { to { opacity: 0.7; } }
 
 .spinner,
@@ -558,7 +580,7 @@ body {
   border-radius: 8px;
   background: linear-gradient(90deg, var(--bg-lighter) 25%, var(--bg-lightest) 50%, var(--bg-lighter) 75%);
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  animation: shimmer 1.5s infinite ease-in-out;
 }
 
 .skeleton-line { width: 100%; height: 14px; }

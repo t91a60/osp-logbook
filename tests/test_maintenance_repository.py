@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from backend.infrastructure.repositories.maintenance import MaintenanceRepository
+from backend.domain.exceptions import ForbiddenError, NotFoundError
 
 
 class TestMaintenanceRepositoryAdd:
@@ -292,3 +293,199 @@ class TestMaintenanceRepositoryCreateNext:
 
         assert row is not None
         mock_conn.commit.assert_called_once()
+
+
+class TestMaintenanceRepositoryGetById:
+    @patch('backend.infrastructure.repositories.maintenance.get_cursor')
+    @patch('backend.infrastructure.repositories.maintenance.get_db')
+    def test_get_by_id_returns_row(self, mock_get_db, mock_get_cursor):
+        mock_get_db.return_value = MagicMock()
+        mock_cur = MagicMock()
+        mock_get_cursor.return_value = mock_cur
+        mock_cur.fetchone.return_value = {
+            'id': 5, 'description': 'Serwis', 'effective_status': 'pending', 'vname': 'GBA'
+        }
+
+        result = MaintenanceRepository.get_by_id(5)
+
+        assert result['id'] == 5
+        assert result['effective_status'] == 'pending'
+        mock_cur.execute.assert_called_once()
+        mock_cur.close.assert_called_once()
+
+    @patch('backend.infrastructure.repositories.maintenance.get_cursor')
+    @patch('backend.infrastructure.repositories.maintenance.get_db')
+    def test_get_by_id_returns_none_when_missing(self, mock_get_db, mock_get_cursor):
+        mock_get_db.return_value = MagicMock()
+        mock_cur = MagicMock()
+        mock_get_cursor.return_value = mock_cur
+        mock_cur.fetchone.return_value = None
+
+        result = MaintenanceRepository.get_by_id(999)
+
+        assert result is None
+        mock_cur.close.assert_called_once()
+
+    @patch('backend.infrastructure.repositories.maintenance.get_cursor')
+    @patch('backend.infrastructure.repositories.maintenance.get_db')
+    def test_get_by_id_closes_cursor_on_error(self, mock_get_db, mock_get_cursor):
+        mock_get_db.return_value = MagicMock()
+        mock_cur = MagicMock()
+        mock_get_cursor.return_value = mock_cur
+        mock_cur.execute.side_effect = RuntimeError('boom')
+
+        with pytest.raises(RuntimeError):
+            MaintenanceRepository.get_by_id(1)
+
+        mock_cur.close.assert_called_once()
+
+
+class TestMaintenanceRepositoryUpdate:
+    @patch('backend.infrastructure.repositories.maintenance.get_cursor')
+    @patch('backend.infrastructure.repositories.maintenance.get_db')
+    def test_update_success(self, mock_get_db, mock_get_cursor):
+        mock_conn = MagicMock()
+        mock_get_db.return_value = mock_conn
+        mock_cur = MagicMock()
+        mock_get_cursor.return_value = mock_cur
+        mock_cur.__enter__ = MagicMock(return_value=mock_cur)
+        mock_cur.__exit__ = MagicMock(return_value=False)
+        mock_cur.rowcount = 1
+
+        MaintenanceRepository.update(
+            entry_id=1,
+            vehicle_id='2',
+            date_val='2024-06-01',
+            odometer='55000',
+            description='Wymiana tarcz',
+            cost='500.00',
+            notes='zaktualizowany',
+            status='completed',
+            priority='high',
+            due_date=None,
+        )
+
+        mock_cur.execute.assert_called_once()
+        mock_conn.commit.assert_called_once()
+
+    @patch('backend.infrastructure.repositories.maintenance.get_cursor')
+    @patch('backend.infrastructure.repositories.maintenance.get_db')
+    def test_update_raises_not_found_when_rowcount_zero(self, mock_get_db, mock_get_cursor):
+        mock_conn = MagicMock()
+        mock_get_db.return_value = mock_conn
+        mock_cur = MagicMock()
+        mock_get_cursor.return_value = mock_cur
+        mock_cur.__enter__ = MagicMock(return_value=mock_cur)
+        mock_cur.__exit__ = MagicMock(return_value=False)
+        mock_cur.rowcount = 0
+
+        with pytest.raises(NotFoundError):
+            MaintenanceRepository.update(
+                entry_id=999,
+                vehicle_id='1',
+                date_val='2024-01-01',
+                odometer=None,
+                description='X',
+                cost=None,
+                notes='',
+                status='pending',
+                priority='medium',
+                due_date=None,
+            )
+
+        mock_conn.rollback.assert_called_once()
+
+    @patch('backend.infrastructure.repositories.maintenance.get_cursor')
+    @patch('backend.infrastructure.repositories.maintenance.get_db')
+    def test_update_rolls_back_on_db_error(self, mock_get_db, mock_get_cursor):
+        mock_conn = MagicMock()
+        mock_get_db.return_value = mock_conn
+        mock_cur = MagicMock()
+        mock_get_cursor.return_value = mock_cur
+        mock_cur.__enter__ = MagicMock(return_value=mock_cur)
+        mock_cur.__exit__ = MagicMock(return_value=False)
+        mock_cur.execute.side_effect = RuntimeError('db error')
+
+        with pytest.raises(RuntimeError):
+            MaintenanceRepository.update(
+                entry_id=1, vehicle_id='1', date_val='2024-01-01', odometer=None,
+                description='X', cost=None, notes='', status='pending',
+                priority='medium', due_date=None,
+            )
+
+        mock_conn.rollback.assert_called_once()
+        mock_conn.commit.assert_not_called()
+
+
+class TestMaintenanceRepositoryDelete:
+    @patch('backend.infrastructure.repositories.maintenance.get_cursor')
+    @patch('backend.infrastructure.repositories.maintenance.get_db')
+    def test_delete_success_owner(self, mock_get_db, mock_get_cursor):
+        mock_conn = MagicMock()
+        mock_get_db.return_value = mock_conn
+        mock_cur = MagicMock()
+        mock_get_cursor.return_value = mock_cur
+        mock_cur.fetchone.return_value = {'id': 1, 'added_by': 'jan', 'vehicle_id': 2}
+
+        MaintenanceRepository.delete(1, requester='jan')
+
+        mock_conn.commit.assert_called_once()
+        mock_cur.close.assert_called_once()
+
+    @patch('backend.infrastructure.repositories.maintenance.get_cursor')
+    @patch('backend.infrastructure.repositories.maintenance.get_db')
+    def test_delete_success_admin(self, mock_get_db, mock_get_cursor):
+        mock_conn = MagicMock()
+        mock_get_db.return_value = mock_conn
+        mock_cur = MagicMock()
+        mock_get_cursor.return_value = mock_cur
+        mock_cur.fetchone.return_value = {'id': 1, 'added_by': 'jan', 'vehicle_id': 2}
+
+        MaintenanceRepository.delete(1, requester='admin', is_admin=True)
+
+        mock_conn.commit.assert_called_once()
+
+    @patch('backend.infrastructure.repositories.maintenance.get_cursor')
+    @patch('backend.infrastructure.repositories.maintenance.get_db')
+    def test_delete_raises_not_found(self, mock_get_db, mock_get_cursor):
+        mock_conn = MagicMock()
+        mock_get_db.return_value = mock_conn
+        mock_cur = MagicMock()
+        mock_get_cursor.return_value = mock_cur
+        mock_cur.fetchone.return_value = None
+
+        with pytest.raises(NotFoundError):
+            MaintenanceRepository.delete(999, requester='jan')
+
+        mock_conn.rollback.assert_called_once()
+        mock_cur.close.assert_called_once()
+
+    @patch('backend.infrastructure.repositories.maintenance.get_cursor')
+    @patch('backend.infrastructure.repositories.maintenance.get_db')
+    def test_delete_raises_forbidden_for_non_owner(self, mock_get_db, mock_get_cursor):
+        mock_conn = MagicMock()
+        mock_get_db.return_value = mock_conn
+        mock_cur = MagicMock()
+        mock_get_cursor.return_value = mock_cur
+        mock_cur.fetchone.return_value = {'id': 1, 'added_by': 'jan', 'vehicle_id': 2}
+
+        with pytest.raises(ForbiddenError):
+            MaintenanceRepository.delete(1, requester='inny_user')
+
+        mock_conn.rollback.assert_called_once()
+
+    @patch('backend.infrastructure.repositories.maintenance.get_cursor')
+    @patch('backend.infrastructure.repositories.maintenance.get_db')
+    def test_delete_rolls_back_on_db_error(self, mock_get_db, mock_get_cursor):
+        mock_conn = MagicMock()
+        mock_get_db.return_value = mock_conn
+        mock_cur = MagicMock()
+        mock_get_cursor.return_value = mock_cur
+        mock_cur.fetchone.return_value = {'id': 1, 'added_by': 'jan', 'vehicle_id': 2}
+        mock_cur.execute.side_effect = [None, RuntimeError('db error')]
+
+        with pytest.raises(RuntimeError):
+            MaintenanceRepository.delete(1, requester='jan')
+
+        mock_conn.rollback.assert_called_once()
+        mock_cur.close.assert_called_once()

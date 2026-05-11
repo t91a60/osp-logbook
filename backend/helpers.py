@@ -261,6 +261,30 @@ def parse_positive_float_field(value: str | float | None, field_name: str) -> fl
     return parsed
 
 
+def require_float_field(value: str | float | None, field_name: str) -> float | None:
+    """Like ``parse_positive_float_field`` but raises ``ValidationError`` instead of ``ValueError``.
+
+    Intended for use in route handlers that map ``ValidationError`` → HTTP 422.
+    """
+    from backend.domain.exceptions import ValidationError  # local import avoids circular dep
+    try:
+        return parse_positive_float_field(value, field_name)
+    except ValueError as exc:
+        raise ValidationError(str(exc)) from exc
+
+
+def require_int_field(value: str | int | None, field_name: str) -> int | None:
+    """Like ``parse_positive_int_field`` but raises ``ValidationError`` instead of ``ValueError``.
+
+    Intended for use in route handlers that map ``ValidationError`` → HTTP 422.
+    """
+    from backend.domain.exceptions import ValidationError  # local import avoids circular dep
+    try:
+        return parse_positive_int_field(value, field_name)
+    except ValueError as exc:
+        raise ValidationError(str(exc)) from exc
+
+
 def validate_odometer_range(
     odo_start: int | None,
     odo_end: int | None,

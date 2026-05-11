@@ -4,6 +4,7 @@ from backend.db import get_db, get_cursor
 from backend.services.cache_service import invalidate_prefix
 from backend.helpers import build_date_where, normalize_iso_date, paginate, parse_positive_int
 from backend.infrastructure.repositories import _to_int, _to_float
+from backend.domain.exceptions import ForbiddenError, NotFoundError
 
 
 class MaintenanceRepository:
@@ -41,6 +42,124 @@ class MaintenanceRepository:
         except Exception:
             conn.rollback()
             raise
+
+    @staticmethod
+    def get_by_id(entry_id: int | str) -> dict | None:
+        """Return a single maintenance row by primary key (with vname JOIN), or None."""
+        conn = get_db()
+        cur = get_cursor(conn)
+        try:
+            cur.execute(
+                """
+                SELECT m.*,
+                       v.name AS vname,
+                       CASE
+                           WHEN m.status = 'completed' THEN 'completed'
+                           WHEN m.due_date IS NOT NULL AND m.due_date < CURRENT_DATE THEN 'overdue'
+                           ELSE 'pending'
+                       END AS effective_status
+                FROM maintenance m
+                JOIN vehicles v ON m.vehicle_id = v.id
+                WHERE m.id = %s
+                LIMIT 1
+                """,
+                (entry_id,),
+            )
+            return cur.fetchone()
+        finally:
+            cur.close()
+
+    @staticmethod
+    def update(
+        entry_id: int | str,
+        vehicle_id: int | str | None,
+        date_val: str,
+        odometer: int | str | None,
+        description: str,
+        cost: float | str | None,
+        notes: str,
+        status: str,
+        priority: str,
+        due_date: str | None,
+    ) -> None:
+        """Update all mutable fields of a maintenance entry. Raises NotFoundError if missing."""
+        conn = get_db()
+        vehicle_id = _to_int(vehicle_id)
+        odometer = _to_int(odometer)
+        cost = _to_float(cost)
+
+        try:
+            with get_cursor(conn) as cur:
+                cur.execute(
+                    """
+                    UPDATE maintenance
+                    SET vehicle_id  = %s,
+                        date        = %s,
+                        odometer    = %s,
+                        description = %s,
+                        cost        = %s,
+                        notes       = %s,
+                        status      = %s,
+                        priority    = %s,
+                        due_date    = %s
+                    WHERE id = %s
+                    """,
+                    (
+                        vehicle_id, date_val, odometer, description,
+                        cost, notes, status, priority, due_date, entry_id,
+                    ),
+                )
+                if cur.rowcount == 0:
+                    raise NotFoundError('Wpis serwisowy nie istnieje.')
+            conn.commit()
+            try:
+                invalidate_prefix('dashboard:')
+                invalidate_prefix(f'api:last_km:{vehicle_id}')
+            except Exception:
+                pass
+        except Exception:
+            conn.rollback()
+            raise
+
+    @staticmethod
+    def delete(
+        entry_id: int | str,
+        requester: str,
+        *,
+        is_admin: bool = False,
+    ) -> None:
+        """Delete a maintenance entry.
+
+        Raises:
+            NotFoundError: when the entry does not exist.
+            ForbiddenError: when the requester is neither the author nor an admin.
+        """
+        conn = get_db()
+        cur = get_cursor(conn)
+        try:
+            cur.execute(
+                'SELECT id, added_by, vehicle_id FROM maintenance WHERE id = %s LIMIT 1',
+                (entry_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise NotFoundError('Wpis serwisowy nie istnieje.')
+            if not is_admin and row.get('added_by') != requester:
+                raise ForbiddenError('Brak uprawnień do usunięcia wpisu serwisowego.')
+
+            vid = row.get('vehicle_id')
+            cur.execute('DELETE FROM maintenance WHERE id = %s', (entry_id,))
+            conn.commit()
+            try:
+                invalidate_prefix('dashboard:')
+                invalidate_prefix(f'api:last_km:{vid}')
+            except Exception:
+                pass
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cur.close()
 
     @staticmethod
     def get_page(

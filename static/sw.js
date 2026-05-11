@@ -67,8 +67,71 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Default: just try network then fallback to cache
+// Default: just try network then fallback to cache
   event.respondWith(
     fetch(req).catch(() => caches.match(req))
   );
 });
+
+// --- Background Sync / Offline Queue ---
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('osp-offline-db', 1);
+    request.onupgradeneeded = (e) => {
+      e.target.result.createObjectStore('sync-queue', { keyPath: 'id', autoIncrement: true });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-logbook-entries') {
+    event.waitUntil(flushQueue());
+  }
+});
+
+async function flushQueue() {
+  const db = await openDB();
+  const tx = db.transaction('sync-queue', 'readwrite');
+  const store = tx.objectStore('sync-queue');
+  const getReq = store.getAll();
+  
+  return new Promise((resolve, reject) => {
+    getReq.onsuccess = async () => {
+      const items = getReq.result;
+      if (!items || items.length === 0) return resolve();
+      
+      let allSuccess = true;
+      for (const item of items) {
+        try {
+          const bodyData = new URLSearchParams(item.payload).toString();
+          const response = await fetch(item.endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Accept': 'application/json',
+              'X-CSRFToken': item.csrfToken
+            },
+            body: bodyData
+          });
+          
+          if (response.ok) {
+            const delTx = db.transaction('sync-queue', 'readwrite');
+            delTx.objectStore('sync-queue').delete(item.id);
+            // Notify client if available
+            self.clients.matchAll().then(clients => {
+              clients.forEach(client => client.postMessage({ type: 'SYNC_SUCCESS', message: 'Zsynchronizowano zaległy wpis z bazy offline.' }));
+            });
+          } else {
+            allSuccess = false;
+          }
+        } catch (e) {
+          allSuccess = false;
+        }
+      }
+      allSuccess ? resolve() : reject(new Error('Sync failed for some items'));
+    };
+    getReq.onerror = () => reject(getReq.error);
+  });
+}

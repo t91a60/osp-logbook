@@ -6,28 +6,14 @@ from backend.helpers import (
     parse_positive_int,
     validate_iso_date,
     ensure_non_empty_text,
-    parse_positive_float_field,
-    parse_positive_int_field,
+    require_float_field,
+    require_int_field,
 )
 from backend.services.cache_service import get_vehicles_cached
-from backend.domain.exceptions import ValidationError
+from backend.domain.exceptions import ValidationError, NotFoundError, ForbiddenError
 from backend.infrastructure.repositories.maintenance import MaintenanceRepository
 from backend.infrastructure.repositories.vehicles import VehicleRepository
 from backend.services.audit_service import AuditService
-
-
-def _require_float(value, field_name):
-    try:
-        return parse_positive_float_field(value, field_name)
-    except ValueError as exc:
-        raise ValidationError(str(exc))
-
-
-def _require_int(value, field_name):
-    try:
-        return parse_positive_int_field(value, field_name)
-    except ValueError as exc:
-        raise ValidationError(str(exc))
 
 
 def register_routes(app):
@@ -59,8 +45,8 @@ def register_routes(app):
             if status not in ('pending', 'completed'):
                 status = 'pending'
 
-            odometer = _require_int(f.get('odometer'), 'Stan km')
-            cost = _require_float(f.get('cost'), 'Koszt')
+            odometer = require_int_field(f.get('odometer'), 'Stan km')
+            cost = require_float_field(f.get('cost'), 'Koszt')
 
             try:
                 MaintenanceRepository.add(
@@ -111,6 +97,73 @@ def register_routes(app):
                                okres=okres, od=od, do_=do_,
                                page=page, total_pages=total_pages, total=total)
 
+    @app.route('/serwis/<int:eid>/edytuj', methods=['GET', 'POST'], endpoint='maintenance_edit')
+    @login_required
+    def maintenance_edit(eid):
+        entry = MaintenanceRepository.get_by_id(eid)
+        if not entry:
+            flash('Nie znaleziono wpisu serwisowego.', 'error')
+            return redirect(url_for('maintenance'))
+
+        # Only owner or admin may edit
+        if entry.get('added_by') != session['username'] and not session.get('is_admin'):
+            raise ForbiddenError('Brak uprawnień do edycji wpisu serwisowego.')
+
+        vehicles = get_vehicles_cached()
+
+        if request.method == 'POST':
+            f = request.form
+            vehicle_id = f.get('vehicle_id', '').strip()
+            if not vehicle_id:
+                raise ValidationError('Wybierz pojazd.')
+
+            try:
+                maintenance_date = validate_iso_date(f.get('date'), 'Data')
+                description = ensure_non_empty_text(f.get('description'), 'Opis')
+            except ValueError as exc:
+                raise ValidationError(str(exc))
+
+            priority = f.get('priority', 'medium')
+            if priority not in ('low', 'medium', 'high'):
+                priority = 'medium'
+
+            status = f.get('status', 'pending')
+            if status not in ('pending', 'completed'):
+                status = 'pending'
+
+            odometer = require_int_field(f.get('odometer'), 'Stan km')
+            cost = require_float_field(f.get('cost'), 'Koszt')
+            vehicle = VehicleRepository.get_active(vehicle_id)
+            if not vehicle:
+                raise ValidationError('Nieprawidłowy pojazd.')
+
+            try:
+                MaintenanceRepository.update(
+                    eid,
+                    vehicle['id'],
+                    maintenance_date,
+                    odometer,
+                    description,
+                    cost,
+                    f.get('notes', '').strip(),
+                    status,
+                    priority,
+                    f.get('due_date') or None,
+                )
+                AuditService.log('Edycja', 'Serwis', f'ID: {eid}, Pojazd: {vehicle_id}, Data: {maintenance_date}')
+            except (NotFoundError, IntegrityError) as exc:
+                raise ValidationError(str(exc))
+
+            flash('Wpis serwisowy zaktualizowany.', 'success')
+            return redirect(url_for('maintenance', vehicle_id=vehicle_id))
+
+        return render_template(
+            'maintenance_edit.html',
+            entry=entry,
+            vehicles=vehicles,
+            today=date.today().isoformat(),
+        )
+
     @app.route('/serwis/<int:eid>/complete', methods=['POST'], endpoint='complete_maintenance')
     @login_required
     def complete_maintenance_view(eid):
@@ -133,4 +186,21 @@ def register_routes(app):
         if row['added_by'] != session['username'] and not session.get('is_admin'):
             abort(403)
         flash('Dodano kolejny wpis serwisowy.', 'success')
+        return redirect(url_for('maintenance'))
+
+    @app.route('/serwis/<int:eid>/usun', methods=['POST'], endpoint='maintenance_delete')
+    @login_required
+    def maintenance_delete(eid):
+        try:
+            MaintenanceRepository.delete(
+                eid,
+                requester=session['username'],
+                is_admin=bool(session.get('is_admin')),
+            )
+            AuditService.log('Usunięcie', 'Serwis', f'ID: {eid}')
+            flash('Wpis serwisowy usunięty.', 'success')
+        except NotFoundError:
+            flash('Nie znaleziono wpisu serwisowego.', 'error')
+        except ForbiddenError:
+            flash('Brak uprawnień do usunięcia wpisu serwisowego.', 'error')
         return redirect(url_for('maintenance'))
