@@ -50,9 +50,10 @@ class TestApiMaintenanceValidation:
         })
         assert response.status_code == 400
 
+    @patch('backend.routes.api.TripService.add_maintenance')
     @patch('backend.routes.api.get_cursor')
     @patch('backend.routes.api.get_db')
-    def test_add_maintenance_invalid_priority_defaults_to_medium(self, mock_get_db, mock_get_cursor, authenticated_client):
+    def test_add_maintenance_invalid_priority_defaults_to_medium(self, mock_get_db, mock_get_cursor, mock_add_maintenance, authenticated_client):
         """Invalid priority value defaults to 'medium'."""
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn
@@ -76,9 +77,10 @@ class TestApiMaintenanceValidation:
         data = response.get_json()
         assert data['success'] is True
 
+    @patch('backend.routes.api.TripService.add_maintenance')
     @patch('backend.routes.api.get_cursor')
     @patch('backend.routes.api.get_db')
-    def test_add_maintenance_invalid_status_defaults_to_pending(self, mock_get_db, mock_get_cursor, authenticated_client):
+    def test_add_maintenance_invalid_status_defaults_to_pending(self, mock_get_db, mock_get_cursor, mock_add_maintenance, authenticated_client):
         """Invalid status value defaults to 'pending'."""
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn
@@ -101,9 +103,10 @@ class TestApiMaintenanceValidation:
         data = response.get_json()
         assert data['success'] is True
 
+    @patch('backend.routes.api.TripService.add_maintenance')
     @patch('backend.routes.api.get_cursor')
     @patch('backend.routes.api.get_db')
-    def test_add_maintenance_with_due_date(self, mock_get_db, mock_get_cursor, authenticated_client):
+    def test_add_maintenance_with_due_date(self, mock_get_db, mock_get_cursor, mock_add_maintenance, authenticated_client):
         """Maintenance with due_date succeeds."""
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn
@@ -202,9 +205,10 @@ class TestApiFuelExtended:
         })
         assert response.status_code == 400
 
+    @patch('backend.routes.api.TripService.add_fuel')
     @patch('backend.routes.api.get_cursor')
     @patch('backend.routes.api.get_db')
-    def test_add_fuel_with_optional_fields_empty(self, mock_get_db, mock_get_cursor, authenticated_client):
+    def test_add_fuel_with_optional_fields_empty(self, mock_get_db, mock_get_cursor, mock_add_fuel, authenticated_client):
         """POST /api/fuel with minimal required fields and empty optional fields succeeds."""
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn

@@ -431,9 +431,10 @@ class TestApiFuelEndpoint:
         })
         assert response.status_code == 400
 
+    @patch('backend.routes.api.TripService.add_fuel')
     @patch('backend.routes.api.get_cursor')
     @patch('backend.routes.api.get_db')
-    def test_add_fuel_success(self, mock_get_db, mock_get_cursor, authenticated_client):
+    def test_add_fuel_success(self, mock_get_db, mock_get_cursor, mock_add_fuel, authenticated_client):
         """POST /api/fuel with valid data succeeds."""
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn
@@ -502,9 +503,10 @@ class TestApiMaintenanceEndpoint:
         })
         assert response.status_code == 400
 
+    @patch('backend.routes.api.TripService.add_maintenance')
     @patch('backend.routes.api.get_cursor')
     @patch('backend.routes.api.get_db')
-    def test_add_maintenance_success(self, mock_get_db, mock_get_cursor, authenticated_client):
+    def test_add_maintenance_success(self, mock_get_db, mock_get_cursor, mock_add_maintenance, authenticated_client):
         """POST /api/maintenance with valid data succeeds."""
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn
@@ -528,9 +530,10 @@ class TestApiMaintenanceEndpoint:
         data = response.get_json()
         assert data['success'] is True
 
+    @patch('backend.routes.api.TripService.add_maintenance')
     @patch('backend.routes.api.get_cursor')
     @patch('backend.routes.api.get_db')
-    def test_add_maintenance_invalid_priority_defaults(self, mock_get_db, mock_get_cursor, authenticated_client):
+    def test_add_maintenance_invalid_priority_defaults(self, mock_get_db, mock_get_cursor, mock_add_maintenance, authenticated_client):
         """POST /api/maintenance with invalid priority defaults to 'medium'."""
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn
@@ -551,9 +554,10 @@ class TestApiMaintenanceEndpoint:
         })
         assert response.status_code == 200
 
+    @patch('backend.routes.api.TripService.add_maintenance')
     @patch('backend.routes.api.get_cursor')
     @patch('backend.routes.api.get_db')
-    def test_add_maintenance_invalid_status_defaults(self, mock_get_db, mock_get_cursor, authenticated_client):
+    def test_add_maintenance_invalid_status_defaults(self, mock_get_db, mock_get_cursor, mock_add_maintenance, authenticated_client):
         """POST /api/maintenance with invalid status defaults to 'pending'."""
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn

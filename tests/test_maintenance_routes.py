@@ -73,19 +73,19 @@ class TestMaintenanceHelpers:
 
 class TestMaintenanceGetRoute:
     @patch('backend.routes.maintenance.render_template')
-    @patch('backend.routes.maintenance.paginate')
+    @patch('backend.routes.maintenance.MaintenanceRepository.get_page')
     @patch('backend.routes.maintenance.get_vehicles_cached')
     @patch('backend.routes.maintenance.get_cursor')
     @patch('backend.routes.maintenance.get_db')
     def test_maintenance_get_returns_200(
-        self, mock_db, mock_cur_fn, mock_vehicles, mock_paginate, mock_render, authenticated_client
+        self, mock_db, mock_cur_fn, mock_vehicles, mock_get_page, mock_render, authenticated_client
     ):
         mock_conn = MagicMock()
         mock_db.return_value = mock_conn
         mock_cur = _make_cursor()
         mock_cur_fn.return_value = mock_cur
         mock_vehicles.return_value = [{'id': 1, 'name': 'GBA'}]
-        mock_paginate.return_value = ([], 0, 1, 1)
+        mock_get_page.return_value = ([], 0, 1, 1)
         mock_render.return_value = 'maint-page'
 
         response = authenticated_client.get('/serwis')
@@ -98,17 +98,17 @@ class TestMaintenanceGetRoute:
         assert ctx['selected_vehicle'] == 'all'
 
     @patch('backend.routes.maintenance.render_template')
-    @patch('backend.routes.maintenance.paginate')
+    @patch('backend.routes.maintenance.MaintenanceRepository.get_page')
     @patch('backend.routes.maintenance.get_vehicles_cached')
     @patch('backend.routes.maintenance.get_cursor')
     @patch('backend.routes.maintenance.get_db')
     def test_maintenance_get_filter_pending(
-        self, mock_db, mock_cur_fn, mock_vehicles, mock_paginate, mock_render, authenticated_client
+        self, mock_db, mock_cur_fn, mock_vehicles, mock_get_page, mock_render, authenticated_client
     ):
         mock_db.return_value = MagicMock()
         mock_cur_fn.return_value = _make_cursor()
         mock_vehicles.return_value = []
-        mock_paginate.return_value = ([], 0, 1, 1)
+        mock_get_page.return_value = ([], 0, 1, 1)
         mock_render.return_value = 'page'
 
         response = authenticated_client.get('/serwis?status=pending&vehicle_id=2')
@@ -118,17 +118,17 @@ class TestMaintenanceGetRoute:
         assert ctx['selected_vehicle'] == '2'
 
     @patch('backend.routes.maintenance.render_template')
-    @patch('backend.routes.maintenance.paginate')
+    @patch('backend.routes.maintenance.MaintenanceRepository.get_page')
     @patch('backend.routes.maintenance.get_vehicles_cached')
     @patch('backend.routes.maintenance.get_cursor')
     @patch('backend.routes.maintenance.get_db')
     def test_maintenance_get_filter_overdue(
-        self, mock_db, mock_cur_fn, mock_vehicles, mock_paginate, mock_render, authenticated_client
+        self, mock_db, mock_cur_fn, mock_vehicles, mock_get_page, mock_render, authenticated_client
     ):
         mock_db.return_value = MagicMock()
         mock_cur_fn.return_value = _make_cursor()
         mock_vehicles.return_value = []
-        mock_paginate.return_value = ([], 0, 1, 1)
+        mock_get_page.return_value = ([], 0, 1, 1)
         mock_render.return_value = 'page'
 
         response = authenticated_client.get('/serwis?status=overdue')
@@ -137,51 +137,51 @@ class TestMaintenanceGetRoute:
         assert ctx['selected_status'] == 'overdue'
 
     @patch('backend.routes.maintenance.render_template')
-    @patch('backend.routes.maintenance.paginate')
+    @patch('backend.routes.maintenance.MaintenanceRepository.get_page')
     @patch('backend.routes.maintenance.get_vehicles_cached')
     @patch('backend.routes.maintenance.get_cursor')
     @patch('backend.routes.maintenance.get_db')
     def test_maintenance_get_with_date_filters(
-        self, mock_db, mock_cur_fn, mock_vehicles, mock_paginate, mock_render, authenticated_client
+        self, mock_db, mock_cur_fn, mock_vehicles, mock_get_page, mock_render, authenticated_client
     ):
         mock_db.return_value = MagicMock()
         mock_cur_fn.return_value = _make_cursor()
         mock_vehicles.return_value = []
-        mock_paginate.return_value = ([], 0, 1, 1)
+        mock_get_page.return_value = ([], 0, 1, 1)
         mock_render.return_value = 'page'
 
         response = authenticated_client.get('/serwis?od=2024-01-01&do=2024-12-31')
         assert response.status_code == 200
 
     @patch('backend.routes.maintenance.render_template')
-    @patch('backend.routes.maintenance.paginate')
+    @patch('backend.routes.maintenance.MaintenanceRepository.get_page')
     @patch('backend.routes.maintenance.get_vehicles_cached')
     @patch('backend.routes.maintenance.get_cursor')
     @patch('backend.routes.maintenance.get_db')
     def test_maintenance_get_with_okres_ten(
-        self, mock_db, mock_cur_fn, mock_vehicles, mock_paginate, mock_render, authenticated_client
+        self, mock_db, mock_cur_fn, mock_vehicles, mock_get_page, mock_render, authenticated_client
     ):
         mock_db.return_value = MagicMock()
         mock_cur_fn.return_value = _make_cursor()
         mock_vehicles.return_value = []
-        mock_paginate.return_value = ([], 0, 1, 1)
+        mock_get_page.return_value = ([], 0, 1, 1)
         mock_render.return_value = 'page'
 
         response = authenticated_client.get('/serwis?okres=ten')
         assert response.status_code == 200
 
     @patch('backend.routes.maintenance.render_template')
-    @patch('backend.routes.maintenance.paginate')
+    @patch('backend.routes.maintenance.MaintenanceRepository.get_page')
     @patch('backend.routes.maintenance.get_vehicles_cached')
     @patch('backend.routes.maintenance.get_cursor')
     @patch('backend.routes.maintenance.get_db')
     def test_maintenance_get_filter_completed(
-        self, mock_db, mock_cur_fn, mock_vehicles, mock_paginate, mock_render, authenticated_client
+        self, mock_db, mock_cur_fn, mock_vehicles, mock_get_page, mock_render, authenticated_client
     ):
         mock_db.return_value = MagicMock()
         mock_cur_fn.return_value = _make_cursor()
         mock_vehicles.return_value = []
-        mock_paginate.return_value = ([], 0, 1, 1)
+        mock_get_page.return_value = ([], 0, 1, 1)
         mock_render.return_value = 'page'
 
         response = authenticated_client.get('/serwis?status=completed')
@@ -387,52 +387,36 @@ class TestMaintenancePostRoute:
 # ---------------------------------------------------------------------------
 
 class TestCompleteMaintenance:
-    @patch('backend.routes.maintenance.get_cursor')
-    @patch('backend.routes.maintenance.get_db')
-    def test_complete_own_entry(self, mock_db, mock_cur_fn, authenticated_client):
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = _make_cursor(fetchone_result={'added_by': 'testuser'})
-        mock_cur_fn.return_value = mock_cur
+    @patch('backend.routes.maintenance.MaintenanceRepository.complete')
+    def test_complete_own_entry(self, mock_complete, authenticated_client):
+        mock_complete.return_value = {'id': 1, 'added_by': 'testuser'}
 
         response = authenticated_client.post('/serwis/1/complete', data={
             '_csrf_token': _csrf(authenticated_client),
         })
         assert response.status_code == 302
-        mock_conn.commit.assert_called_once()
 
-    @patch('backend.routes.maintenance.get_cursor')
-    @patch('backend.routes.maintenance.get_db')
-    def test_complete_others_entry_forbidden(self, mock_db, mock_cur_fn, authenticated_client):
-        mock_db.return_value = MagicMock()
-        mock_cur = _make_cursor(fetchone_result={'added_by': 'other_user'})
-        mock_cur_fn.return_value = mock_cur
+    @patch('backend.routes.maintenance.MaintenanceRepository.complete')
+    def test_complete_others_entry_forbidden(self, mock_complete, authenticated_client):
+        mock_complete.return_value = {'id': 1, 'added_by': 'other_user'}
 
         response = authenticated_client.post('/serwis/1/complete', data={
             '_csrf_token': _csrf(authenticated_client),
         })
         assert response.status_code == 403
 
-    @patch('backend.routes.maintenance.get_cursor')
-    @patch('backend.routes.maintenance.get_db')
-    def test_complete_admin_can_complete_any(self, mock_db, mock_cur_fn, admin_client):
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = _make_cursor(fetchone_result={'added_by': 'otheruser'})
-        mock_cur_fn.return_value = mock_cur
+    @patch('backend.routes.maintenance.MaintenanceRepository.complete')
+    def test_complete_admin_can_complete_any(self, mock_complete, admin_client):
+        mock_complete.return_value = {'id': 5, 'added_by': 'otheruser'}
 
         response = admin_client.post('/serwis/5/complete', data={
             '_csrf_token': _csrf(admin_client),
         })
         assert response.status_code == 302
-        mock_conn.commit.assert_called_once()
 
-    @patch('backend.routes.maintenance.get_cursor')
-    @patch('backend.routes.maintenance.get_db')
-    def test_complete_entry_not_found_redirects(self, mock_db, mock_cur_fn, authenticated_client):
-        mock_db.return_value = MagicMock()
-        mock_cur = _make_cursor(fetchone_result=None)
-        mock_cur_fn.return_value = mock_cur
+    @patch('backend.routes.maintenance.MaintenanceRepository.complete')
+    def test_complete_entry_not_found_redirects(self, mock_complete, authenticated_client):
+        mock_complete.return_value = None
 
         response = authenticated_client.post('/serwis/999/complete', data={
             '_csrf_token': _csrf(authenticated_client),
@@ -445,23 +429,18 @@ class TestCompleteMaintenance:
 # ---------------------------------------------------------------------------
 
 class TestCreateNextMaintenance:
-    @patch('backend.routes.maintenance.get_cursor')
-    @patch('backend.routes.maintenance.get_db')
-    def test_create_next_entry_not_found(self, mock_db, mock_cur_fn, authenticated_client):
-        mock_db.return_value = MagicMock()
-        mock_cur = _make_cursor(fetchone_result=None)
-        mock_cur_fn.return_value = mock_cur
+    @patch('backend.routes.maintenance.MaintenanceRepository.create_next')
+    def test_create_next_entry_not_found(self, mock_create_next, authenticated_client):
+        mock_create_next.return_value = None
 
         response = authenticated_client.post('/serwis/999/next', data={
             '_csrf_token': _csrf(authenticated_client),
         })
         assert response.status_code == 302
 
-    @patch('backend.routes.maintenance.get_cursor')
-    @patch('backend.routes.maintenance.get_db')
-    def test_create_next_entry_forbidden_for_other(self, mock_db, mock_cur_fn, authenticated_client):
-        mock_db.return_value = MagicMock()
-        mock_cur = _make_cursor(fetchone_result={
+    @patch('backend.routes.maintenance.MaintenanceRepository.create_next')
+    def test_create_next_entry_forbidden_for_other(self, mock_create_next, authenticated_client):
+        mock_create_next.return_value = {
             'added_by': 'otheruser',
             'vehicle_id': 1,
             'odometer': 10000,
@@ -469,20 +448,16 @@ class TestCreateNextMaintenance:
             'notes': '',
             'priority': 'medium',
             'due_date': None,
-        })
-        mock_cur_fn.return_value = mock_cur
+        }
 
         response = authenticated_client.post('/serwis/1/next', data={
             '_csrf_token': _csrf(authenticated_client),
         })
         assert response.status_code == 403
 
-    @patch('backend.routes.maintenance.get_cursor')
-    @patch('backend.routes.maintenance.get_db')
-    def test_create_next_own_entry_success(self, mock_db, mock_cur_fn, authenticated_client):
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = _make_cursor(fetchone_result={
+    @patch('backend.routes.maintenance.MaintenanceRepository.create_next')
+    def test_create_next_own_entry_success(self, mock_create_next, authenticated_client):
+        mock_create_next.return_value = {
             'added_by': 'testuser',
             'vehicle_id': 1,
             'odometer': 15000,
@@ -490,24 +465,18 @@ class TestCreateNextMaintenance:
             'notes': 'Dobrze',
             'priority': 'high',
             'due_date': '2024-02-01',
-        })
-        mock_cur_fn.return_value = mock_cur
+        }
 
         response = authenticated_client.post('/serwis/1/next', data={
             '_csrf_token': _csrf(authenticated_client),
         })
         assert response.status_code == 302
-        mock_conn.commit.assert_called_once()
 
-    @patch('backend.routes.maintenance.normalize_iso_date')
-    @patch('backend.routes.maintenance.get_cursor')
-    @patch('backend.routes.maintenance.get_db')
+    @patch('backend.routes.maintenance.MaintenanceRepository.create_next')
     def test_create_next_entry_with_invalid_due_date(
-        self, mock_db, mock_cur_fn, mock_normalize, authenticated_client
+        self, mock_create_next, authenticated_client
     ):
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = _make_cursor(fetchone_result={
+        mock_create_next.return_value = {
             'added_by': 'testuser',
             'vehicle_id': 1,
             'odometer': None,
@@ -515,23 +484,16 @@ class TestCreateNextMaintenance:
             'notes': '',
             'priority': 'medium',
             'due_date': 'bad-date',
-        })
-        mock_cur_fn.return_value = mock_cur
-        # normalize_iso_date returns None for bad-date
-        mock_normalize.return_value = None
+        }
 
         response = authenticated_client.post('/serwis/1/next', data={
             '_csrf_token': _csrf(authenticated_client),
         })
         assert response.status_code == 302
-        mock_conn.commit.assert_called_once()
 
-    @patch('backend.routes.maintenance.get_cursor')
-    @patch('backend.routes.maintenance.get_db')
-    def test_create_next_admin_success(self, mock_db, mock_cur_fn, admin_client):
-        mock_conn = MagicMock()
-        mock_db.return_value = mock_conn
-        mock_cur = _make_cursor(fetchone_result={
+    @patch('backend.routes.maintenance.MaintenanceRepository.create_next')
+    def test_create_next_admin_success(self, mock_create_next, admin_client):
+        mock_create_next.return_value = {
             'added_by': 'someuser',
             'vehicle_id': 2,
             'odometer': 20000,
@@ -539,11 +501,9 @@ class TestCreateNextMaintenance:
             'notes': '',
             'priority': 'low',
             'due_date': None,
-        })
-        mock_cur_fn.return_value = mock_cur
+        }
 
         response = admin_client.post('/serwis/3/next', data={
             '_csrf_token': _csrf(admin_client),
         })
         assert response.status_code == 302
-        mock_conn.commit.assert_called_once()

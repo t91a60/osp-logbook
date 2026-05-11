@@ -1,0 +1,169 @@
+from datetime import date, timedelta
+
+from backend.db import get_db, get_cursor
+from backend.helpers import build_date_where, normalize_iso_date, paginate, parse_positive_int
+
+
+def _to_int(value: str | int | None) -> int | None:
+    if value in (None, ''):
+        return None
+    return int(value)
+
+
+def _to_float(value: str | float | None) -> float | None:
+    if value in (None, ''):
+        return None
+    return float(value)
+
+
+class MaintenanceRepository:
+    @staticmethod
+    def add(
+        vehicle_id: int | str | None,
+        date_val: str,
+        odometer: int | str | None,
+        description: str,
+        cost: float | str | None,
+        notes: str,
+        added_by: str,
+        status: str,
+        priority: str,
+        due_date: str | None,
+    ) -> None:
+        conn = get_db()
+        vehicle_id = _to_int(vehicle_id)
+        odometer = _to_int(odometer)
+        cost = _to_float(cost)
+
+        try:
+            with get_cursor(conn) as cur:
+                cur.execute('''
+                    INSERT INTO maintenance (vehicle_id, date, odometer, description, cost, notes, added_by, status, priority, due_date)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (vehicle_id, date_val, odometer, description, cost, notes, added_by, status, priority, due_date))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+
+    @staticmethod
+    def get_page(
+        *,
+        vehicle_id: str | int | None = None,
+        status_filter: str = 'all',
+        okres: str = '',
+        od: str = '',
+        do_: str = '',
+        page: int = 1,
+    ) -> tuple[list[dict], int, int, int]:
+        conn = get_db()
+        cur = get_cursor(conn)
+        try:
+            page = parse_positive_int(page, default=1)
+            where_parts = []
+            params = []
+
+            if vehicle_id and vehicle_id != 'all':
+                where_parts.append('m.vehicle_id = %s')
+                params.append(vehicle_id)
+
+            if status_filter == 'pending':
+                where_parts.append("(m.status = 'pending' AND (m.due_date IS NULL OR m.due_date >= CURRENT_DATE))")
+            elif status_filter == 'completed':
+                where_parts.append("m.status = 'completed'")
+            elif status_filter == 'overdue':
+                where_parts.append("(m.status = 'pending' AND m.due_date IS NOT NULL AND m.due_date < CURRENT_DATE)")
+
+            date_parts, date_params = build_date_where(okres, od, do_, alias='m')
+            where_parts += date_parts
+            params += date_params
+
+            where_sql = f"WHERE {' AND '.join(where_parts)}" if where_parts else ''
+
+            base_sql = f'''
+                SELECT m.*, v.name AS vname,
+                       CASE
+                           WHEN m.status = 'completed' THEN 'completed'
+                           WHEN m.due_date IS NOT NULL AND m.due_date < CURRENT_DATE THEN 'overdue'
+                           ELSE 'pending'
+                       END AS effective_status
+                FROM maintenance m
+                JOIN vehicles v ON m.vehicle_id = v.id
+                {where_sql}
+                ORDER BY m.date DESC, m.created_at DESC
+            '''
+            count_sql = f'SELECT COUNT(*) AS count FROM maintenance m JOIN vehicles v ON m.vehicle_id = v.id {where_sql}'
+
+            return paginate(conn, cur, count_sql, params, base_sql, params, page)
+        finally:
+            cur.close()
+
+    @staticmethod
+    def complete(entry_id: int | str) -> dict | None:
+        """Mark maintenance entry as completed. Returns the entry row, or None if not found."""
+        conn = get_db()
+        cur = get_cursor(conn)
+        try:
+            cur.execute('SELECT id, added_by FROM maintenance WHERE id = %s', (entry_id,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            cur.execute("UPDATE maintenance SET status = 'completed' WHERE id = %s", (entry_id,))
+            conn.commit()
+            return row
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cur.close()
+
+    @staticmethod
+    def create_next(entry_id: int | str, added_by: str | None = None) -> dict | None:
+        """Clone a maintenance entry into a new pending one due 90 days later.
+
+        The new entry is attributed to ``added_by`` when provided; otherwise the
+        original entry's author is preserved.  Returns the original row, or None
+        if the entry does not exist.
+        """
+        conn = get_db()
+        cur = get_cursor(conn)
+        try:
+            cur.execute('''
+                SELECT vehicle_id, odometer, description, notes, priority, due_date, added_by
+                FROM maintenance WHERE id = %s
+            ''', (entry_id,))
+            row = cur.fetchone()
+            if not row:
+                return None
+
+            if row['due_date']:
+                normalized_due = normalize_iso_date(row['due_date'])
+                if normalized_due is not None:
+                    next_due = (date.fromisoformat(normalized_due) + timedelta(days=90)).isoformat()
+                else:
+                    next_due = (date.today() + timedelta(days=90)).isoformat()
+            else:
+                next_due = (date.today() + timedelta(days=90)).isoformat()
+
+            cur.execute('''
+                INSERT INTO maintenance (vehicle_id, date, odometer, description, cost, notes, added_by, status, priority, due_date)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (
+                row['vehicle_id'],
+                date.today().isoformat(),
+                row['odometer'],
+                row['description'],
+                None,
+                row['notes'] or '',
+                added_by if added_by is not None else row['added_by'],
+                'pending',
+                row['priority'] or 'medium',
+                next_due,
+            ))
+            conn.commit()
+            return row
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cur.close()

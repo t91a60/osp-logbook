@@ -40,19 +40,19 @@ class TestTripsHelpers:
 
 class TestFuelRoutes:
     @patch('backend.routes.fuel.render_template')
-    @patch('backend.routes.fuel.paginate')
+    @patch('backend.routes.fuel.FuelRepository.get_page')
     @patch('backend.routes.fuel.get_vehicles_cached')
     @patch('backend.routes.fuel.get_cursor')
     @patch('backend.routes.fuel.get_db')
     def test_fuel_get_renders_with_paginated_data(
-        self, mock_get_db, mock_get_cursor, mock_get_vehicles, mock_paginate, mock_render, authenticated_client
+        self, mock_get_db, mock_get_cursor, mock_get_vehicles, mock_get_page, mock_render, authenticated_client
     ):
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn
         mock_cur = MagicMock()
         mock_get_cursor.return_value = mock_cur
         mock_get_vehicles.return_value = [{'id': 1, 'name': 'GBA'}]
-        mock_paginate.return_value = ([{'id': 1}], 1, 1, 1)
+        mock_get_page.return_value = ([{'id': 1}], 1, 1, 1)
         mock_render.return_value = 'fuel-page'
 
         response = authenticated_client.get('/tankowania?vehicle_id=1')
@@ -94,6 +94,7 @@ class TestFuelRoutes:
 class TestTripsRoutes:
     @patch('backend.routes.trips.parse_trip_equipment_form')
     @patch('backend.routes.trips.TripService')
+    @patch('backend.routes.trips.get_active_vehicle')
     @patch('backend.routes.trips.get_vehicles_cached')
     @patch('backend.routes.trips.get_cursor')
     @patch('backend.routes.trips.get_db')
@@ -102,6 +103,7 @@ class TestTripsRoutes:
         mock_get_db,
         mock_get_cursor,
         mock_get_vehicles,
+        mock_get_active_vehicle,
         mock_trip_service,
         mock_parse_trip_equipment_form,
         authenticated_client,
@@ -111,6 +113,7 @@ class TestTripsRoutes:
         mock_cur = MagicMock()
         mock_get_cursor.return_value = mock_cur
         mock_get_vehicles.return_value = [{'id': 1, 'name': 'GBA'}]
+        mock_get_active_vehicle.return_value = {'id': 1}
         mock_parse_trip_equipment_form.return_value = []
 
         with authenticated_client.session_transaction() as sess:
@@ -133,6 +136,7 @@ class TestTripsRoutes:
         mock_cur.close.assert_called_once()
 
     @patch('backend.routes.trips.parse_trip_equipment_form')
+    @patch('backend.routes.trips.get_active_vehicle')
     @patch('backend.routes.trips.get_vehicles_cached')
     @patch('backend.routes.trips.get_cursor')
     @patch('backend.routes.trips.get_db')
@@ -141,6 +145,7 @@ class TestTripsRoutes:
         mock_get_db,
         mock_get_cursor,
         mock_get_vehicles,
+        mock_get_active_vehicle,
         mock_parse_trip_equipment_form,
         authenticated_client,
     ):
@@ -149,6 +154,7 @@ class TestTripsRoutes:
         mock_cur = MagicMock()
         mock_get_cursor.return_value = mock_cur
         mock_get_vehicles.return_value = [{'id': 1, 'name': 'GBA'}]
+        mock_get_active_vehicle.return_value = {'id': 1}
         mock_parse_trip_equipment_form.side_effect = ValueError('Niepoprawny sprzęt')
 
         with authenticated_client.session_transaction() as sess:

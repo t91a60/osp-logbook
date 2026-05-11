@@ -5,10 +5,7 @@ import re
 from threading import Lock
 
 from flask import session, redirect, url_for, abort
-
-
-class ValidationError(Exception):
-    """Raised when user-submitted data fails validation."""
+from backend.domain.exceptions import ValidationError
 
 
 def login_required[**P, R](f: Callable[P, R]) -> Callable[P, R]:

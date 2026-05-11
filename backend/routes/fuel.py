@@ -4,8 +4,6 @@ from psycopg2 import IntegrityError
 from backend.db import get_db, get_cursor
 from backend.helpers import (
     login_required,
-    build_date_where,
-    paginate,
     parse_positive_int,
     get_active_vehicle,
     validate_iso_date,
@@ -15,6 +13,7 @@ from backend.helpers import (
 )
 from backend.services.cache_service import get_vehicles_cached
 from backend.helpers import ValidationError
+from backend.infrastructure.repositories.fuel import FuelRepository
 
 
 def _require_float(value, field_name):
@@ -91,30 +90,12 @@ def register_routes(app):
             od = request.args.get('od', '')
             do_ = request.args.get('do', '')
             page = parse_positive_int(request.args.get('page'), default=1)
-
-            where_parts = []
-            params = []
-
-            if vid:
-                where_parts.append('f.vehicle_id = %s')
-                params.append(vid)
-
-            date_parts, date_params = build_date_where(okres, od, do_, alias='f')
-            where_parts += date_parts
-            params += date_params
-
-            where_sql = f"WHERE {' AND '.join(where_parts)}" if where_parts else ''
-
-            base_sql = f'''
-                SELECT f.*, v.name AS vname FROM fuel f
-                JOIN vehicles v ON f.vehicle_id = v.id
-                {where_sql}
-                ORDER BY f.date DESC, f.created_at DESC
-            '''
-            count_sql = f'SELECT COUNT(*) AS count FROM fuel f JOIN vehicles v ON f.vehicle_id = v.id {where_sql}'
-
-            entries, total, total_pages, page = paginate(
-                conn, cur, count_sql, params, base_sql, params, page
+            entries, total, total_pages, page = FuelRepository.get_page(
+                vehicle_id=vid,
+                okres=okres,
+                od=od,
+                do_=do_,
+                page=page,
             )
 
             add_open = request.args.get('add', '') == '1'
