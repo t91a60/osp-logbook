@@ -11,7 +11,8 @@ class Config:
     SESSION_COOKIE_SAMESITE: str = 'Lax'
     SESSION_COOKIE_SECURE: bool = USE_HTTPS
     TEMPLATES_AUTO_RELOAD: bool = True
-    SEND_FILE_MAX_AGE_DEFAULT: int = 0
+    # Default cache age for static files: 1 year (in seconds)
+    SEND_FILE_MAX_AGE_DEFAULT: int = 31536000
 
     if USE_HTTPS:
         PREFERRED_URL_SCHEME: str = 'https'

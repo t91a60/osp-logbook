@@ -17,7 +17,7 @@ from backend.infrastructure.repositories.fuel import FuelRepository
 from backend.infrastructure.repositories.maintenance import MaintenanceRepository
 from backend.infrastructure.repositories.vehicles import VehicleRepository
 from backend.services.audit_service import AuditService
-from backend.services.cache_service import get_or_set
+from backend.services.cache_service import get_or_set, invalidate_prefix
 from backend.services.core_service import TripService
 
 
@@ -162,6 +162,10 @@ def register_routes(app):
                 session['username'],
             )
             AuditService.log('Dodanie', 'Tankowanie', f'Pojazd ID: {vehicle["id"]}, Litry: {liters_float}, Data: {fuel_date}')
+            try:
+                invalidate_prefix(f'report:{vehicle["id"]}:')
+            except Exception:
+                pass
         except DomainError:
             raise
         except Exception:
@@ -207,6 +211,10 @@ def register_routes(app):
                 f.get('due_date') or None,
             )
             AuditService.log('Dodanie', 'Serwis', f'Pojazd ID: {vehicle["id"]}, Opis: {description}, Data: {maintenance_date}')
+            try:
+                invalidate_prefix(f'report:{vehicle["id"]}:')
+            except Exception:
+                pass
         except DomainError:
             raise
         except Exception:

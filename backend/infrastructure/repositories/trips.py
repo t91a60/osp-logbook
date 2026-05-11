@@ -1,4 +1,5 @@
 from backend.db import get_cursor, get_db
+from backend.services.cache_service import invalidate_prefix
 from backend.domain.exceptions import ForbiddenError, NotFoundError
 from backend.helpers import (
     build_date_where,
@@ -75,6 +76,13 @@ class TripRepository:
                             eq_rows,
                         )
             conn.commit()
+            # Invalidate dashboard snapshot and last-km cache so UIs refresh immediately
+            try:
+                invalidate_prefix('dashboard:')
+                invalidate_prefix(f'api:last_km:{vehicle_id}')
+            except Exception:
+                # Don't fail the DB write if cache invalidation has issues
+                pass
             return trip_id
         except Exception:
             conn.rollback()

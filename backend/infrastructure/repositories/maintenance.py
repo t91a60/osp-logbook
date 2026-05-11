@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
 from backend.db import get_db, get_cursor
+from backend.services.cache_service import invalidate_prefix
 from backend.helpers import build_date_where, normalize_iso_date, paginate, parse_positive_int
 from backend.infrastructure.repositories import _to_int, _to_float
 
@@ -27,10 +28,16 @@ class MaintenanceRepository:
         try:
             with get_cursor(conn) as cur:
                 cur.execute('''
-                    INSERT INTO maintenance (vehicle_id, date, odometer, description, cost, notes, added_by, status, priority, due_date)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (vehicle_id, date_val, odometer, description, cost, notes, added_by, status, priority, due_date))
-            conn.commit()
+                        INSERT INTO maintenance (vehicle_id, date, odometer, description, cost, notes, added_by, status, priority, due_date)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ''', (vehicle_id, date_val, odometer, description, cost, notes, added_by, status, priority, due_date))
+                conn.commit()
+                # Invalidate dashboard snapshot and last-km cache so UIs refresh immediately
+                try:
+                    invalidate_prefix('dashboard:')
+                    invalidate_prefix(f'api:last_km:{vehicle_id}')
+                except Exception:
+                    pass
         except Exception:
             conn.rollback()
             raise

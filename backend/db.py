@@ -23,6 +23,12 @@ def _create_pool() -> SimpleConnectionPool:
         sslmode='require',
         connect_timeout=10,
         application_name='osp-logbook',
+        # Enable TCP keepalives to avoid Neon "freeze" cold-start latency.
+        # Neon suspends connections after brief idle periods; setting
+        # keepalives_idle and keepalives_interval reduces the chance of
+        # catching the first request while the DB is thawing (300-500ms spikes).
+        keepalives_idle=60,
+        keepalives_interval=10,
     )
 
 

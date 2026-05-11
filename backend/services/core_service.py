@@ -6,6 +6,7 @@ Services add: audit logging, cross-repository coordination.
 
 from backend.infrastructure.repositories.trips import TripRepository
 from backend.services.audit_service import AuditService
+from backend.services.cache_service import invalidate_prefix
 
 
 class TripService:
@@ -38,3 +39,9 @@ class TripService:
             equipment_used=equipment_used,
         )
         AuditService.log('Dodanie', 'Wyjazd', f'Pojazd ID: {vehicle_id}, Kierowca: {driver}, Data: {date_val}')
+        # Invalidate report caches for this vehicle (keys: report:{vehicle_id}:<period>)
+        try:
+            invalidate_prefix(f'report:{vehicle_id}:')
+        except Exception:
+            # Non-fatal: cache invalidation is best-effort
+            pass

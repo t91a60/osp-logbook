@@ -8,6 +8,7 @@ from werkzeug.exceptions import HTTPException
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import secrets
+from flask_compress import Compress
 
 from backend.config import get_config
 from backend.db import register_db, check_db_health
@@ -27,6 +28,8 @@ def create_app(config_class=None):
 
     app = Flask(__name__, template_folder='templates')
     app.config.from_object(config_class)
+    # Enable gzip/deflate compression for responses (static assets, JSON, etc.)
+    Compress(app)
     if not app.config.get('SECRET_KEY'):
         raise RuntimeError('SECRET_KEY environment variable is not set.')
     if not app.config.get('DATABASE_URL'):
@@ -120,7 +123,16 @@ def create_app(config_class=None):
             "style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; "
             "base-uri 'self'; frame-ancestors 'none';"
         )
-        if app.debug:
+        # Static files should be cached long-term with immutable when not debugging.
+        # Use `SEND_FILE_MAX_AGE_DEFAULT` from config (seconds).
+        try:
+            max_age = int(app.config.get('SEND_FILE_MAX_AGE_DEFAULT', 0))
+        except Exception:
+            max_age = 0
+
+        if request.path.startswith('/static/') and not app.debug and max_age > 0:
+            response.headers['Cache-Control'] = f'public, max-age={max_age}, immutable'
+        elif app.debug:
             response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
             response.headers['Pragma'] = 'no-cache'
             response.headers['Expires'] = '0'
