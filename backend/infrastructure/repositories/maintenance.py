@@ -118,8 +118,13 @@ class MaintenanceRepository:
             cur.close()
 
     @staticmethod
-    def create_next(entry_id: int | str) -> dict | None:
-        """Clone a maintenance entry into a new pending one due 90 days later. Returns original row, or None if not found."""
+    def create_next(entry_id: int | str, added_by: str | None = None) -> dict | None:
+        """Clone a maintenance entry into a new pending one due 90 days later.
+
+        The new entry is attributed to ``added_by`` when provided; otherwise the
+        original entry's author is preserved.  Returns the original row, or None
+        if the entry does not exist.
+        """
         conn = get_db()
         cur = get_cursor(conn)
         try:
@@ -150,7 +155,7 @@ class MaintenanceRepository:
                 row['description'],
                 None,
                 row['notes'] or '',
-                row['added_by'],
+                added_by if added_by is not None else row['added_by'],
                 'pending',
                 row['priority'] or 'medium',
                 next_due,

@@ -139,7 +139,7 @@ def register_routes(app):
     @app.route('/serwis/<int:eid>/next', methods=['POST'], endpoint='create_next_maintenance')
     @login_required
     def create_next_maintenance_view(eid):
-        row = MaintenanceRepository.create_next(eid)
+        row = MaintenanceRepository.create_next(eid, added_by=session['username'])
         if not row:
             flash('Nie znaleziono wpisu serwisowego.', 'error')
             return redirect(url_for('maintenance'))
