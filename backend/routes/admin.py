@@ -4,40 +4,15 @@ from psycopg2 import IntegrityError
 from psycopg2 import sql
 from backend.db import get_db, get_cursor
 from backend.helpers import login_required, admin_required
-from backend.services.vehicle_service import VehicleService
+from backend.infrastructure.repositories.vehicles import VehicleRepository
 from backend.services.cache_service import invalidate_prefix
+from backend.services.audit_service import AuditService
 
 MIN_PASSWORD_LEN = 8
 
 
 def register_routes(app):
     from app import limiter
-
-    def _delete_vehicle_or_error(cur, vid):
-        cur.execute('SELECT id FROM vehicles WHERE id = %s', (vid,))
-        vehicle = cur.fetchone()
-        if not vehicle:
-            return 'Pojazd nie istnieje.'
-
-        cur.execute(
-            'SELECT (SELECT COUNT(*) FROM trips WHERE vehicle_id = %s) + '
-            '       (SELECT COUNT(*) FROM fuel WHERE vehicle_id = %s) + '
-            '       (SELECT COUNT(*) FROM maintenance WHERE vehicle_id = %s) AS count',
-            (vid, vid, vid)
-        )
-        ref_count = cur.fetchone()['count']
-        if ref_count:
-            return (
-                'Nie można usunąć pojazdu — posiada przypisane wpisy (wyjazdy/tankowania/serwis). '
-                'Najpierw usuń powiązane wpisy.'
-            )
-
-        try:
-            VehicleService.delete_vehicle(vid, session.get('user_id'))
-        except Exception:
-            return 'Nie udało się usunąć pojazdu. Spróbuj ponownie.'
-
-        return None
 
     @app.route('/pojazdy', methods=['GET', 'POST'], endpoint='vehicles')
     @admin_required
@@ -66,16 +41,11 @@ def register_routes(app):
     @app.route('/pojazdy/<int:vid>/toggle', methods=['POST'], endpoint='toggle_vehicle')
     @admin_required
     def toggle_vehicle_view(vid):
-        conn = get_db()
-        cur = get_cursor(conn)
-        try:
-            error = _delete_vehicle_or_error(cur, vid)
-            if error:
-                flash(error, 'error')
-            else:
-                flash('Pojazd usunięty.', 'success')
-        finally:
-            cur.close()
+        VehicleRepository.delete(vid)
+        invalidate_prefix('vehicles:')
+        invalidate_prefix('dashboard:')
+        AuditService.log('Usunięcie', 'Pojazd', f"Usunięto pojazd ID: {vid}")
+        flash('Pojazd usunięty.', 'success')
         return redirect(url_for('vehicles'))
 
     @app.route('/uzytkownicy', methods=['GET', 'POST'], endpoint='users')
@@ -159,18 +129,11 @@ def register_routes(app):
     @admin_required
     @limiter.limit('30 per minute')
     def delete_vehicle(vid):
-        conn = get_db()
-        cur = get_cursor(conn)
-        try:
-            error = _delete_vehicle_or_error(cur, vid)
-            if error:
-                flash(error, 'error')
-            else:
-                invalidate_prefix('vehicles:')
-                invalidate_prefix('dashboard:')
-                flash('Pojazd usunięty.', 'success')
-        finally:
-            cur.close()
+        VehicleRepository.delete(vid)
+        invalidate_prefix('vehicles:')
+        invalidate_prefix('dashboard:')
+        AuditService.log('Usunięcie', 'Pojazd', f"Usunięto pojazd ID: {vid}")
+        flash('Pojazd usunięty.', 'success')
         return redirect(url_for('vehicles'))
 
     @app.route('/pojazdy/<int:vid>/edytuj', methods=['GET', 'POST'], endpoint='edit_vehicle')

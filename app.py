@@ -126,6 +126,29 @@ def create_app(config_class=None):
             response.headers['Expires'] = '0'
         return response
 
+    from backend.domain.exceptions import NotFoundError, ForbiddenError, ValidationError
+
+    @app.errorhandler(ValidationError)
+    def handle_validation(error):
+        if request.path.startswith('/api/'):
+            return jsonify({'success': False, 'message': str(error)}), 400
+        flash(str(error), 'error')
+        return redirect(request.referrer or url_for('dashboard')), 302
+
+    @app.errorhandler(NotFoundError)
+    def handle_not_found(error):
+        if request.path.startswith('/api/'):
+            return jsonify({'success': False, 'message': str(error)}), 404
+        flash(str(error), 'error')
+        return redirect(request.referrer or url_for('dashboard')), 302
+
+    @app.errorhandler(ForbiddenError)
+    def handle_forbidden(error):
+        if request.path.startswith('/api/'):
+            return jsonify({'success': False, 'message': str(error)}), 403
+        flash(str(error), 'error')
+        return redirect(url_for('dashboard')), 302
+
     @app.errorhandler(Exception)
     def handle_unexpected_error(error):
         if isinstance(error, HTTPException):

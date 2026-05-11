@@ -2,10 +2,8 @@ from datetime import date, datetime, timedelta
 from functools import wraps
 from collections.abc import Callable
 import re
-from threading import Lock
 
 from flask import session, redirect, url_for, abort
-from backend.domain.exceptions import ValidationError
 
 
 def login_required[**P, R](f: Callable[P, R]) -> Callable[P, R]:
@@ -41,7 +39,7 @@ def parse_trip_equipment_form(form) -> list[dict]:
     """Parse and validate trip equipment rows from submitted form data.
 
     Expects parallel arrays: ``eq_id[]``, ``eq_qty[]``, ``eq_min[]``.
-    Returns normalized rows for TripService in shape:
+    Returns normalized rows for TripRepository in shape:
     ``{'equipment_id': int, 'quantity_used': int, 'minutes_used': int}``.
     Raises ``ValueError`` with user-facing validation messages on invalid input.
     """
@@ -209,8 +207,6 @@ def paginate(
 
 
 _ISO_DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
-_vehicles_has_active_column: bool | None = None
-_vehicle_schema_lock = Lock()
 
 
 def ensure_non_empty_text(value: str | None, field_name: str) -> str:
@@ -271,36 +267,3 @@ def validate_odometer_range(
 ) -> None:
     if odo_start is not None and odo_end is not None and odo_end < odo_start:
         raise ValueError('Km koniec nie może być mniejszy niż km start.')
-
-
-def get_active_vehicle(cur, vehicle_id: str | int | None) -> dict | None:
-    global _vehicles_has_active_column
-    try:
-        vid = int(vehicle_id)
-    except (TypeError, ValueError):
-        return None
-    if vid <= 0:
-        return None
-
-    if _vehicles_has_active_column is None:
-        with _vehicle_schema_lock:
-            if _vehicles_has_active_column is None:
-                cur.execute("""
-                    SELECT 1
-                    FROM information_schema.columns
-                    WHERE table_name = 'vehicles' AND column_name = 'active'
-                    LIMIT 1
-                """)
-                _vehicles_has_active_column = cur.fetchone() is not None
-
-    if _vehicles_has_active_column:
-        cur.execute('''
-            SELECT id
-            FROM vehicles
-            WHERE id = %s
-              AND COALESCE(active::text, '1') IN ('1', 'true', 't')
-            LIMIT 1
-        ''', (vid,))
-    else:
-        cur.execute('SELECT id FROM vehicles WHERE id = %s LIMIT 1', (vid,))
-    return cur.fetchone()

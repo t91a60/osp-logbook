@@ -1,21 +1,24 @@
 from flask import Response, request, jsonify, session, current_app
 from datetime import date
 
-from backend.db import get_db, get_cursor
 from backend.helpers import (
     login_required,
     normalize_iso_date,
     parse_trip_equipment_form,
-    get_active_vehicle,
     ensure_non_empty_text,
     validate_iso_date,
     parse_positive_int_field,
     parse_positive_float_field,
     validate_odometer_range,
 )
-from backend.services.core_service import TripService, VehicleService
+from backend.domain.exceptions import ValidationError, DomainError
+from backend.infrastructure.repositories.trips import TripRepository
+from backend.infrastructure.repositories.fuel import FuelRepository
+from backend.infrastructure.repositories.maintenance import MaintenanceRepository
+from backend.infrastructure.repositories.vehicles import VehicleRepository
+from backend.services.audit_service import AuditService
 from backend.services.cache_service import get_or_set
-from backend.helpers import ValidationError
+from backend.services.core_service import TripService
 
 
 def _json_error(message: str, status_code: int) -> tuple[Response, int]:
@@ -27,10 +30,6 @@ def _validate_or_raise(callable_obj, *args):
         return callable_obj(*args)
     except ValueError as exc:
         raise ValidationError(str(exc))
-
-
-def _get_active_vehicle(cur, vehicle_id: str | int | None) -> dict | None:
-    return get_active_vehicle(cur, vehicle_id)
 
 
 def _optional_int(value: str | int | None, field_name: str) -> int | None:
@@ -58,7 +57,7 @@ def register_routes(app):
         km, dt = get_or_set(
             cache_key,
             ttl_seconds=30,
-            loader=lambda: VehicleService.get_last_km(vid),
+            loader=lambda: VehicleRepository.get_last_km(vid),
         )
 
         days_ago = None
@@ -77,7 +76,7 @@ def register_routes(app):
         drivers = get_or_set(
             'api:drivers:90d',
             ttl_seconds=300,
-            loader=lambda: VehicleService.get_recent_drivers(days=90),
+            loader=lambda: VehicleRepository.get_recent_drivers(days=90),
         )
         return jsonify(drivers)
 
@@ -86,10 +85,8 @@ def register_routes(app):
     @limiter.limit('60 per minute')
     def api_add_trip():
         f = request.form
-        conn = get_db()
-        cur = get_cursor(conn)
         try:
-            vehicle = _get_active_vehicle(cur, f.get('vehicle_id'))
+            vehicle = VehicleRepository.get_active(f.get('vehicle_id'))
             if not vehicle:
                 raise ValidationError('Nieprawidłowy pojazd.')
 
@@ -127,13 +124,11 @@ def register_routes(app):
                 time_end=f.get('time_end') or None,
                 equipment_used=equipment_used or None,
             )
-        except ValidationError as exc:
-            return _json_error(str(exc), 400)
+        except DomainError:
+            raise
         except Exception:
             current_app.logger.exception('Trip API error')
             return _json_error('Nie udało się zapisać wyjazdu. Spróbuj ponownie.', 500)
-        finally:
-            cur.close()
 
         return jsonify({'success': True, 'message': '✓ Wyjazd zapisany'})
 
@@ -142,10 +137,8 @@ def register_routes(app):
     @limiter.limit('60 per minute')
     def api_add_fuel():
         f = request.form
-        conn = get_db()
-        cur = get_cursor(conn)
         try:
-            vehicle = _get_active_vehicle(cur, f.get('vehicle_id'))
+            vehicle = VehicleRepository.get_active(f.get('vehicle_id'))
             if not vehicle:
                 raise ValidationError('Nieprawidłowy pojazd.')
 
@@ -158,7 +151,7 @@ def register_routes(app):
             cost = _optional_float(f.get('cost'), 'Koszt')
             odometer = _optional_int(f.get('odometer'), 'Stan km')
 
-            TripService.add_fuel(
+            FuelRepository.add(
                 vehicle['id'],
                 fuel_date,
                 driver,
@@ -168,13 +161,12 @@ def register_routes(app):
                 f.get('notes', '').strip(),
                 session['username'],
             )
-        except ValidationError as exc:
-            return _json_error(str(exc), 400)
+            AuditService.log('Dodanie', 'Tankowanie', f'Pojazd ID: {vehicle["id"]}, Litry: {liters_float}, Data: {fuel_date}')
+        except DomainError:
+            raise
         except Exception:
             current_app.logger.exception('Fuel API error')
             return _json_error('Nie udało się zapisać tankowania. Spróbuj ponownie.', 500)
-        finally:
-            cur.close()
 
         return jsonify({'success': True, 'message': '✓ Tankowanie zapisane'})
 
@@ -183,10 +175,8 @@ def register_routes(app):
     @limiter.limit('60 per minute')
     def api_add_maintenance():
         f = request.form
-        conn = get_db()
-        cur = get_cursor(conn)
         try:
-            vehicle = _get_active_vehicle(cur, f.get('vehicle_id'))
+            vehicle = VehicleRepository.get_active(f.get('vehicle_id'))
             if not vehicle:
                 raise ValidationError('Nieprawidłowy pojazd.')
 
@@ -204,7 +194,7 @@ def register_routes(app):
             odometer = _optional_int(f.get('odometer'), 'Stan km')
             cost = _optional_float(f.get('cost'), 'Koszt')
 
-            TripService.add_maintenance(
+            MaintenanceRepository.add(
                 vehicle['id'],
                 maintenance_date,
                 odometer,
@@ -216,12 +206,11 @@ def register_routes(app):
                 priority,
                 f.get('due_date') or None,
             )
-        except ValidationError as exc:
-            return _json_error(str(exc), 400)
+            AuditService.log('Dodanie', 'Serwis', f'Pojazd ID: {vehicle["id"]}, Opis: {description}, Data: {maintenance_date}')
+        except DomainError:
+            raise
         except Exception:
             current_app.logger.exception('Maintenance API error')
             return _json_error('Nie udało się zapisać wpisu. Spróbuj ponownie.', 500)
-        finally:
-            cur.close()
 
         return jsonify({'success': True, 'message': '✓ Wpis serwisowy zapisany'})

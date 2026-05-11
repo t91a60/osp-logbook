@@ -380,19 +380,12 @@ class TestAdminVehicleManagement:
         # Should re-render the form (not commit)
         mock_conn.commit.assert_not_called()
 
-    @patch('backend.routes.admin.VehicleService')
-    @patch('backend.routes.admin.get_cursor')
-    @patch('backend.routes.admin.get_db')
-    def test_delete_vehicle_with_references(self, mock_get_db, mock_get_cursor, mock_vehicle_svc, admin_client):
+    @patch('backend.routes.admin.VehicleRepository.delete')
+    def test_delete_vehicle_with_references(self, mock_delete, admin_client):
         """Cannot delete vehicle that has trips/fuel/maintenance references."""
-        mock_conn = MagicMock()
-        mock_get_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_get_cursor.return_value = mock_cur
-        mock_cur.fetchone.side_effect = [
-            {'id': 1},        # Vehicle exists
-            {'count': 5},     # Has 5 references
-        ]
+        from backend.domain.exceptions import ForbiddenError
+
+        mock_delete.side_effect = ForbiddenError('Nie można usunąć pojazdu.')
 
         with admin_client.session_transaction() as sess:
             csrf = sess['_csrf_token']
@@ -401,21 +394,14 @@ class TestAdminVehicleManagement:
             '_csrf_token': csrf,
         })
         assert response.status_code == 302
-        mock_vehicle_svc.delete_vehicle.assert_not_called()
+        mock_delete.assert_called_once_with(1)
 
-    @patch('backend.routes.admin.VehicleService')
-    @patch('backend.routes.admin.get_cursor')
-    @patch('backend.routes.admin.get_db')
-    def test_delete_vehicle_success(self, mock_get_db, mock_get_cursor, mock_vehicle_svc, admin_client):
+    @patch('backend.routes.admin.AuditService.log')
+    @patch('backend.routes.admin.VehicleRepository.delete')
+    def test_delete_vehicle_success(self, mock_delete, mock_audit_log, admin_client):
         """Admin can delete a vehicle with no references."""
-        mock_conn = MagicMock()
-        mock_get_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_get_cursor.return_value = mock_cur
-        mock_cur.fetchone.side_effect = [
-            {'id': 1},        # Vehicle exists
-            {'count': 0},     # No references
-        ]
+        mock_delete.return_value = None
+        mock_audit_log.return_value = None
 
         with admin_client.session_transaction() as sess:
             csrf = sess['_csrf_token']
@@ -424,17 +410,15 @@ class TestAdminVehicleManagement:
             '_csrf_token': csrf,
         })
         assert response.status_code == 302
-        mock_vehicle_svc.delete_vehicle.assert_called_once()
+        mock_delete.assert_called_once_with(1)
+        mock_audit_log.assert_called_once()
 
-    @patch('backend.routes.admin.get_cursor')
-    @patch('backend.routes.admin.get_db')
-    def test_delete_nonexistent_vehicle(self, mock_get_db, mock_get_cursor, admin_client):
+    @patch('backend.routes.admin.VehicleRepository.delete')
+    def test_delete_nonexistent_vehicle(self, mock_delete, admin_client):
         """Deleting a nonexistent vehicle flashes error."""
-        mock_conn = MagicMock()
-        mock_get_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_get_cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = None  # Vehicle not found
+        from backend.domain.exceptions import NotFoundError
+
+        mock_delete.side_effect = NotFoundError('Pojazd nie istnieje.')
 
         with admin_client.session_transaction() as sess:
             csrf = sess['_csrf_token']
@@ -443,3 +427,4 @@ class TestAdminVehicleManagement:
             '_csrf_token': csrf,
         })
         assert response.status_code == 302
+        mock_delete.assert_called_once_with(1)

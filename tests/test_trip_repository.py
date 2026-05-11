@@ -80,17 +80,22 @@ class TestTripRepositoryQueries:
         assert page == 1
         mock_cur.close.assert_called_once()
 
-    @patch('backend.infrastructure.repositories.trips.get_active_vehicle')
+    @patch('backend.infrastructure.repositories.vehicles.get_cursor')
+    @patch('backend.infrastructure.repositories.vehicles.get_db')
     @patch('backend.infrastructure.repositories.trips.get_cursor')
     @patch('backend.infrastructure.repositories.trips.get_db')
-    def test_get_active_vehicle(self, mock_get_db, mock_get_cursor, mock_get_active_vehicle):
+    def test_get_active_vehicle(self, mock_get_db, mock_get_cursor, mock_get_db_vehicle, mock_get_cursor_vehicle):
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn
         mock_cur = MagicMock()
         mock_get_cursor.return_value = mock_cur
-        mock_get_active_vehicle.return_value = {'id': 1}
+        mock_get_db_vehicle.return_value = mock_conn
+        mock_get_cursor_vehicle.return_value = mock_cur
+        mock_cur.fetchone.return_value = {'id': 1}
 
-        vehicle = TripRepository.get_active_vehicle('1')
+        from backend.infrastructure.repositories.vehicles import VehicleRepository
+
+        vehicle = VehicleRepository.get_active('1')
 
         assert vehicle == {'id': 1}
         mock_cur.close.assert_called_once()

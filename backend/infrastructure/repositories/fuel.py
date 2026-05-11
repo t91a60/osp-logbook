@@ -1,17 +1,6 @@
-from backend.db import get_db, get_cursor
+from backend.db import get_cursor, get_db
 from backend.helpers import build_date_where, paginate, parse_positive_int
-
-
-def _to_int(value: str | int | None) -> int | None:
-    if value in (None, ''):
-        return None
-    return int(value)
-
-
-def _to_float(value: str | float | None) -> float | None:
-    if value in (None, ''):
-        return None
-    return float(value)
+from backend.infrastructure.repositories import _to_int, _to_float
 
 
 class FuelRepository:
@@ -34,10 +23,22 @@ class FuelRepository:
 
         try:
             with get_cursor(conn) as cur:
-                cur.execute('''
+                cur.execute(
+                    """
                     INSERT INTO fuel (vehicle_id, date, driver, odometer, liters, cost, notes, added_by)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (vehicle_id, date_val, driver, odometer, liters, cost, notes, added_by))
+                """,
+                    (
+                        vehicle_id,
+                        date_val,
+                        driver,
+                        odometer,
+                        liters,
+                        cost,
+                        notes,
+                        added_by,
+                    ),
+                )
             conn.commit()
         except Exception:
             conn.rollback()
@@ -47,9 +48,9 @@ class FuelRepository:
     def get_page(
         *,
         vehicle_id: str | int | None = None,
-        okres: str = '',
-        od: str = '',
-        do_: str = '',
+        okres: str = "",
+        od: str = "",
+        do_: str = "",
         page: int = 1,
     ) -> tuple[list[dict], int, int, int]:
         conn = get_db()
@@ -60,22 +61,22 @@ class FuelRepository:
             params = []
 
             if vehicle_id:
-                where_parts.append('f.vehicle_id = %s')
+                where_parts.append("f.vehicle_id = %s")
                 params.append(vehicle_id)
 
-            date_parts, date_params = build_date_where(okres, od, do_, alias='f')
+            date_parts, date_params = build_date_where(okres, od, do_, alias="f")
             where_parts += date_parts
             params += date_params
 
-            where_sql = f"WHERE {' AND '.join(where_parts)}" if where_parts else ''
+            where_sql = f"WHERE {' AND '.join(where_parts)}" if where_parts else ""
 
-            base_sql = f'''
+            base_sql = f"""
                 SELECT f.*, v.name AS vname FROM fuel f
                 JOIN vehicles v ON f.vehicle_id = v.id
                 {where_sql}
                 ORDER BY f.date DESC, f.created_at DESC
-            '''
-            count_sql = f'SELECT COUNT(*) AS count FROM fuel f JOIN vehicles v ON f.vehicle_id = v.id {where_sql}'
+            """
+            count_sql = f"SELECT COUNT(*) AS count FROM fuel f JOIN vehicles v ON f.vehicle_id = v.id {where_sql}"
 
             return paginate(conn, cur, count_sql, params, base_sql, params, page)
         finally:

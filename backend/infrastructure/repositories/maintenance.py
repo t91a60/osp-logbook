@@ -2,18 +2,7 @@ from datetime import date, timedelta
 
 from backend.db import get_db, get_cursor
 from backend.helpers import build_date_where, normalize_iso_date, paginate, parse_positive_int
-
-
-def _to_int(value: str | int | None) -> int | None:
-    if value in (None, ''):
-        return None
-    return int(value)
-
-
-def _to_float(value: str | float | None) -> float | None:
-    if value in (None, ''):
-        return None
-    return float(value)
+from backend.infrastructure.repositories import _to_int, _to_float
 
 
 class MaintenanceRepository:

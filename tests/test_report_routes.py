@@ -261,3 +261,22 @@ class TestReportPrintRoute:
         response = client.get('/raport')
         assert response.status_code == 302
         assert '/login' in response.headers.get('Location', '')
+
+    @patch('backend.routes.report.render_template')
+    @patch('backend.routes.report.get_vehicles_cached')
+    @patch('backend.routes.report.get_cursor')
+    @patch('backend.routes.report.get_db')
+    def test_report_empty_state_shows_no_trips(
+        self, mock_db, mock_cur_fn, mock_vehicles, mock_render, authenticated_client
+    ):
+        mock_db.return_value = MagicMock()
+        mock_cur = _make_cursor(fetchone_result={'total_km': 0}, side_effects=[[], [], [], []])
+        mock_cur_fn.return_value = mock_cur
+        mock_vehicles.return_value = []
+        mock_render.return_value = 'page'
+
+        response = authenticated_client.get('/raport')
+
+        assert response.status_code == 200
+        assert mock_render.call_args.kwargs['trip_entries'] == []
+        assert mock_render.call_args.kwargs['report_vehicle'] is None
