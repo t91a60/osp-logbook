@@ -81,8 +81,11 @@ class AddTripUseCase:
                          invalid vehicle, odometer range mismatch).
     """
 
-    @staticmethod
-    def execute(cmd: AddTripCommand) -> int:
+    def __init__(self, trip_repo: TripRepository, vehicle_repo: VehicleRepository):
+        self._trip_repo = trip_repo
+        self._vehicle_repo = vehicle_repo
+
+    def execute_instance(self, cmd: AddTripCommand) -> int:
         """Validate the command, write to DB, emit side-effects.
 
         Returns:
@@ -111,12 +114,12 @@ class AddTripUseCase:
             raise ValidationError(str(exc)) from exc
 
         # ── 2. Validate vehicle exists and is active ────────────────────
-        vehicle = VehicleRepository.get_active(cmd.vehicle_id)
+        vehicle = self._vehicle_repo.get_active(cmd.vehicle_id)
         if not vehicle:
             raise ValidationError('Nieprawidłowy pojazd.')
 
         # ── 3. Persist ──────────────────────────────────────────────────
-        trip_id = TripRepository.add(
+        trip_id = self._trip_repo.add(
             vehicle_id=vehicle['id'],
             date_val=trip_date,
             driver=driver,
@@ -142,6 +145,12 @@ class AddTripUseCase:
             pass
 
         return trip_id
+
+    @classmethod
+    def execute(cls, cmd: AddTripCommand) -> int:
+        from backend.application import UseCaseFactory
+        use_case = UseCaseFactory.get_add_trip_use_case()
+        return use_case.execute_instance(cmd)
 
 
 # ---------------------------------------------------------------------------
@@ -171,9 +180,11 @@ class GetTripsUseCase:
         entries, total, total_pages, page = GetTripsUseCase.execute(q)
     """
 
-    @staticmethod
-    def execute(
-        query: GetTripsQuery,
+    def __init__(self, trip_repo: TripRepository):
+        self._trip_repo = trip_repo
+
+    def execute_instance(
+        self, query: GetTripsQuery,
     ) -> tuple[list[dict], int, int, int]:
         """Return paginated trip rows.
 
@@ -181,10 +192,18 @@ class GetTripsUseCase:
             Tuple of ``(entries, total_count, total_pages, current_page)``
             matching the signature of ``TripRepository.get_page``.
         """
-        return TripRepository.get_page(
+        return self._trip_repo.get_page(
             vehicle_id=query.vehicle_id,
             okres=query.okres,
             od=query.od,
             do_=query.do_,
             page=query.page,
         )
+
+    @classmethod
+    def execute(
+        cls, query: GetTripsQuery,
+    ) -> tuple[list[dict], int, int, int]:
+        from backend.application import UseCaseFactory
+        use_case = UseCaseFactory.get_trips_use_case()
+        return use_case.execute_instance(query)
