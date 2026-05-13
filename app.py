@@ -91,6 +91,8 @@ def create_app(config_class=None):
             if not hmac.compare_digest(str(token), str(req_token)):
                 return _csrf_failure_response()
 
+    static_root = os.path.realpath(os.path.join(app.root_path, 'static'))
+
     @app.context_processor
     def inject_csrf_token():
         def generate_csrf_token():
@@ -98,14 +100,15 @@ def create_app(config_class=None):
                 session['_csrf_token'] = secrets.token_hex(32)
             return session['_csrf_token']
 
-        import os as _os
-
         def asset_url(filename: str) -> str:
-            filepath = _os.path.join(app.root_path, 'static', filename)
-            try:
-                mtime = int(_os.path.getmtime(filepath))
-            except OSError:
+            filepath = os.path.realpath(os.path.join(static_root, filename))
+            if not filepath.startswith(static_root + os.sep):
                 mtime = 0
+            else:
+                try:
+                    mtime = int(os.path.getmtime(filepath))
+                except (OSError, ValueError):
+                    mtime = 0
             return url_for('static', filename=filename, v=mtime)
 
         def csp_nonce():
