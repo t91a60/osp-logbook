@@ -79,3 +79,58 @@ def admin_client(client):
         sess['is_admin'] = True
         sess['_csrf_token'] = 'valid-csrf-token'
     return client
+
+
+# ---------------------------------------------------------------------------
+# Mock repository fixtures for application-layer unit tests
+# ---------------------------------------------------------------------------
+
+from unittest.mock import MagicMock
+
+
+@pytest.fixture
+def mock_trip_repo():
+    repo = MagicMock()
+    repo.add.return_value = 1
+    repo.get_page.return_value = ([], 0, 1, 1)
+    return repo
+
+
+@pytest.fixture
+def mock_vehicle_repo():
+    repo = MagicMock()
+    repo.get_active.return_value = {'id': 1, 'name': 'Fiat Ducato', 'plate': 'SBI 001'}
+    return repo
+
+
+@pytest.fixture
+def mock_fuel_repo():
+    repo = MagicMock()
+    repo.add.return_value = None
+    repo.get_by_id.return_value = {
+        'id': 1, 'vehicle_id': 1, 'date': '2026-05-01',
+        'driver': 'Jan', 'liters': 40.0, 'added_by': 'jan'
+    }
+    return repo
+
+
+@pytest.fixture
+def mock_maintenance_repo():
+    repo = MagicMock()
+    repo.add.return_value = None
+    repo.complete.return_value = {'id': 1, 'status': 'completed', 'added_by': 'jan'}
+    repo.create_next.return_value = {'id': 2, 'status': 'pending', 'added_by': 'jan'}
+    return repo
+
+
+@pytest.fixture
+def mock_dashboard_repo():
+    repo = MagicMock()
+    repo.get_vehicle_cards.return_value = [
+        {'id': 1, 'name': 'Fiat Ducato', 'plate': 'SBI 001',
+         'type': 'GBA', 'last_km': 37500, 'last_trip_date': '2026-05-01'}
+    ]
+    repo.get_recent_trips.return_value = []
+    repo.get_recent_fuel.return_value = []
+    repo.get_aggregate_stats.return_value = {'trips': 10, 'fuel': 5, 'maintenance': 2}
+    return repo
