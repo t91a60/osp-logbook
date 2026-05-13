@@ -98,8 +98,15 @@ def create_app(config_class=None):
                 session['_csrf_token'] = secrets.token_hex(32)
             return session['_csrf_token']
 
-        def asset_url(filename):
-            return url_for('static', filename=filename)
+        import os as _os
+
+        def asset_url(filename: str) -> str:
+            filepath = _os.path.join(app.root_path, 'static', filename)
+            try:
+                mtime = int(_os.path.getmtime(filepath))
+            except OSError:
+                mtime = 0
+            return url_for('static', filename=filename, v=mtime)
 
         def csp_nonce():
             return getattr(g, 'csp_nonce', '')
