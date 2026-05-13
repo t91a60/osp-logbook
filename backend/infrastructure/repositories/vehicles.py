@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import date, timedelta
 from threading import Lock
 
@@ -11,8 +13,7 @@ _vehicle_schema_lock = Lock()
 
 
 class VehicleRepository:
-    @staticmethod
-    def get_all() -> list[dict]:
+    def get_all(self) -> list[dict]:
         """All vehicles ordered by name."""
         conn = get_db()
         cur = get_cursor(conn)
@@ -22,8 +23,7 @@ class VehicleRepository:
         finally:
             cur.close()
 
-    @staticmethod
-    def get_active(vehicle_id: str | int | None) -> dict | None:
+    def get_active(self, vehicle_id: str | int | None) -> dict | None:
         """Return vehicle row if it exists and is active, else None."""
         global _vehicles_has_active_column
         try:
@@ -61,8 +61,17 @@ class VehicleRepository:
         finally:
             cur.close()
 
-    @staticmethod
-    def get_last_km(vid: int) -> tuple[int | None, str | None]:
+    def get_by_id(self, vid: int) -> dict | None:
+        """Return vehicle row by PK regardless of active status, or None."""
+        conn = get_db()
+        cur = get_cursor(conn)
+        try:
+            cur.execute('SELECT * FROM vehicles WHERE id = %s LIMIT 1', (vid,))
+            return cur.fetchone()
+        finally:
+            cur.close()
+
+    def get_last_km(self, vid: int) -> tuple[int | None, str | None]:
         """Return (km, date_str) for the most recent odometer reading."""
         conn = get_db()
         cur = get_cursor(conn)
@@ -94,8 +103,7 @@ class VehicleRepository:
             return row['km'], normalize_iso_date(row['dt'])
         return None, None
 
-    @staticmethod
-    def get_recent_drivers(days: int = 90) -> list[str]:
+    def get_recent_drivers(self, days: int = 90) -> list[str]:
         """Return distinct driver names from the last *days* days."""
         cutoff = (date.today() - timedelta(days=days)).isoformat()
         conn = get_db()
@@ -113,8 +121,7 @@ class VehicleRepository:
             cur.close()
         return [r['driver'] for r in rows]
 
-    @staticmethod
-    def add(name: str, plate: str, type_: str) -> None:
+    def add(self, name: str, plate: str, type_: str) -> None:
         """Insert a new vehicle."""
         conn = get_db()
         try:
@@ -128,8 +135,7 @@ class VehicleRepository:
             conn.rollback()
             raise
 
-    @staticmethod
-    def update(vid: int, name: str, plate: str, type_: str) -> None:
+    def update(self, vid: int, name: str, plate: str, type_: str) -> None:
         """Update an existing vehicle."""
         conn = get_db()
         try:
@@ -143,8 +149,7 @@ class VehicleRepository:
             conn.rollback()
             raise
 
-    @staticmethod
-    def delete(vid: int) -> None:
+    def delete(self, vid: int) -> None:
         """Delete a vehicle. Raises NotFoundError/ForbiddenError."""
         conn = get_db()
         cur = get_cursor(conn)
@@ -153,7 +158,7 @@ class VehicleRepository:
             if not cur.fetchone():
                 raise NotFoundError('Pojazd nie istnieje.')
 
-            if VehicleRepository.has_linked_rows(vid):
+            if self.has_linked_rows(vid):
                 raise ForbiddenError(
                     'Nie można usunąć pojazdu — posiada przypisane wpisy '
                     '(wyjazdy/tankowania/serwis). Najpierw usuń powiązane wpisy.'
@@ -167,8 +172,7 @@ class VehicleRepository:
         finally:
             cur.close()
 
-    @staticmethod
-    def has_linked_rows(vid: int) -> bool:
+    def has_linked_rows(self, vid: int) -> bool:
         """Returns True if vehicle has trips, fuel, or maintenance rows."""
         conn = get_db()
         cur = get_cursor(conn)

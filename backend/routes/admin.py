@@ -1,12 +1,16 @@
-from flask import render_template, request, flash, redirect, url_for, session, abort
-from werkzeug.security import generate_password_hash
+from __future__ import annotations
+
+from flask import abort, flash, redirect, render_template, request, session, url_for
 from psycopg2 import IntegrityError
 from psycopg2 import sql
-from backend.db import get_db, get_cursor
-from backend.helpers import login_required, admin_required
-from backend.infrastructure.repositories.vehicles import VehicleRepository
-from backend.services.cache_service import invalidate_prefix
+from werkzeug.security import generate_password_hash
+
+from backend.application import UseCaseFactory
+from backend.db import get_cursor, get_db
+from backend.domain.exceptions import ForbiddenError, NotFoundError
+from backend.helpers import admin_required, login_required
 from backend.services.audit_service import AuditService
+from backend.services.cache_service import invalidate_prefix
 
 MIN_PASSWORD_LEN = 8
 
@@ -14,39 +18,102 @@ MIN_PASSWORD_LEN = 8
 def register_routes(app):
     from app import limiter
 
+    # ── Vehicle CRUD (admin only) ─────────────────────────────────────────
+
     @app.route('/pojazdy', methods=['GET', 'POST'], endpoint='vehicles')
     @admin_required
     def vehicles():
-        conn = get_db()
-        cur = get_cursor(conn)
-        try:
-            if request.method == 'POST':
-                f = request.form
-                cur.execute(
-                    'INSERT INTO vehicles (name, plate, type) VALUES (%s, %s, %s)',
-                    (f['name'].strip(), f.get('plate', '').strip(), f.get('type', '').strip())
+        vehicle_repo = UseCaseFactory.get_vehicle_repo()
+
+        if request.method == 'POST':
+            f = request.form
+            name = f.get('name', '').strip()
+            if not name:
+                flash('Nazwa pojazdu jest wymagana.', 'error')
+                return redirect(url_for('vehicles'))
+            try:
+                vehicle_repo.add(
+                    name=name,
+                    plate=f.get('plate', '').strip(),
+                    type_=f.get('type', '').strip(),
                 )
-                conn.commit()
                 invalidate_prefix('vehicles:')
                 invalidate_prefix('dashboard:')
+                AuditService.log('Dodanie', 'Pojazd', f'Nazwa: {name}')
                 flash('Pojazd dodany.', 'success')
-                return redirect(url_for('vehicles'))
+            except IntegrityError:
+                flash('Nie udało się dodać pojazdu. Sprawdź dane.', 'error')
+            return redirect(url_for('vehicles'))
 
-            cur.execute('SELECT * FROM vehicles ORDER BY name')
-            vlist = cur.fetchall()
-        finally:
-            cur.close()
+        vlist = vehicle_repo.get_all()
         return render_template('vehicles.html', vehicles=vlist)
 
     @app.route('/pojazdy/<int:vid>/toggle', methods=['POST'], endpoint='toggle_vehicle')
     @admin_required
     def toggle_vehicle_view(vid):
-        VehicleRepository.delete(vid)
-        invalidate_prefix('vehicles:')
-        invalidate_prefix('dashboard:')
-        AuditService.log('Usunięcie', 'Pojazd', f"Usunięto pojazd ID: {vid}")
-        flash('Pojazd usunięty.', 'success')
+        vehicle_repo = UseCaseFactory.get_vehicle_repo()
+        try:
+            vehicle_repo.delete(vid)
+            invalidate_prefix('vehicles:')
+            invalidate_prefix('dashboard:')
+            AuditService.log('Usunięcie', 'Pojazd', f'Usunięto pojazd ID: {vid}')
+            flash('Pojazd usunięty.', 'success')
+        except NotFoundError:
+            flash('Pojazd nie istnieje.', 'error')
+        except ForbiddenError as exc:
+            flash(str(exc), 'error')
         return redirect(url_for('vehicles'))
+
+    @app.route('/pojazdy/<int:vid>/usun', methods=['POST'], endpoint='delete_vehicle')
+    @admin_required
+    @limiter.limit('30 per minute')
+    def delete_vehicle(vid):
+        vehicle_repo = UseCaseFactory.get_vehicle_repo()
+        try:
+            vehicle_repo.delete(vid)
+            invalidate_prefix('vehicles:')
+            invalidate_prefix('dashboard:')
+            AuditService.log('Usunięcie', 'Pojazd', f'Usunięto pojazd ID: {vid}')
+            flash('Pojazd usunięty.', 'success')
+        except NotFoundError:
+            flash('Pojazd nie istnieje.', 'error')
+        except ForbiddenError as exc:
+            flash(str(exc), 'error')
+        return redirect(url_for('vehicles'))
+
+    @app.route('/pojazdy/<int:vid>/edytuj', methods=['GET', 'POST'], endpoint='edit_vehicle')
+    @admin_required
+    def edit_vehicle(vid):
+        vehicle_repo = UseCaseFactory.get_vehicle_repo()
+        vehicle = vehicle_repo.get_by_id(vid)
+        if not vehicle:
+            flash('Pojazd nie istnieje.', 'error')
+            return redirect(url_for('vehicles'))
+
+        if request.method == 'POST':
+            f = request.form
+            name = f.get('name', '').strip()
+            if not name:
+                flash('Nazwa pojazdu jest wymagana.', 'error')
+            else:
+                try:
+                    vehicle_repo.update(
+                        vid=vid,
+                        name=name,
+                        plate=f.get('plate', '').strip(),
+                        type_=f.get('type', '').strip(),
+                    )
+                    invalidate_prefix('vehicles:')
+                    invalidate_prefix('dashboard:')
+                    AuditService.log('Edycja', 'Pojazd', f'ID: {vid}, Nazwa: {name}')
+                    flash('Pojazd zaktualizowany.', 'success')
+                    return redirect(url_for('vehicles'))
+                except NotFoundError:
+                    flash('Pojazd nie istnieje.', 'error')
+
+        return render_template('vehicle_edit.html', vehicle=vehicle)
+
+    # ── User management (admin only — raw SQL, no UserRepository yet) ─────
 
     @app.route('/uzytkownicy', methods=['GET', 'POST'], endpoint='users')
     @admin_required
@@ -108,7 +175,10 @@ def register_routes(app):
                         return redirect(url_for('users'))
 
                     if target.get('is_admin'):
-                        cur.execute('SELECT COUNT(*) AS count FROM users WHERE is_admin = TRUE AND id <> %s', (uid_int,))
+                        cur.execute(
+                            'SELECT COUNT(*) AS count FROM users WHERE is_admin = TRUE AND id <> %s',
+                            (uid_int,)
+                        )
                         remaining_admins = cur.fetchone()['count']
                         if remaining_admins <= 0:
                             flash('Nie można usunąć ostatniego administratora.', 'error')
@@ -125,47 +195,7 @@ def register_routes(app):
             cur.close()
         return render_template('users.html', users=all_users)
 
-    @app.route('/pojazdy/<int:vid>/usun', methods=['POST'], endpoint='delete_vehicle')
-    @admin_required
-    @limiter.limit('30 per minute')
-    def delete_vehicle(vid):
-        VehicleRepository.delete(vid)
-        invalidate_prefix('vehicles:')
-        invalidate_prefix('dashboard:')
-        AuditService.log('Usunięcie', 'Pojazd', f"Usunięto pojazd ID: {vid}")
-        flash('Pojazd usunięty.', 'success')
-        return redirect(url_for('vehicles'))
-
-    @app.route('/pojazdy/<int:vid>/edytuj', methods=['GET', 'POST'], endpoint='edit_vehicle')
-    @admin_required
-    def edit_vehicle(vid):
-        conn = get_db()
-        cur = get_cursor(conn)
-        try:
-            cur.execute('SELECT * FROM vehicles WHERE id = %s', (vid,))
-            vehicle = cur.fetchone()
-            if not vehicle:
-                flash('Pojazd nie istnieje.', 'error')
-                return redirect(url_for('vehicles'))
-
-            if request.method == 'POST':
-                f = request.form
-                name = f.get('name', '').strip()
-                if not name:
-                    flash('Nazwa pojazdu jest wymagana.', 'error')
-                else:
-                    cur.execute(
-                        'UPDATE vehicles SET name=%s, plate=%s, type=%s WHERE id=%s',
-                        (name, f.get('plate', '').strip(), f.get('type', '').strip(), vid)
-                    )
-                    conn.commit()
-                    invalidate_prefix('vehicles:')
-                    invalidate_prefix('dashboard:')
-                    flash('Pojazd zaktualizowany.', 'success')
-                    return redirect(url_for('vehicles'))
-        finally:
-            cur.close()
-        return render_template('vehicle_edit.html', vehicle=vehicle)
+    # ── Legacy generic delete (cross-table, known tech debt) ─────────────
 
     @app.route('/usun/<string:kind>/<int:eid>', methods=['POST'], endpoint='delete_entry')
     @login_required
@@ -178,7 +208,6 @@ def register_routes(app):
         conn = get_db()
         cur = get_cursor(conn)
         try:
-            # Pobierz wpis, żeby sprawdzić autora
             cur.execute(
                 sql.SQL('SELECT added_by FROM {} WHERE id = %s').format(sql.Identifier(table)),
                 (eid,),
@@ -188,7 +217,6 @@ def register_routes(app):
                 flash('Wpis nie istnieje.', 'error')
                 return redirect(request.referrer or url_for('dashboard'))
 
-            # Może usunąć autor wpisu LUB admin
             if entry['added_by'] != session['username'] and not session.get('is_admin'):
                 abort(403)
 

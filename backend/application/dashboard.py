@@ -15,7 +15,7 @@ from datetime import date
 from typing import Any
 
 from backend.helpers import normalize_iso_date
-from backend.infrastructure.repositories.dashboard import DashboardRepository
+from backend.infrastructure.repositories.protocols import DashboardRepositoryProtocol
 
 
 # ---------------------------------------------------------------------------
@@ -59,7 +59,7 @@ class GetDashboardUseCase:
     """Assemble dashboard data using injected repositories.
     """
 
-    def __init__(self, dashboard_repo: DashboardRepository):
+    def __init__(self, dashboard_repo: DashboardRepositoryProtocol):
         self._repo = dashboard_repo
 
     def execute_instance(self) -> DashboardResult:

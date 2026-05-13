@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from backend.db import get_cursor, get_db
 from backend.services.cache_service import invalidate_prefix
 from backend.helpers import build_date_where, paginate, parse_positive_int
@@ -6,8 +8,8 @@ from backend.domain.exceptions import ForbiddenError, NotFoundError
 
 
 class FuelRepository:
-    @staticmethod
     def add(
+        self,
         vehicle_id: int | str | None,
         date_val: str,
         driver: str,
@@ -52,8 +54,7 @@ class FuelRepository:
             conn.rollback()
             raise
 
-    @staticmethod
-    def get_by_id(entry_id: int | str) -> dict | None:
+    def get_by_id(self, entry_id: int | str) -> dict | None:
         """Return a single fuel row by primary key (with vname JOIN), or None."""
         conn = get_db()
         cur = get_cursor(conn)
@@ -72,8 +73,8 @@ class FuelRepository:
         finally:
             cur.close()
 
-    @staticmethod
     def update(
+        self,
         entry_id: int | str,
         vehicle_id: int | str | None,
         date_val: str,
@@ -118,8 +119,8 @@ class FuelRepository:
             conn.rollback()
             raise
 
-    @staticmethod
     def delete(
+        self,
         entry_id: int | str,
         requester: str,
         *,
@@ -158,8 +159,8 @@ class FuelRepository:
         finally:
             cur.close()
 
-    @staticmethod
     def get_page(
+        self,
         *,
         vehicle_id: str | int | None = None,
         okres: str = "",

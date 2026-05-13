@@ -1,19 +1,24 @@
-from flask import render_template, request, flash, redirect, url_for, session
+from __future__ import annotations
+
 from datetime import date
+
+from flask import flash, redirect, render_template, request, session, url_for
 from psycopg2 import IntegrityError
-from backend.helpers import (
-    login_required,
-    parse_positive_int,
-    validate_iso_date,
-    ensure_non_empty_text,
-    require_float_field,
-    require_int_field,
+
+from backend.application import (
+    AddFuelCommand,
+    AddFuelUseCase,
+    DeleteFuelCommand,
+    DeleteFuelUseCase,
+    EditFuelCommand,
+    EditFuelUseCase,
+    GetFuelByIdUseCase,
+    GetFuelQuery,
+    GetFuelUseCase,
 )
+from backend.domain.exceptions import ForbiddenError, NotFoundError, ValidationError
+from backend.helpers import login_required, parse_positive_int
 from backend.services.cache_service import get_vehicles_cached
-from backend.domain.exceptions import ValidationError, NotFoundError, ForbiddenError
-from backend.infrastructure.repositories.fuel import FuelRepository
-from backend.infrastructure.repositories.vehicles import VehicleRepository
-from backend.services.audit_service import AuditService
 
 
 def register_routes(app):
@@ -28,77 +33,69 @@ def register_routes(app):
             if not vehicle_id:
                 raise ValidationError('Wybierz pojazd.')
 
+            cmd = AddFuelCommand(
+                vehicle_id=vehicle_id,
+                date_val=f.get('date', ''),
+                driver=f.get('driver', '').strip(),
+                odometer=f.get('odometer') or None,
+                liters=f.get('liters') or None,
+                cost=f.get('cost') or None,
+                notes=f.get('notes', '').strip(),
+                added_by=session['username'],
+            )
             try:
-                fuel_date = validate_iso_date(f.get('date'), 'Data')
-                driver = ensure_non_empty_text(f.get('driver'), 'Kierowca')
-            except ValueError as exc:
-                raise ValidationError(str(exc))
-
-            liters = require_float_field(f.get('liters'), 'Litry')
-            if liters is None:
-                raise ValidationError('Podaj ilość paliwa.')
-
-            cost = require_float_field(f.get('cost'), 'Koszt')
-            odometer = require_int_field(f.get('odometer'), 'Stan km')
-            vehicle = VehicleRepository.get_active(vehicle_id)
-            if not vehicle:
-                raise ValidationError('Nieprawidłowy pojazd.')
-
-            try:
-                FuelRepository.add(
-                    vehicle['id'],
-                    fuel_date,
-                    driver,
-                    odometer,
-                    liters,
-                    cost,
-                    f.get('notes', '').strip(),
-                    session['username'],
-                )
-                AuditService.log('Dodanie', 'Tankowanie', f'Pojazd ID: {vehicle_id}, Litry: {liters}, Data: {fuel_date}')
+                AddFuelUseCase.execute(cmd)
             except IntegrityError:
-                raise ValidationError('Nie udało się zapisać tankowania. Sprawdź dane i spróbuj ponownie.')
+                raise ValidationError(
+                    'Nie udało się zapisać tankowania. Sprawdź dane i spróbuj ponownie.'
+                )
 
             flash('Tankowanie zapisane.', 'success')
-            return redirect(url_for('fuel',
-                                    vehicle_id=vehicle_id,
-                                    okres=request.args.get('okres', ''),
-                                    od=request.args.get('od', ''),
-                                    do=request.args.get('do', ''),
-                                    page=1))
+            return redirect(url_for(
+                'fuel',
+                vehicle_id=vehicle_id,
+                okres=request.args.get('okres', ''),
+                od=request.args.get('od', ''),
+                do=request.args.get('do', ''),
+                page=1,
+            ))
 
         vid = request.args.get('vehicle_id', '')
         okres = request.args.get('okres', '')
         od = request.args.get('od', '')
         do_ = request.args.get('do', '')
         page = parse_positive_int(request.args.get('page'), default=1)
-        entries, total, total_pages, page = FuelRepository.get_page(
+
+        query = GetFuelQuery(
             vehicle_id=vid,
             okres=okres,
             od=od,
             do_=do_,
             page=page,
         )
+        entries, total, total_pages, page = GetFuelUseCase.execute(query)
 
         add_open = request.args.get('add', '') == '1'
-        return render_template('fuel.html',
-                               vehicles=vehicles,
-                               entries=entries,
-                               today=date.today().isoformat(),
-                               selected_vehicle=vid,
-                               okres=okres, od=od, do_=do_,
-                               page=page, total_pages=total_pages, total=total,
-                               add_open=add_open)
+        return render_template(
+            'fuel.html',
+            vehicles=vehicles,
+            entries=entries,
+            today=date.today().isoformat(),
+            selected_vehicle=vid,
+            okres=okres, od=od, do_=do_,
+            page=page, total_pages=total_pages, total=total,
+            add_open=add_open,
+        )
 
     @app.route('/tankowania/<int:eid>/edytuj', methods=['GET', 'POST'], endpoint='fuel_edit')
     @login_required
     def fuel_edit(eid):
-        entry = FuelRepository.get_by_id(eid)
+        entry = GetFuelByIdUseCase.execute(eid)
         if not entry:
             flash('Nie znaleziono wpisu tankowania.', 'error')
             return redirect(url_for('fuel'))
 
-        # Only owner or admin may edit
+        # Ownership check before even rendering the form
         if entry.get('added_by') != session['username'] and not session.get('is_admin'):
             raise ForbiddenError('Brak uprawnień do edycji wpisu tankowania.')
 
@@ -110,34 +107,20 @@ def register_routes(app):
             if not vehicle_id:
                 raise ValidationError('Wybierz pojazd.')
 
+            cmd = EditFuelCommand(
+                entry_id=eid,
+                vehicle_id=vehicle_id,
+                date_val=f.get('date', ''),
+                driver=f.get('driver', '').strip(),
+                odometer=f.get('odometer') or None,
+                liters=f.get('liters') or None,
+                cost=f.get('cost') or None,
+                notes=f.get('notes', '').strip(),
+                requester=session['username'],
+                is_admin=bool(session.get('is_admin')),
+            )
             try:
-                fuel_date = validate_iso_date(f.get('date'), 'Data')
-                driver = ensure_non_empty_text(f.get('driver'), 'Kierowca')
-            except ValueError as exc:
-                raise ValidationError(str(exc))
-
-            liters = require_float_field(f.get('liters'), 'Litry')
-            if liters is None:
-                raise ValidationError('Podaj ilość paliwa.')
-
-            cost = require_float_field(f.get('cost'), 'Koszt')
-            odometer = require_int_field(f.get('odometer'), 'Stan km')
-            vehicle = VehicleRepository.get_active(vehicle_id)
-            if not vehicle:
-                raise ValidationError('Nieprawidłowy pojazd.')
-
-            try:
-                FuelRepository.update(
-                    eid,
-                    vehicle['id'],
-                    fuel_date,
-                    driver,
-                    odometer,
-                    liters,
-                    cost,
-                    f.get('notes', '').strip(),
-                )
-                AuditService.log('Edycja', 'Tankowanie', f'ID: {eid}, Pojazd: {vehicle_id}, Data: {fuel_date}')
+                EditFuelUseCase.execute(cmd)
             except (NotFoundError, IntegrityError) as exc:
                 raise ValidationError(str(exc))
 
@@ -154,13 +137,13 @@ def register_routes(app):
     @app.route('/tankowania/<int:eid>/usun', methods=['POST'], endpoint='fuel_delete')
     @login_required
     def fuel_delete(eid):
+        cmd = DeleteFuelCommand(
+            entry_id=eid,
+            requester=session['username'],
+            is_admin=bool(session.get('is_admin')),
+        )
         try:
-            FuelRepository.delete(
-                eid,
-                requester=session['username'],
-                is_admin=bool(session.get('is_admin')),
-            )
-            AuditService.log('Usunięcie', 'Tankowanie', f'ID: {eid}')
+            DeleteFuelUseCase.execute(cmd)
             flash('Wpis tankowania usunięty.', 'success')
         except NotFoundError:
             flash('Nie znaleziono wpisu tankowania.', 'error')

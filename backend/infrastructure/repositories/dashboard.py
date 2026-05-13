@@ -1,11 +1,13 @@
 from typing import Any, Optional
 
 from backend.db import get_cursor, get_db
+from backend.services.cache_service import cached
 
 
 class DashboardRepository:
     """Repository odpowiedzialny za wszystkie zapytania SQL widoku dashboardu."""
 
+    @cached(ttl=300, tags=['dashboard'])
     def get_vehicle_cards(self, cur: Optional[Any] = None) -> list[dict[str, Any]]:
         """Zwraca dane do kart pojazdów (ostatni przebieg + data)."""
 
@@ -42,6 +44,7 @@ class DashboardRepository:
 
         return self._run_with_cursor(cur, _execute)
 
+    @cached(ttl=60, tags=['dashboard'])
     def get_recent_trips(
         self, limit: int = 6, cur: Optional[Any] = None
     ) -> list[dict[str, Any]]:
@@ -60,6 +63,7 @@ class DashboardRepository:
 
         return self._run_with_cursor(cur, _execute)
 
+    @cached(ttl=60, tags=['dashboard'])
     def get_recent_fuel(
         self, limit: int = 4, cur: Optional[Any] = None
     ) -> list[dict[str, Any]]:
@@ -78,6 +82,7 @@ class DashboardRepository:
 
         return self._run_with_cursor(cur, _execute)
 
+    @cached(ttl=300, tags=['dashboard'])
     def get_aggregate_stats(self, cur: Optional[Any] = None) -> dict[str, int]:
         def _execute(cursor):
             cursor.execute("""

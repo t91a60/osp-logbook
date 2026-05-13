@@ -1,11 +1,13 @@
 from typing import Any, Optional
 
 from backend.db import get_cursor, get_db
+from backend.services.cache_service import cached
 
 
 class ReportRepository:
     """Repository odpowiedzialny za zapytania do raportów okresowych."""
 
+    @cached(ttl=300, tags=['report', 'report:{vid}'])
     def get_trip_entries(self, first_day: str, last_day: str, vid: int = 0, cur: Optional[Any] = None) -> list[dict[str, Any]]:
         def _execute(cursor) -> list[dict[str, Any]]:
             trip_where = "WHERE t.date BETWEEN %s AND %s"
@@ -29,6 +31,7 @@ class ReportRepository:
 
         return self._run_with_cursor(cur, _execute)
 
+    @cached(ttl=300, tags=['report', 'report:{vid}'])
     def get_total_km(self, first_day: str, last_day: str, vid: int = 0, cur: Optional[Any] = None) -> int:
         def _execute(cursor) -> int:
             total_km_where = "WHERE date BETWEEN %s AND %s"
@@ -52,6 +55,7 @@ class ReportRepository:
 
         return self._run_with_cursor(cur, _execute)
 
+    @cached(ttl=300, tags=['report', 'report:{vid}'])
     def get_trip_summary(self, first_day: str, last_day: str, vid: int = 0, cur: Optional[Any] = None) -> list[dict[str, Any]]:
         def _execute(cursor) -> list[dict[str, Any]]:
             cursor.execute(f"""
@@ -72,6 +76,7 @@ class ReportRepository:
 
         return self._run_with_cursor(cur, _execute)
 
+    @cached(ttl=300, tags=['report', 'report:{vid}'])
     def get_fuel_summary(self, first_day: str, last_day: str, vid: int = 0, cur: Optional[Any] = None) -> dict[int, dict[str, Any]]:
         def _execute(cursor) -> dict[int, dict[str, Any]]:
             fuel_where = "WHERE f.date BETWEEN %s AND %s"
@@ -92,6 +97,7 @@ class ReportRepository:
 
         return self._run_with_cursor(cur, _execute)
 
+    @cached(ttl=300, tags=['report', 'report:{vid}'])
     def get_maintenance_summary(self, first_day: str, last_day: str, vid: int = 0, cur: Optional[Any] = None) -> dict[int, dict[str, Any]]:
         def _execute(cursor) -> dict[int, dict[str, Any]]:
             maint_where = "WHERE m.date BETWEEN %s AND %s"

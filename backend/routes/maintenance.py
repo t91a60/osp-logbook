@@ -1,19 +1,28 @@
-from flask import render_template, request, flash, redirect, url_for, session, abort
+from __future__ import annotations
+
 from datetime import date
+
+from flask import abort, flash, redirect, render_template, request, session, url_for
 from psycopg2 import IntegrityError
-from backend.helpers import (
-    login_required,
-    parse_positive_int,
-    validate_iso_date,
-    ensure_non_empty_text,
-    require_float_field,
-    require_int_field,
+
+from backend.application import (
+    AddMaintenanceCommand,
+    AddMaintenanceUseCase,
+    CompleteMaintenanceCommand,
+    CompleteMaintenanceUseCase,
+    CreateNextMaintenanceCommand,
+    CreateNextMaintenanceUseCase,
+    DeleteMaintenanceCommand,
+    DeleteMaintenanceUseCase,
+    EditMaintenanceCommand,
+    EditMaintenanceUseCase,
+    GetMaintenanceByIdUseCase,
+    GetMaintenanceQuery,
+    GetMaintenanceUseCase,
 )
+from backend.domain.exceptions import ForbiddenError, NotFoundError, ValidationError
+from backend.helpers import login_required, parse_positive_int
 from backend.services.cache_service import get_vehicles_cached
-from backend.domain.exceptions import ValidationError, NotFoundError, ForbiddenError
-from backend.infrastructure.repositories.maintenance import MaintenanceRepository
-from backend.infrastructure.repositories.vehicles import VehicleRepository
-from backend.services.audit_service import AuditService
 
 
 def register_routes(app):
@@ -27,52 +36,36 @@ def register_routes(app):
             vehicle_id = f.get('vehicle_id', '').strip()
             if not vehicle_id:
                 raise ValidationError('Wybierz pojazd.')
-            vehicle = VehicleRepository.get_active(vehicle_id)
-            if not vehicle:
-                raise ValidationError('Nieprawidłowy pojazd.')
 
+            cmd = AddMaintenanceCommand(
+                vehicle_id=vehicle_id,
+                date_val=f.get('date', ''),
+                description=f.get('description', '').strip(),
+                odometer=f.get('odometer') or None,
+                cost=f.get('cost') or None,
+                notes=f.get('notes', '').strip(),
+                added_by=session['username'],
+                status=f.get('status', 'pending'),
+                priority=f.get('priority', 'medium'),
+                due_date=f.get('due_date') or None,
+            )
             try:
-                maintenance_date = validate_iso_date(f.get('date'), 'Data')
-                description = ensure_non_empty_text(f.get('description'), 'Opis')
-            except ValueError as exc:
-                raise ValidationError(str(exc))
-
-            priority = f.get('priority', 'medium')
-            if priority not in ('low', 'medium', 'high'):
-                priority = 'medium'
-
-            status = f.get('status', 'pending')
-            if status not in ('pending', 'completed'):
-                status = 'pending'
-
-            odometer = require_int_field(f.get('odometer'), 'Stan km')
-            cost = require_float_field(f.get('cost'), 'Koszt')
-
-            try:
-                MaintenanceRepository.add(
-                    vehicle['id'],
-                    maintenance_date,
-                    odometer,
-                    description,
-                    cost,
-                    f.get('notes', '').strip(),
-                    session['username'],
-                    status,
-                    priority,
-                    f.get('due_date') or None,
-                )
-                AuditService.log('Dodanie', 'Serwis', f'Pojazd ID: {vehicle_id}, Opis: {description}, Data: {maintenance_date}')
+                AddMaintenanceUseCase.execute(cmd)
             except IntegrityError:
-                raise ValidationError('Nie udało się zapisać wpisu serwisowego. Sprawdź dane i spróbuj ponownie.')
+                raise ValidationError(
+                    'Nie udało się zapisać wpisu serwisowego. Sprawdź dane i spróbuj ponownie.'
+                )
 
             flash('Wpis serwisowy zapisany.', 'success')
-            return redirect(url_for('maintenance',
-                                    vehicle_id=request.args.get('vehicle_id', 'all'),
-                                    status=request.args.get('status', 'all'),
-                                    okres=request.args.get('okres', ''),
-                                    od=request.args.get('od', ''),
-                                    do=request.args.get('do', ''),
-                                    page=1))
+            return redirect(url_for(
+                'maintenance',
+                vehicle_id=request.args.get('vehicle_id', 'all'),
+                status=request.args.get('status', 'all'),
+                okres=request.args.get('okres', ''),
+                od=request.args.get('od', ''),
+                do=request.args.get('do', ''),
+                page=1,
+            ))
 
         selected_status = request.args.get('status', 'all')
         selected_vehicle = request.args.get('vehicle_id', 'all')
@@ -80,7 +73,8 @@ def register_routes(app):
         od = request.args.get('od', '')
         do_ = request.args.get('do', '')
         page = parse_positive_int(request.args.get('page'), default=1)
-        entries, total, total_pages, page = MaintenanceRepository.get_page(
+
+        query = GetMaintenanceQuery(
             vehicle_id=selected_vehicle,
             status_filter=selected_status,
             okres=okres,
@@ -88,24 +82,28 @@ def register_routes(app):
             do_=do_,
             page=page,
         )
-        return render_template('maintenance.html',
-                               vehicles=vehicles,
-                               entries=entries,
-                               today=date.today().isoformat(),
-                               selected_status=selected_status,
-                               selected_vehicle=selected_vehicle,
-                               okres=okres, od=od, do_=do_,
-                               page=page, total_pages=total_pages, total=total)
+        entries, total, total_pages, page = GetMaintenanceUseCase.execute(query)
+
+        return render_template(
+            'maintenance.html',
+            vehicles=vehicles,
+            entries=entries,
+            today=date.today().isoformat(),
+            selected_status=selected_status,
+            selected_vehicle=selected_vehicle,
+            okres=okres, od=od, do_=do_,
+            page=page, total_pages=total_pages, total=total,
+        )
 
     @app.route('/serwis/<int:eid>/edytuj', methods=['GET', 'POST'], endpoint='maintenance_edit')
     @login_required
     def maintenance_edit(eid):
-        entry = MaintenanceRepository.get_by_id(eid)
+        entry = GetMaintenanceByIdUseCase.execute(eid)
         if not entry:
             flash('Nie znaleziono wpisu serwisowego.', 'error')
             return redirect(url_for('maintenance'))
 
-        # Only owner or admin may edit
+        # Ownership check before rendering the form
         if entry.get('added_by') != session['username'] and not session.get('is_admin'):
             raise ForbiddenError('Brak uprawnień do edycji wpisu serwisowego.')
 
@@ -117,40 +115,22 @@ def register_routes(app):
             if not vehicle_id:
                 raise ValidationError('Wybierz pojazd.')
 
+            cmd = EditMaintenanceCommand(
+                entry_id=eid,
+                vehicle_id=vehicle_id,
+                date_val=f.get('date', ''),
+                description=f.get('description', '').strip(),
+                odometer=f.get('odometer') or None,
+                cost=f.get('cost') or None,
+                notes=f.get('notes', '').strip(),
+                requester=session['username'],
+                status=f.get('status', 'pending'),
+                priority=f.get('priority', 'medium'),
+                due_date=f.get('due_date') or None,
+                is_admin=bool(session.get('is_admin')),
+            )
             try:
-                maintenance_date = validate_iso_date(f.get('date'), 'Data')
-                description = ensure_non_empty_text(f.get('description'), 'Opis')
-            except ValueError as exc:
-                raise ValidationError(str(exc))
-
-            priority = f.get('priority', 'medium')
-            if priority not in ('low', 'medium', 'high'):
-                priority = 'medium'
-
-            status = f.get('status', 'pending')
-            if status not in ('pending', 'completed'):
-                status = 'pending'
-
-            odometer = require_int_field(f.get('odometer'), 'Stan km')
-            cost = require_float_field(f.get('cost'), 'Koszt')
-            vehicle = VehicleRepository.get_active(vehicle_id)
-            if not vehicle:
-                raise ValidationError('Nieprawidłowy pojazd.')
-
-            try:
-                MaintenanceRepository.update(
-                    eid,
-                    vehicle['id'],
-                    maintenance_date,
-                    odometer,
-                    description,
-                    cost,
-                    f.get('notes', '').strip(),
-                    status,
-                    priority,
-                    f.get('due_date') or None,
-                )
-                AuditService.log('Edycja', 'Serwis', f'ID: {eid}, Pojazd: {vehicle_id}, Data: {maintenance_date}')
+                EditMaintenanceUseCase.execute(cmd)
             except (NotFoundError, IntegrityError) as exc:
                 raise ValidationError(str(exc))
 
@@ -167,37 +147,48 @@ def register_routes(app):
     @app.route('/serwis/<int:eid>/complete', methods=['POST'], endpoint='complete_maintenance')
     @login_required
     def complete_maintenance_view(eid):
-        row = MaintenanceRepository.complete(eid)
-        if not row:
+        cmd = CompleteMaintenanceCommand(
+            entry_id=eid,
+            requester=session['username'],
+            is_admin=bool(session.get('is_admin')),
+        )
+        try:
+            CompleteMaintenanceUseCase.execute(cmd)
+            flash('Oznaczono jako wykonane.', 'success')
+        except NotFoundError:
             flash('Nie znaleziono wpisu serwisowego.', 'error')
-            return redirect(url_for('maintenance'))
-        if row['added_by'] != session['username'] and not session.get('is_admin'):
+        except ForbiddenError:
             abort(403)
-        flash('Oznaczono jako wykonane.', 'success')
         return redirect(url_for('maintenance'))
 
     @app.route('/serwis/<int:eid>/next', methods=['POST'], endpoint='create_next_maintenance')
     @login_required
     def create_next_maintenance_view(eid):
-        row = MaintenanceRepository.create_next(eid, added_by=session['username'])
-        if not row:
+        cmd = CreateNextMaintenanceCommand(
+            entry_id=eid,
+            added_by=session['username'],
+            requester=session['username'],
+            is_admin=bool(session.get('is_admin')),
+        )
+        try:
+            CreateNextMaintenanceUseCase.execute(cmd)
+            flash('Dodano kolejny wpis serwisowy.', 'success')
+        except NotFoundError:
             flash('Nie znaleziono wpisu serwisowego.', 'error')
-            return redirect(url_for('maintenance'))
-        if row['added_by'] != session['username'] and not session.get('is_admin'):
+        except ForbiddenError:
             abort(403)
-        flash('Dodano kolejny wpis serwisowy.', 'success')
         return redirect(url_for('maintenance'))
 
     @app.route('/serwis/<int:eid>/usun', methods=['POST'], endpoint='maintenance_delete')
     @login_required
     def maintenance_delete(eid):
+        cmd = DeleteMaintenanceCommand(
+            entry_id=eid,
+            requester=session['username'],
+            is_admin=bool(session.get('is_admin')),
+        )
         try:
-            MaintenanceRepository.delete(
-                eid,
-                requester=session['username'],
-                is_admin=bool(session.get('is_admin')),
-            )
-            AuditService.log('Usunięcie', 'Serwis', f'ID: {eid}')
+            DeleteMaintenanceUseCase.execute(cmd)
             flash('Wpis serwisowy usunięty.', 'success')
         except NotFoundError:
             flash('Nie znaleziono wpisu serwisowego.', 'error')

@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Any
 
-from backend.db import get_db, get_cursor
+from backend.infrastructure.repositories.protocols import ReportRepositoryProtocol
 
 
 # ---------------------------------------------------------------------------
@@ -84,7 +84,7 @@ class GenerateReportUseCase:
         # result.period_label  → "maj 2026"
     """
 
-    def __init__(self, report_repo):
+    def __init__(self, report_repo: ReportRepositoryProtocol):
         self._report_repo = report_repo
 
     def execute_instance(self, query: ReportQuery, vehicles: list[dict]) -> ReportResult:

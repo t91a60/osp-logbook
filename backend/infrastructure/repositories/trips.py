@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from backend.db import get_cursor, get_db
 from backend.services.cache_service import invalidate_prefix
 from backend.domain.exceptions import ForbiddenError, NotFoundError
@@ -10,8 +12,8 @@ from backend.infrastructure.repositories import _to_int
 
 
 class TripRepository:
-    @staticmethod
     def add(
+        self,
         vehicle_id: int | str | None,
         date_val: str,
         driver: str,
@@ -88,8 +90,8 @@ class TripRepository:
             conn.rollback()
             raise
 
-    @staticmethod
     def get_page(
+        self,
         *,
         vehicle_id: str | int | None = None,
         okres: str = "",
@@ -126,8 +128,7 @@ class TripRepository:
         finally:
             cur.close()
 
-    @staticmethod
-    def get_by_id(trip_id: int | str) -> dict | None:
+    def get_by_id(self, trip_id: int | str) -> dict | None:
         conn = get_db()
         cur = get_cursor(conn)
         try:
@@ -145,8 +146,8 @@ class TripRepository:
         finally:
             cur.close()
 
-    @staticmethod
     def delete(
+        self,
         trip_id: int | str,
         requester: str,
         *,

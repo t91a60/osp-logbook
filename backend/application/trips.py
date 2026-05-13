@@ -25,8 +25,10 @@ from backend.helpers import (
     validate_odometer_range,
     parse_positive_int_field,
 )
-from backend.infrastructure.repositories.trips import TripRepository
-from backend.infrastructure.repositories.vehicles import VehicleRepository
+from backend.infrastructure.repositories.protocols import (
+    TripRepositoryProtocol,
+    VehicleRepositoryProtocol,
+)
 from backend.services.audit_service import AuditService
 from backend.services.cache_service import invalidate_prefix
 
@@ -81,7 +83,7 @@ class AddTripUseCase:
                          invalid vehicle, odometer range mismatch).
     """
 
-    def __init__(self, trip_repo: TripRepository, vehicle_repo: VehicleRepository):
+    def __init__(self, trip_repo: TripRepositoryProtocol, vehicle_repo: VehicleRepositoryProtocol):
         self._trip_repo = trip_repo
         self._vehicle_repo = vehicle_repo
 
@@ -180,7 +182,7 @@ class GetTripsUseCase:
         entries, total, total_pages, page = GetTripsUseCase.execute(q)
     """
 
-    def __init__(self, trip_repo: TripRepository):
+    def __init__(self, trip_repo: TripRepositoryProtocol):
         self._trip_repo = trip_repo
 
     def execute_instance(

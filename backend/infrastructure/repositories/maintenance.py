@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import date, timedelta
 
 from backend.db import get_db, get_cursor
@@ -8,8 +10,8 @@ from backend.domain.exceptions import ForbiddenError, NotFoundError
 
 
 class MaintenanceRepository:
-    @staticmethod
     def add(
+        self,
         vehicle_id: int | str | None,
         date_val: str,
         odometer: int | str | None,
@@ -43,8 +45,7 @@ class MaintenanceRepository:
             conn.rollback()
             raise
 
-    @staticmethod
-    def get_by_id(entry_id: int | str) -> dict | None:
+    def get_by_id(self, entry_id: int | str) -> dict | None:
         """Return a single maintenance row by primary key (with vname JOIN), or None."""
         conn = get_db()
         cur = get_cursor(conn)
@@ -69,8 +70,8 @@ class MaintenanceRepository:
         finally:
             cur.close()
 
-    @staticmethod
     def update(
+        self,
         entry_id: int | str,
         vehicle_id: int | str | None,
         date_val: str,
@@ -121,8 +122,8 @@ class MaintenanceRepository:
             conn.rollback()
             raise
 
-    @staticmethod
     def delete(
+        self,
         entry_id: int | str,
         requester: str,
         *,
@@ -161,8 +162,8 @@ class MaintenanceRepository:
         finally:
             cur.close()
 
-    @staticmethod
     def get_page(
+        self,
         *,
         vehicle_id: str | int | None = None,
         status_filter: str = 'all',
@@ -213,8 +214,7 @@ class MaintenanceRepository:
         finally:
             cur.close()
 
-    @staticmethod
-    def complete(entry_id: int | str) -> dict | None:
+    def complete(self, entry_id: int | str) -> dict | None:
         """Mark maintenance entry as completed. Returns the entry row, or None if not found."""
         conn = get_db()
         cur = get_cursor(conn)
@@ -232,8 +232,7 @@ class MaintenanceRepository:
         finally:
             cur.close()
 
-    @staticmethod
-    def create_next(entry_id: int | str, added_by: str | None = None) -> dict | None:
+    def create_next(self, entry_id: int | str, added_by: str | None = None) -> dict | None:
         """Clone a maintenance entry into a new pending one due 90 days later.
 
         The new entry is attributed to ``added_by`` when provided; otherwise the

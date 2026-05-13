@@ -4,7 +4,7 @@ Business logic lives in backend/infrastructure/repositories/.
 Services add: audit logging, cross-repository coordination.
 """
 
-from backend.infrastructure.repositories.trips import TripRepository
+from backend.application import UseCaseFactory
 from backend.services.audit_service import AuditService
 from backend.services.cache_service import invalidate_prefix
 
@@ -25,7 +25,8 @@ class TripService:
         time_end: str | None = None,
         equipment_used: list[dict] | None = None,
     ) -> None:
-        TripRepository.add(
+        trip_repo = UseCaseFactory.get_trip_repo()
+        trip_repo.add(
             vehicle_id=vehicle_id,
             date_val=date_val,
             driver=driver,
