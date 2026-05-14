@@ -554,6 +554,8 @@ function _formatLocalDate(now) {
   return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
 }
 
+var CUSTOM_PURPOSE_VALUE = "__inne__";
+
 // Active Trip Module
 var ActiveTrip = window.ActiveTrip = {
   STORAGE_KEY: "osp_active_trip",
@@ -636,7 +638,7 @@ var ActiveTrip = window.ActiveTrip = {
         chip.classList.add("selected");
         var wrap = document.getElementById("quickPurposeCustomWrap");
         var input = document.getElementById("quickPurposeCustom");
-        if (chip.dataset.value === "__inne__") {
+        if (chip.dataset.value === CUSTOM_PURPOSE_VALUE) {
           if (wrap) wrap.classList.remove("hidden");
           if (input) input.focus();
         } else {
@@ -734,7 +736,7 @@ function confirmQuickTrip() {
   }
 
   var purpose = selected.dataset.value || "";
-  if (purpose === "__inne__") {
+  if (purpose === CUSTOM_PURPOSE_VALUE) {
     var custom = document.getElementById("quickPurposeCustom");
     var customValue = custom ? custom.value.trim() : "";
     if (!customValue) {
@@ -824,7 +826,7 @@ function prefillFromActiveTrip() {
       }
     }
     if (!found) {
-      purposeSelect.value = "__inne__";
+      purposeSelect.value = CUSTOM_PURPOSE_VALUE;
       onPurposeChange(purposeSelect);
       var purposeCustom = document.getElementById("purposeCustom");
       if (purposeCustom) purposeCustom.value = data.purpose;
