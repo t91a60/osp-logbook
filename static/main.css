@@ -999,6 +999,7 @@ body {
   border-top: 1px solid var(--border);
   border-radius: 20px 20px 0 0;
   padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+  min-height: 300px;
   max-height: 90dvh;
   overflow-y: auto;
   transform: translateY(100%);

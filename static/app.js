@@ -805,9 +805,12 @@ function prefillFromActiveTrip() {
       el.readOnly = true;
     } else {
       el.dataset.lockValue = String(val);
-      el.addEventListener("change", function () {
-        this.value = this.dataset.lockValue || this.value;
-      });
+      if (!el.dataset.lockBound) {
+        el.addEventListener("change", function () {
+          this.value = this.dataset.lockValue || this.value;
+        });
+        el.dataset.lockBound = "1";
+      }
     }
     el.classList.add("quick-trip-readonly");
   });
@@ -832,10 +835,13 @@ function prefillFromActiveTrip() {
       if (purposeCustom) purposeCustom.value = data.purpose;
     }
     purposeSelect.dataset.lockValue = purposeSelect.value;
-    purposeSelect.addEventListener("change", function () {
-      this.value = this.dataset.lockValue || this.value;
-      onPurposeChange(this);
-    });
+    if (!purposeSelect.dataset.lockBound) {
+      purposeSelect.addEventListener("change", function () {
+        this.value = this.dataset.lockValue || this.value;
+        onPurposeChange(this);
+      });
+      purposeSelect.dataset.lockBound = "1";
+    }
     purposeSelect.classList.add("quick-trip-readonly");
   }
 
