@@ -2,7 +2,11 @@ from pathlib import Path
 import os
 
 import psycopg2
+from psycopg2 import errors
 import sqlparse
+
+
+SCHEMA_VERSION = 10
 
 
 def main() -> None:
@@ -14,6 +18,14 @@ def main() -> None:
     try:
         connection.autocommit = True
         with connection.cursor() as cursor:
+            try:
+                cursor.execute('SELECT COALESCE(MAX(version), 0) FROM schema_version;')
+                current_version = int(cursor.fetchone()[0] or 0)
+                if current_version >= SCHEMA_VERSION:
+                    return
+            except errors.UndefinedTable:
+                pass
+
             for statement in sqlparse.split(schema_sql):
                 statement = statement.strip()
                 if statement:
