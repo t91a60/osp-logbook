@@ -5,3 +5,4 @@ psycopg2-binary>=2.9.9
 flask-limiter>=3.5.0
 yoyo-migrations>=8.2.0
 Flask-Compress>=1.13.0
+redis>=4.5.0
