@@ -6,7 +6,7 @@ Split into:
   - TestGenerateReportUseCase — DB mocked via get_db / get_cursor
 """
 from datetime import date, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -80,90 +80,64 @@ class TestResolvePeriod:
 
 
 # ---------------------------------------------------------------------------
-# GenerateReportUseCase — DB mocked
+# GenerateReportUseCase — repository mocked
 # ---------------------------------------------------------------------------
 
-def _make_cursor(side_effects=None, fetchone_result=None):
-    cur = MagicMock()
-    if side_effects is not None:
-        cur.fetchall.side_effect = side_effects
-    else:
-        cur.fetchall.return_value = []
-    cur.fetchone.return_value = fetchone_result or {'total_km': 0}
-    return cur
+def _make_repo():
+    repo = MagicMock()
+    repo.get_trip_entries.return_value = []
+    repo.get_total_km.return_value = 0
+    repo.get_trip_summary.return_value = []
+    repo.get_fuel_summary.return_value = {}
+    repo.get_maintenance_summary.return_value = {}
+    return repo
 
 
 class TestGenerateReportUseCase:
-    @patch('backend.application.report.get_cursor')
-    @patch('backend.application.report.get_db')
-    def test_returns_report_result(self, mock_db, mock_cur_fn):
-        mock_db.return_value = MagicMock()
-        mock_cur = _make_cursor(side_effects=[[], [], [], []])
-        mock_cur_fn.return_value = mock_cur
-
+    def test_returns_report_result(self):
+        repo = _make_repo()
+        uc = GenerateReportUseCase(report_repo=repo)
         query = ReportQuery(month_str='2026-05', vehicle_id=None)
-        result = GenerateReportUseCase.execute(query, vehicles=[])
+        result = uc.execute_instance(query, vehicles=[])
 
         assert isinstance(result, ReportResult)
         assert result.trip_entries == []
         assert result.total_km == 0
         assert 'maj' in result.period_label
         assert result.selected_vehicle == ''
-        mock_cur.close.assert_called_once()
 
-    @patch('backend.application.report.get_cursor')
-    @patch('backend.application.report.get_db')
-    def test_vehicle_filter_sets_selected_vehicle(self, mock_db, mock_cur_fn):
-        mock_db.return_value = MagicMock()
-        mock_cur = _make_cursor(side_effects=[[], [], [], []])
-        mock_cur_fn.return_value = mock_cur
-
+    def test_vehicle_filter_sets_selected_vehicle(self):
+        repo = _make_repo()
+        uc = GenerateReportUseCase(report_repo=repo)
         vehicles = [{'id': 3, 'name': 'SLR', 'plate': 'KR003'}]
         query = ReportQuery(month_str='2026-05', vehicle_id=3)
-        result = GenerateReportUseCase.execute(query, vehicles=vehicles)
+        result = uc.execute_instance(query, vehicles=vehicles)
 
         assert result.selected_vehicle == '3'
         assert result.report_vehicle == vehicles[0]
 
-    @patch('backend.application.report.get_cursor')
-    @patch('backend.application.report.get_db')
-    def test_fuel_and_maint_indexed_by_vehicle_id(self, mock_db, mock_cur_fn):
-        mock_db.return_value = MagicMock()
-        mock_cur = _make_cursor(side_effects=[
-            [],   # trip_entries
-            [],   # trip_summary
-            [{'vehicle_id': 7, 'total_liters': 40.0, 'total_cost': 200.0}],
-            [{'vehicle_id': 7, 'total_cost': 80.0}],
-        ])
-        mock_cur_fn.return_value = mock_cur
-
-        result = GenerateReportUseCase.execute(ReportQuery(), vehicles=[])
-
+    def test_fuel_and_maint_indexed_by_vehicle_id(self):
+        repo = _make_repo()
+        uc = GenerateReportUseCase(report_repo=repo)
+        repo.get_fuel_summary.return_value = {7: {'vehicle_id': 7, 'total_liters': 40.0, 'total_cost': 200.0}}
+        repo.get_maintenance_summary.return_value = {7: {'vehicle_id': 7, 'total_cost': 80.0}}
+        result = uc.execute_instance(ReportQuery(), vehicles=[])
         assert 7 in result.fuel_by_vid
         assert result.fuel_by_vid[7]['total_liters'] == 40.0
         assert 7 in result.maint_by_vid
 
-    @patch('backend.application.report.get_cursor')
-    @patch('backend.application.report.get_db')
-    def test_closes_cursor_on_exception(self, mock_db, mock_cur_fn):
-        mock_db.return_value = MagicMock()
-        mock_cur = MagicMock()
-        mock_cur_fn.return_value = mock_cur
-        mock_cur.execute.side_effect = RuntimeError('db boom')
+    def test_closes_cursor_on_exception(self):
+        repo = _make_repo()
+        uc = GenerateReportUseCase(report_repo=repo)
+        repo.get_trip_entries.side_effect = RuntimeError('db boom')
 
         with pytest.raises(RuntimeError):
-            GenerateReportUseCase.execute(ReportQuery(), vehicles=[])
+            uc.execute_instance(ReportQuery(), vehicles=[])
 
-        mock_cur.close.assert_called_once()
-
-    @patch('backend.application.report.get_cursor')
-    @patch('backend.application.report.get_db')
-    def test_invalid_period_falls_back_to_current_month(self, mock_db, mock_cur_fn):
-        mock_db.return_value = MagicMock()
-        mock_cur = _make_cursor(side_effects=[[], [], [], []])
-        mock_cur_fn.return_value = mock_cur
-
-        result = GenerateReportUseCase.execute(
+    def test_invalid_period_falls_back_to_current_month(self):
+        repo = _make_repo()
+        uc = GenerateReportUseCase(report_repo=repo)
+        result = uc.execute_instance(
             ReportQuery(month_str='garbage'), vehicles=[]
         )
 
@@ -171,14 +145,12 @@ class TestGenerateReportUseCase:
         today = date.today()
         assert result.month_str == today.strftime('%Y-%m')
 
-    @patch('backend.application.report.get_cursor')
-    @patch('backend.application.report.get_db')
-    def test_executes_five_queries(self, mock_db, mock_cur_fn):
-        mock_db.return_value = MagicMock()
-        mock_cur = _make_cursor(side_effects=[[], [], [], []])
-        mock_cur_fn.return_value = mock_cur
-
-        GenerateReportUseCase.execute(ReportQuery(), vehicles=[])
-
-        # trip_entries, total_km (fetchone), trip_summary, fuel, maintenance
-        assert mock_cur.execute.call_count == 5
+    def test_executes_five_queries(self):
+        repo = _make_repo()
+        uc = GenerateReportUseCase(report_repo=repo)
+        uc.execute_instance(ReportQuery(), vehicles=[])
+        assert repo.get_trip_entries.call_count == 1
+        assert repo.get_total_km.call_count == 1
+        assert repo.get_trip_summary.call_count == 1
+        assert repo.get_fuel_summary.call_count == 1
+        assert repo.get_maintenance_summary.call_count == 1

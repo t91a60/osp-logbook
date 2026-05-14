@@ -6,17 +6,12 @@ import pytest
 
 
 class TestValidationHelpers:
-    def test_optional_int_valid(self):
-        from backend.routes.api import _optional_int
+    def test_json_error_helper(self, app_context):
+        from backend.routes.api import _json_error
 
-        assert _optional_int('5', 'field') == 5
-        assert _optional_int(None, 'field') is None
-
-    def test_optional_float_valid(self):
-        from backend.routes.api import _optional_float
-
-        assert _optional_float('3.14', 'field') == pytest.approx(3.14)
-        assert _optional_float('', 'field') is None
+        response, status = _json_error('bad', 400)
+        assert status == 400
+        assert response.get_json()['success'] is False
 
     def test_parse_trip_equipment_form_valid(self):
         from backend.helpers import parse_trip_equipment_form
@@ -36,9 +31,10 @@ class TestValidationHelpers:
 
 
 class TestApiTripEndpoint:
-    @patch('backend.routes.api.VehicleRepository.get_active')
-    def test_add_trip_missing_vehicle_returns_400(self, mock_get_active, authenticated_client):
-        mock_get_active.return_value = None
+    @patch('backend.routes.api.AddTripUseCase.execute')
+    def test_add_trip_missing_vehicle_returns_400(self, mock_execute, authenticated_client):
+        from backend.domain.exceptions import ValidationError
+        mock_execute.side_effect = ValidationError('Nieprawidłowy pojazd.')
 
         with authenticated_client.session_transaction() as sess:
             csrf = sess['_csrf_token']
@@ -54,11 +50,8 @@ class TestApiTripEndpoint:
         assert response.status_code == 400
         assert response.get_json()['success'] is False
 
-    @patch('backend.routes.api.AuditService')
-    @patch('backend.routes.api.TripRepository')
-    @patch('backend.routes.api.VehicleRepository.get_active')
-    def test_add_trip_success(self, mock_get_active, mock_trip_repository, mock_audit, authenticated_client):
-        mock_get_active.return_value = {'id': 1}
+    @patch('backend.routes.api.AddTripUseCase.execute')
+    def test_add_trip_success(self, mock_execute, authenticated_client):
 
         with authenticated_client.session_transaction() as sess:
             csrf = sess['_csrf_token']
@@ -75,12 +68,9 @@ class TestApiTripEndpoint:
 
         assert response.status_code == 200
         assert response.get_json()['success'] is True
-        mock_trip_repository.add.assert_called_once()
-        mock_audit.log.assert_called_once()
+        mock_execute.assert_called_once()
 
-    @patch('backend.routes.api.VehicleRepository.get_active')
-    def test_add_trip_with_equipment_missing_minutes_returns_400(self, mock_get_active, authenticated_client):
-        mock_get_active.return_value = {'id': 1}
+    def test_add_trip_with_equipment_missing_minutes_returns_400(self, authenticated_client):
 
         with authenticated_client.session_transaction() as sess:
             csrf = sess['_csrf_token']
@@ -99,9 +89,10 @@ class TestApiTripEndpoint:
 
 
 class TestApiFuelEndpoint:
-    @patch('backend.routes.api.VehicleRepository.get_active')
-    def test_add_fuel_missing_vehicle_returns_400(self, mock_get_active, authenticated_client):
-        mock_get_active.return_value = None
+    @patch('backend.routes.api.AddFuelUseCase.execute')
+    def test_add_fuel_missing_vehicle_returns_400(self, mock_execute, authenticated_client):
+        from backend.domain.exceptions import ValidationError
+        mock_execute.side_effect = ValidationError('Nieprawidłowy pojazd.')
 
         with authenticated_client.session_transaction() as sess:
             csrf = sess['_csrf_token']
@@ -116,11 +107,8 @@ class TestApiFuelEndpoint:
 
         assert response.status_code == 400
 
-    @patch('backend.routes.api.AuditService')
-    @patch('backend.routes.api.FuelRepository')
-    @patch('backend.routes.api.VehicleRepository.get_active')
-    def test_add_fuel_success(self, mock_get_active, mock_fuel_repository, mock_audit, authenticated_client):
-        mock_get_active.return_value = {'id': 1}
+    @patch('backend.routes.api.AddFuelUseCase.execute')
+    def test_add_fuel_success(self, mock_execute, authenticated_client):
 
         with authenticated_client.session_transaction() as sess:
             csrf = sess['_csrf_token']
@@ -137,14 +125,14 @@ class TestApiFuelEndpoint:
 
         assert response.status_code == 200
         assert response.get_json()['success'] is True
-        mock_fuel_repository.add.assert_called_once()
-        mock_audit.log.assert_called_once()
+        mock_execute.assert_called_once()
 
 
 class TestApiMaintenanceEndpoint:
-    @patch('backend.routes.api.VehicleRepository.get_active')
-    def test_add_maintenance_missing_vehicle_returns_400(self, mock_get_active, authenticated_client):
-        mock_get_active.return_value = None
+    @patch('backend.routes.api.AddMaintenanceUseCase.execute')
+    def test_add_maintenance_missing_vehicle_returns_400(self, mock_execute, authenticated_client):
+        from backend.domain.exceptions import ValidationError
+        mock_execute.side_effect = ValidationError('Nieprawidłowy pojazd.')
 
         with authenticated_client.session_transaction() as sess:
             csrf = sess['_csrf_token']
@@ -158,11 +146,8 @@ class TestApiMaintenanceEndpoint:
 
         assert response.status_code == 400
 
-    @patch('backend.routes.api.AuditService')
-    @patch('backend.routes.api.MaintenanceRepository')
-    @patch('backend.routes.api.VehicleRepository.get_active')
-    def test_add_maintenance_success(self, mock_get_active, mock_maintenance_repository, mock_audit, authenticated_client):
-        mock_get_active.return_value = {'id': 1}
+    @patch('backend.routes.api.AddMaintenanceUseCase.execute')
+    def test_add_maintenance_success(self, mock_execute, authenticated_client):
 
         with authenticated_client.session_transaction() as sess:
             csrf = sess['_csrf_token']
@@ -178,8 +163,7 @@ class TestApiMaintenanceEndpoint:
 
         assert response.status_code == 200
         assert response.get_json()['success'] is True
-        mock_maintenance_repository.add.assert_called_once()
-        mock_audit.log.assert_called_once()
+        mock_execute.assert_called_once()
 
 
 class TestApiSupportEndpoints:

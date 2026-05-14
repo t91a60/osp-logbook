@@ -261,15 +261,12 @@ class TestAdminVehicleManagement:
     """Tests for the /pojazdy CRUD endpoints."""
 
     @patch('backend.routes.admin.invalidate_prefix')
-    @patch('backend.routes.admin.get_cursor')
-    @patch('backend.routes.admin.get_db')
-    def test_add_vehicle_success(self, mock_get_db, mock_get_cursor, mock_invalidate, admin_client):
+    @patch('backend.routes.admin.UseCaseFactory.get_vehicle_repo')
+    @patch('backend.routes.admin.AuditService.log')
+    def test_add_vehicle_success(self, mock_audit_log, mock_get_vehicle_repo, mock_invalidate, admin_client):
         """Admin can add a new vehicle."""
-        mock_conn = MagicMock()
-        mock_get_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_get_cursor.return_value = mock_cur
-        mock_cur.fetchall.return_value = []
+        mock_repo = MagicMock()
+        mock_get_vehicle_repo.return_value = mock_repo
 
         with admin_client.session_transaction() as sess:
             csrf = sess['_csrf_token']
@@ -281,63 +278,52 @@ class TestAdminVehicleManagement:
             'type': 'GCBA',
         })
         assert response.status_code == 302
-        mock_conn.commit.assert_called()
+        mock_repo.add.assert_called_once()
         mock_invalidate.assert_any_call('vehicles:')
         mock_invalidate.assert_any_call('dashboard:')
 
-    @patch('backend.routes.admin.get_cursor')
-    @patch('backend.routes.admin.get_db')
-    def test_list_vehicles(self, mock_get_db, mock_get_cursor, admin_client):
+    @patch('backend.routes.admin.UseCaseFactory.get_vehicle_repo')
+    def test_list_vehicles(self, mock_get_vehicle_repo, admin_client):
         """Admin can view vehicle list."""
-        mock_conn = MagicMock()
-        mock_get_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_get_cursor.return_value = mock_cur
-        mock_cur.fetchall.return_value = [
+        mock_repo = MagicMock()
+        mock_get_vehicle_repo.return_value = mock_repo
+        mock_repo.get_all.return_value = [
             {'id': 1, 'name': 'Fiat Ducato', 'plate': 'KR 12345', 'type': 'GCBA'},
         ]
 
         response = admin_client.get('/pojazdy')
         assert response.status_code == 200
 
-    @patch('backend.routes.admin.get_cursor')
-    @patch('backend.routes.admin.get_db')
-    def test_edit_vehicle_get(self, mock_get_db, mock_get_cursor, admin_client):
+    @patch('backend.routes.admin.UseCaseFactory.get_vehicle_repo')
+    def test_edit_vehicle_get(self, mock_get_vehicle_repo, admin_client):
         """Admin can view vehicle edit form."""
-        mock_conn = MagicMock()
-        mock_get_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_get_cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = {
+        mock_repo = MagicMock()
+        mock_get_vehicle_repo.return_value = mock_repo
+        mock_repo.get_by_id.return_value = {
             'id': 1, 'name': 'Old Name', 'plate': 'AB 123', 'type': 'SLRr',
         }
 
         response = admin_client.get('/pojazdy/1/edytuj')
         assert response.status_code == 200
 
-    @patch('backend.routes.admin.get_cursor')
-    @patch('backend.routes.admin.get_db')
-    def test_edit_vehicle_nonexistent(self, mock_get_db, mock_get_cursor, admin_client):
+    @patch('backend.routes.admin.UseCaseFactory.get_vehicle_repo')
+    def test_edit_vehicle_nonexistent(self, mock_get_vehicle_repo, admin_client):
         """Editing nonexistent vehicle redirects with error."""
-        mock_conn = MagicMock()
-        mock_get_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_get_cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = None
+        mock_repo = MagicMock()
+        mock_get_vehicle_repo.return_value = mock_repo
+        mock_repo.get_by_id.return_value = None
 
         response = admin_client.get('/pojazdy/999/edytuj')
         assert response.status_code == 302
 
     @patch('backend.routes.admin.invalidate_prefix')
-    @patch('backend.routes.admin.get_cursor')
-    @patch('backend.routes.admin.get_db')
-    def test_edit_vehicle_post_success(self, mock_get_db, mock_get_cursor, mock_invalidate, admin_client):
+    @patch('backend.routes.admin.UseCaseFactory.get_vehicle_repo')
+    @patch('backend.routes.admin.AuditService.log')
+    def test_edit_vehicle_post_success(self, mock_audit_log, mock_get_vehicle_repo, mock_invalidate, admin_client):
         """Admin can update a vehicle."""
-        mock_conn = MagicMock()
-        mock_get_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_get_cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = {
+        mock_repo = MagicMock()
+        mock_get_vehicle_repo.return_value = mock_repo
+        mock_repo.get_by_id.return_value = {
             'id': 1, 'name': 'Old Name', 'plate': 'AB 123', 'type': 'SLRr',
         }
 
@@ -351,20 +337,17 @@ class TestAdminVehicleManagement:
             'type': 'GCBA',
         })
         assert response.status_code == 302
-        mock_conn.commit.assert_called()
+        mock_repo.update.assert_called_once()
         mock_invalidate.assert_any_call('vehicles:')
         mock_invalidate.assert_any_call('dashboard:')
 
     @patch('backend.routes.admin.invalidate_prefix')
-    @patch('backend.routes.admin.get_cursor')
-    @patch('backend.routes.admin.get_db')
-    def test_edit_vehicle_empty_name(self, mock_get_db, mock_get_cursor, mock_invalidate, admin_client):
+    @patch('backend.routes.admin.UseCaseFactory.get_vehicle_repo')
+    def test_edit_vehicle_empty_name(self, mock_get_vehicle_repo, mock_invalidate, admin_client):
         """Empty vehicle name shows error."""
-        mock_conn = MagicMock()
-        mock_get_db.return_value = mock_conn
-        mock_cur = MagicMock()
-        mock_get_cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = {
+        mock_repo = MagicMock()
+        mock_get_vehicle_repo.return_value = mock_repo
+        mock_repo.get_by_id.return_value = {
             'id': 1, 'name': 'Old Name', 'plate': 'AB 123', 'type': 'SLRr',
         }
 
@@ -378,14 +361,16 @@ class TestAdminVehicleManagement:
             'type': 'GCBA',
         })
         # Should re-render the form (not commit)
-        mock_conn.commit.assert_not_called()
+        mock_repo.update.assert_not_called()
 
-    @patch('backend.routes.admin.VehicleRepository.delete')
-    def test_delete_vehicle_with_references(self, mock_delete, admin_client):
+    @patch('backend.routes.admin.UseCaseFactory.get_vehicle_repo')
+    def test_delete_vehicle_with_references(self, mock_get_vehicle_repo, admin_client):
         """Cannot delete vehicle that has trips/fuel/maintenance references."""
         from backend.domain.exceptions import ForbiddenError
 
-        mock_delete.side_effect = ForbiddenError('Nie można usunąć pojazdu.')
+        mock_repo = MagicMock()
+        mock_get_vehicle_repo.return_value = mock_repo
+        mock_repo.delete.side_effect = ForbiddenError('Nie można usunąć pojazdu.')
 
         with admin_client.session_transaction() as sess:
             csrf = sess['_csrf_token']
@@ -394,13 +379,15 @@ class TestAdminVehicleManagement:
             '_csrf_token': csrf,
         })
         assert response.status_code == 302
-        mock_delete.assert_called_once_with(1)
+        mock_repo.delete.assert_called_once_with(1)
 
     @patch('backend.routes.admin.AuditService.log')
-    @patch('backend.routes.admin.VehicleRepository.delete')
-    def test_delete_vehicle_success(self, mock_delete, mock_audit_log, admin_client):
+    @patch('backend.routes.admin.UseCaseFactory.get_vehicle_repo')
+    def test_delete_vehicle_success(self, mock_get_vehicle_repo, mock_audit_log, admin_client):
         """Admin can delete a vehicle with no references."""
-        mock_delete.return_value = None
+        mock_repo = MagicMock()
+        mock_get_vehicle_repo.return_value = mock_repo
+        mock_repo.delete.return_value = None
         mock_audit_log.return_value = None
 
         with admin_client.session_transaction() as sess:
@@ -410,15 +397,17 @@ class TestAdminVehicleManagement:
             '_csrf_token': csrf,
         })
         assert response.status_code == 302
-        mock_delete.assert_called_once_with(1)
+        mock_repo.delete.assert_called_once_with(1)
         mock_audit_log.assert_called_once()
 
-    @patch('backend.routes.admin.VehicleRepository.delete')
-    def test_delete_nonexistent_vehicle(self, mock_delete, admin_client):
+    @patch('backend.routes.admin.UseCaseFactory.get_vehicle_repo')
+    def test_delete_nonexistent_vehicle(self, mock_get_vehicle_repo, admin_client):
         """Deleting a nonexistent vehicle flashes error."""
         from backend.domain.exceptions import NotFoundError
 
-        mock_delete.side_effect = NotFoundError('Pojazd nie istnieje.')
+        mock_repo = MagicMock()
+        mock_get_vehicle_repo.return_value = mock_repo
+        mock_repo.delete.side_effect = NotFoundError('Pojazd nie istnieje.')
 
         with admin_client.session_transaction() as sess:
             csrf = sess['_csrf_token']
@@ -427,4 +416,4 @@ class TestAdminVehicleManagement:
             '_csrf_token': csrf,
         })
         assert response.status_code == 302
-        mock_delete.assert_called_once_with(1)
+        mock_repo.delete.assert_called_once_with(1)
