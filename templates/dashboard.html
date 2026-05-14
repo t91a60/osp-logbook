@@ -6,6 +6,20 @@
 
 <script nonce="{{ csp_nonce() }}">document.body.setAttribute('data-autorefresh', 'true');</script>
 
+  <!-- Active Trip Banner — shown via JS when localStorage has active trip -->
+  <div id="activeTripCard" class="active-trip-card hidden" aria-live="polite">
+    <div class="active-trip-pulse"></div>
+    <div class="active-trip-content">
+      <div class="active-trip-label">🚒 WYJAZD W TOKU</div>
+      <div class="active-trip-vehicle" id="activeTripVehicle">—</div>
+      <div class="active-trip-purpose" id="activeTripPurpose">—</div>
+      <div class="active-trip-timer" id="activeTripTimer">00:00</div>
+    </div>
+    <a href="/wyjazdy?complete=1" class="btn btn-complete-trip">
+      Zakończ wyjazd
+    </a>
+  </div>
+
   <!-- Quick Stats -->
   <div class="card" style="margin-top: 16px;">
     <div class="card-title">{{ today }}</div>
@@ -55,15 +69,23 @@
         </span>
       </div>
     </a>
-    <div class="vehicle-card-actions">
-      <a href="{{ url_for('trips', vehicle_id=vc.id, add=1) }}" class="vehicle-card-btn primary" id="btn-trip-{{ vc.id }}">
+    <div class="vehicle-card-actions stack">
+      <button class="vehicle-card-btn primary xl" id="btn-trip-{{ vc.id }}"
+              data-vehicle-id="{{ vc.id }}"
+              data-vehicle-name="{{ vc.name }}"
+              aria-label="Szybki wyjazd dla {{ vc.name }}"
+              onclick="startQuickTrip(this)" type="button">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Wyjazd
-      </a>
-      <a href="{{ url_for('fuel', vehicle_id=vc.id, add=1) }}" class="vehicle-card-btn" id="btn-fuel-{{ vc.id }}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Paliwo
-      </a>
+        Szybki Wyjazd
+      </button>
+      <div style="display:flex;gap:8px;">
+        <a href="{{ url_for('trips', vehicle_id=vc.id, add=1) }}" class="vehicle-card-btn" style="flex:1">
+          Pełny formularz
+        </a>
+        <a href="{{ url_for('fuel', vehicle_id=vc.id, add=1) }}" class="vehicle-card-btn" id="btn-fuel-{{ vc.id }}" style="flex:1">
+          ⛽ Paliwo
+        </a>
+      </div>
     </div>
   </div>
   {% endfor %}
@@ -151,8 +173,38 @@
   </div>
   {% endif %}
 
+  <div id="quickTripSheet" class="bottom-sheet hidden" role="dialog" aria-modal="true" aria-label="Szybki Wyjazd">
+    <div class="bottom-sheet-handle"></div>
+    <div class="bottom-sheet-header">
+      <span>🚒 Szybki Wyjazd</span>
+      <button onclick="closeQuickSheet()" class="btn-icon" aria-label="Zamknij" type="button">✕</button>
+    </div>
+    <div class="bottom-sheet-body">
+      <div id="quickVehicleLabel" class="quick-vehicle-name">—</div>
+
+      <div class="purpose-grid">
+        <button class="purpose-chip" data-value="Akcja ratownicza – pożar" aria-label="Akcja ratownicza – pożar" type="button">🔥 Pożar</button>
+        <button class="purpose-chip" data-value="Akcja ratownicza – wypadek drogowy" aria-label="Akcja ratownicza – wypadek drogowy" type="button">🚗 Wypadek</button>
+        <button class="purpose-chip" data-value="Akcja ratownicza – miejscowe zagrożenie" aria-label="Akcja ratownicza – miejscowe zagrożenie" type="button">⚠️ Zagrożenie</button>
+        <button class="purpose-chip" data-value="Ćwiczenia" aria-label="Ćwiczenia" type="button">🎯 Ćwiczenia</button>
+        <button class="purpose-chip" data-value="__inne__" aria-label="Inne" type="button">✏️ Inne</button>
+      </div>
+      <div id="quickPurposeCustomWrap" class="hidden">
+        <input type="text" id="quickPurposeCustom" class="form-input" placeholder="Opisz cel...">
+      </div>
+
+      <div class="form-field" style="margin-top:12px;">
+        <label class="form-label" for="quickOdoStart">Km start (opcjonalnie)</label>
+        <input type="number" id="quickOdoStart" class="form-input xl" inputmode="numeric" placeholder="np. 12 450">
+      </div>
+    </div>
+    <div class="bottom-sheet-footer">
+      <button class="btn btn-primary btn-xl" id="quickTripConfirmBtn" onclick="confirmQuickTrip()" type="button">
+        🚒 START — Wyjeżdżam!
+      </button>
+    </div>
+  </div>
+  <div class="bottom-sheet-backdrop hidden" id="quickTripBackdrop" onclick="closeQuickSheet()"></div>
+
 </div>
 {% endblock %}
-
-
-
