@@ -546,8 +546,16 @@ function _setupSwipeToDelete() {
   });
 }
 
+function _formatLocalTime(now) {
+  return String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+}
+
+function _formatLocalDate(now) {
+  return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+}
+
 // Active Trip Module
-var ActiveTrip = {
+var ActiveTrip = window.ActiveTrip = {
   STORAGE_KEY: "osp_active_trip",
   _timerInterval: null,
 
@@ -747,8 +755,8 @@ function confirmQuickTrip() {
     purpose: purpose,
     odoStart: odoStartInput ? odoStartInput.value : "",
     timeStartMs: Date.now(),
-    timeStartStr: now.toTimeString().slice(0, 5),
-    dateStr: now.toISOString().slice(0, 10),
+    timeStartStr: _formatLocalTime(now),
+    dateStr: _formatLocalDate(now),
     driver: driverName
   };
 
@@ -803,7 +811,7 @@ function prefillFromActiveTrip() {
   });
 
   var timeEndEl = document.getElementById("trip_time_end");
-  if (timeEndEl && !timeEndEl.value) timeEndEl.value = new Date().toTimeString().slice(0, 5);
+  if (timeEndEl && !timeEndEl.value) timeEndEl.value = _formatLocalTime(new Date());
 
   var purposeSelect = document.getElementById("purposeSelect");
   if (purposeSelect && data.purpose) {

@@ -1121,10 +1121,6 @@ body {
   font-weight: 700;
 }
 
-select.quick-trip-readonly {
-  pointer-events: none;
-}
-
 /* Skeleton */
 .skeleton {
   border-radius: 8px;
