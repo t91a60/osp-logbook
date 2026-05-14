@@ -207,4 +207,17 @@
   <div class="bottom-sheet-backdrop hidden" id="quickTripBackdrop" onclick="closeQuickSheet()"></div>
 
 </div>
-{% endblock %}
+
+  {% block extra_js %}
+    <script nonce="{{ csp_nonce() }}">
+      // Expose CSRF token and small config for the quick-trip JS
+      window.ospConfig = {
+        csrfToken: '{{ csrf_token() }}',
+        apiAddTrip: '{{ url_for("api_add_trip") }}',
+        currentUser: '{{ session.get("username", "") }}'
+      };
+    </script>
+    <script nonce="{{ csp_nonce() }}" src="{{ asset_url('static/js/osp-quicktrip.js') }}"></script>
+  {% endblock %}
+
+  {% endblock %}
