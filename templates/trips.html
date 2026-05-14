@@ -8,13 +8,17 @@
   <form id="tripForm" onsubmit="return submitTrip()" style="margin-top:16px;" method="POST">
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
     <div class="form-section">
+      <div id="activeTripRestoreBanner" class="active-trip-restore-banner hidden">
+        <span>Uzupełniasz wyjazd z <strong id="activeTripStartedAt">—</strong></span>
+        <span class="badge" id="activeTripElapsed">00:00</span>
+      </div>
       <div class="form-section-title">Nowy wyjazd</div>
 
       <div class="form-grid full">
 
         <!-- Vehicle -->
         <div class="form-field">
-          <label class="form-label" for="vehicle_id">Pojazd</label>
+          <label class="form-label" for="vehicle_id">Pojazd <span id="quickTagVehicle" class="badge hidden">z szybkiego wyjazdu</span></label>
           <select name="vehicle_id" id="vehicle_id" class="form-select" required
                   onchange="rememberVehicle(this.value,'trips'); loadLastKm(this.value,'lastKmHint'); loadEquipment(this.value);">
             <option value="">– Wybierz pojazd –</option>
@@ -29,13 +33,13 @@
 
         <!-- Date -->
         <div class="form-field">
-          <label class="form-label" for="trip_date">Data</label>
+          <label class="form-label" for="trip_date">Data <span id="quickTagDate" class="badge hidden">z szybkiego wyjazdu</span></label>
           <input type="date" name="date" id="trip_date" class="form-input" value="{{ today }}" required>
         </div>
 
         <!-- Time start -->
         <div class="form-field">
-          <label class="form-label" for="trip_time_start">Godz. wyjazdu</label>
+          <label class="form-label" for="trip_time_start">Godz. wyjazdu <span id="quickTagTimeStart" class="badge hidden">z szybkiego wyjazdu</span></label>
           <input type="time" name="time_start" id="trip_time_start" class="form-input" placeholder="HH:MM">
         </div>
 
@@ -47,7 +51,7 @@
 
         <!-- Driver -->
         <div class="form-field full">
-          <label class="form-label" for="driver">Kierowca</label>
+          <label class="form-label" for="driver">Kierowca <span id="quickTagDriver" class="badge hidden">z szybkiego wyjazdu</span></label>
           <input type="text" name="driver" id="driver" class="form-input"
                  value="{{ session.display_name }}"
                  placeholder="Imię i nazwisko"
@@ -59,7 +63,7 @@
 
         <!-- Odo start -->
         <div class="form-field">
-          <label class="form-label" for="odo_start">Km start</label>
+          <label class="form-label" for="odo_start">Km start <span id="quickTagOdoStart" class="badge hidden">z szybkiego wyjazdu</span></label>
           <input type="number" name="odo_start" id="odo_start" class="form-input"
                  placeholder="np. 12 450"
                  inputmode="numeric" min="0"
@@ -78,7 +82,7 @@
 
         <!-- Purpose combo -->
         <div class="form-field full">
-          <label class="form-label" for="purposeSelect">Cel wyjazdu</label>
+          <label class="form-label" for="purposeSelect">Cel wyjazdu <span id="quickTagPurpose" class="badge hidden">z szybkiego wyjazdu</span></label>
           <select name="purpose_select" id="purposeSelect" class="form-select"
                   onchange="onPurposeChange(this)" required>
             <option value="">– Wybierz cel –</option>
@@ -279,6 +283,9 @@ function submitTrip() {
   }
   if (!validateEquipmentUsage()) { return false; }
   return submitForm('tripForm', '{{ url_for("api_add_trip") }}', function() {
+    if (window.ActiveTrip && typeof window.ActiveTrip.clear === 'function') {
+      window.ActiveTrip.clear();
+    }
     document.getElementById('vehicle_id').focus();
   });
 }

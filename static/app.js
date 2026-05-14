@@ -546,6 +546,311 @@ function _setupSwipeToDelete() {
   });
 }
 
+// Active Trip Module
+var ActiveTrip = {
+  STORAGE_KEY: "osp_active_trip",
+  _timerInterval: null,
+
+  save: function (data) {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {}
+  },
+
+  load: function () {
+    try {
+      return JSON.parse(localStorage.getItem(this.STORAGE_KEY));
+    } catch (e) {
+      return null;
+    }
+  },
+
+  clear: function () {
+    try {
+      localStorage.removeItem(this.STORAGE_KEY);
+    } catch (e) {}
+    clearInterval(this._timerInterval);
+    this._timerInterval = null;
+    this.renderCard();
+    resetQuickTripPrefillState();
+  },
+
+  renderCard: function () {
+    var data = this.load();
+    var card = document.getElementById("activeTripCard");
+    if (!card) return;
+    if (!data) {
+      card.classList.add("hidden");
+      clearInterval(this._timerInterval);
+      this._timerInterval = null;
+      return;
+    }
+
+    var vehicleEl = document.getElementById("activeTripVehicle");
+    var purposeEl = document.getElementById("activeTripPurpose");
+    if (vehicleEl) vehicleEl.textContent = data.vehicleName || "—";
+    if (purposeEl) purposeEl.textContent = data.purpose || "—";
+    card.classList.remove("hidden");
+    this._startTimer(data.timeStartMs);
+  },
+
+  _startTimer: function (startMs) {
+    var el = document.getElementById("activeTripTimer");
+    if (!el || !startMs) return;
+    clearInterval(this._timerInterval);
+
+    var tick = function () {
+      var elapsed = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+      var h = Math.floor(elapsed / 3600);
+      var m = Math.floor((elapsed % 3600) / 60);
+      var s = elapsed % 60;
+      el.textContent = (h ? h + ":" : "") + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    };
+    tick();
+    this._timerInterval = setInterval(tick, 1000);
+  },
+
+  isCompleteMode: function () {
+    var params = new URLSearchParams(window.location.search);
+    return params.has("complete") || !!this.load();
+  },
+
+  bootstrap: function () {
+    this.renderCard();
+    this._bindQuickTripChips();
+  },
+
+  _bindQuickTripChips: function () {
+    var chips = document.querySelectorAll(".purpose-chip");
+    chips.forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        chips.forEach(function (item) { item.classList.remove("selected"); });
+        chip.classList.add("selected");
+        var wrap = document.getElementById("quickPurposeCustomWrap");
+        var input = document.getElementById("quickPurposeCustom");
+        if (chip.dataset.value === "__inne__") {
+          if (wrap) wrap.classList.remove("hidden");
+          if (input) input.focus();
+        } else {
+          if (wrap) wrap.classList.add("hidden");
+          if (input) input.value = "";
+        }
+      });
+    });
+  }
+};
+
+function resetQuickTripPrefillState() {
+  var banner = document.getElementById("activeTripRestoreBanner");
+  if (banner) banner.classList.add("hidden");
+
+  [
+    "quickTagVehicle",
+    "quickTagDate",
+    "quickTagTimeStart",
+    "quickTagDriver",
+    "quickTagOdoStart",
+    "quickTagPurpose"
+  ].forEach(function (id) {
+    var tag = document.getElementById(id);
+    if (tag) tag.classList.add("hidden");
+  });
+
+  [
+    "vehicle_id",
+    "trip_date",
+    "trip_time_start",
+    "driver",
+    "odo_start",
+    "purposeSelect"
+  ].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.readOnly = false;
+    el.classList.remove("quick-trip-readonly");
+    if (el.dataset && el.dataset.lockValue) delete el.dataset.lockValue;
+  });
+}
+
+function startQuickTrip(btn) {
+  var vehicleId = btn && btn.dataset ? btn.dataset.vehicleId : "";
+  var vehicleName = btn && btn.dataset ? btn.dataset.vehicleName : "";
+  var sheet = document.getElementById("quickTripSheet");
+  var backdrop = document.getElementById("quickTripBackdrop");
+  if (!sheet || !backdrop) return;
+
+  sheet.dataset.vehicleId = vehicleId || "";
+  sheet.dataset.vehicleName = vehicleName || "";
+  var vehicleLabel = document.getElementById("quickVehicleLabel");
+  if (vehicleLabel) vehicleLabel.textContent = vehicleName || "—";
+
+  var chips = document.querySelectorAll(".purpose-chip");
+  chips.forEach(function (chip) { chip.classList.remove("selected"); });
+  if (chips.length) chips[0].classList.add("selected");
+
+  var customWrap = document.getElementById("quickPurposeCustomWrap");
+  var customInput = document.getElementById("quickPurposeCustom");
+  var odoStartInput = document.getElementById("quickOdoStart");
+  if (customWrap) customWrap.classList.add("hidden");
+  if (customInput) customInput.value = "";
+  if (odoStartInput) odoStartInput.value = "";
+
+  backdrop.classList.remove("hidden");
+  sheet.classList.remove("hidden");
+  requestAnimationFrame(function () {
+    sheet.classList.add("open");
+  });
+  Haptics.longPress();
+}
+
+function closeQuickSheet() {
+  var sheet = document.getElementById("quickTripSheet");
+  var backdrop = document.getElementById("quickTripBackdrop");
+  if (!sheet || !backdrop) return;
+  sheet.classList.remove("open");
+  setTimeout(function () {
+    sheet.classList.add("hidden");
+    backdrop.classList.add("hidden");
+  }, 420);
+}
+
+function confirmQuickTrip() {
+  var sheet = document.getElementById("quickTripSheet");
+  if (!sheet) return;
+
+  var selected = document.querySelector(".purpose-chip.selected");
+  if (!selected) {
+    showToast("Wybierz cel wyjazdu.", "error");
+    Haptics.error();
+    return;
+  }
+
+  var purpose = selected.dataset.value || "";
+  if (purpose === "__inne__") {
+    var custom = document.getElementById("quickPurposeCustom");
+    var customValue = custom ? custom.value.trim() : "";
+    if (!customValue) {
+      showToast("Opisz cel wyjazdu.", "error");
+      Haptics.error();
+      return;
+    }
+    purpose = customValue;
+  }
+
+  var now = new Date();
+  var topbarName = document.querySelector(".topbar-user span");
+  var driverName = topbarName ? topbarName.textContent.trim() : "";
+  var odoStartInput = document.getElementById("quickOdoStart");
+  var data = {
+    vehicleId: sheet.dataset.vehicleId || "",
+    vehicleName: sheet.dataset.vehicleName || "—",
+    purpose: purpose,
+    odoStart: odoStartInput ? odoStartInput.value : "",
+    timeStartMs: Date.now(),
+    timeStartStr: now.toTimeString().slice(0, 5),
+    dateStr: now.toISOString().slice(0, 10),
+    driver: driverName
+  };
+
+  ActiveTrip.save(data);
+  closeQuickSheet();
+  ActiveTrip.renderCard();
+  Haptics.success();
+  showToast("🚒 Wyjazd zarejestrowany! " + data.vehicleName, "success", 3000);
+}
+
+function prefillFromActiveTrip() {
+  var data = ActiveTrip.load();
+  if (!data) return;
+  if (!ActiveTrip.isCompleteMode()) return;
+
+  var banner = document.getElementById("activeTripRestoreBanner");
+  if (banner) {
+    var startedEl = document.getElementById("activeTripStartedAt");
+    var elapsedEl = document.getElementById("activeTripElapsed");
+    var started = data.timeStartStr || "—";
+    var elapsedSec = Math.max(0, Math.floor((Date.now() - (data.timeStartMs || Date.now())) / 1000));
+    var h = Math.floor(elapsedSec / 3600);
+    var m = Math.floor((elapsedSec % 3600) / 60);
+    var s = elapsedSec % 60;
+    if (startedEl) startedEl.textContent = started;
+    if (elapsedEl) elapsedEl.textContent = (h ? h + ":" : "") + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    banner.classList.remove("hidden");
+  }
+
+  var fields = {
+    vehicle_id: data.vehicleId,
+    trip_date: data.dateStr,
+    trip_time_start: data.timeStartStr,
+    driver: data.driver,
+    odo_start: data.odoStart
+  };
+
+  Object.keys(fields).forEach(function (id) {
+    var val = fields[id];
+    var el = document.getElementById(id);
+    if (!el || !val) return;
+    el.value = val;
+    if (el.tagName !== "SELECT") {
+      el.readOnly = true;
+    } else {
+      el.dataset.lockValue = String(val);
+      el.addEventListener("change", function () {
+        this.value = this.dataset.lockValue || this.value;
+      });
+    }
+    el.classList.add("quick-trip-readonly");
+  });
+
+  var timeEndEl = document.getElementById("trip_time_end");
+  if (timeEndEl && !timeEndEl.value) timeEndEl.value = new Date().toTimeString().slice(0, 5);
+
+  var purposeSelect = document.getElementById("purposeSelect");
+  if (purposeSelect && data.purpose) {
+    var found = false;
+    for (var i = 0; i < purposeSelect.options.length; i++) {
+      if (purposeSelect.options[i].value === data.purpose) {
+        purposeSelect.value = data.purpose;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      purposeSelect.value = "__inne__";
+      onPurposeChange(purposeSelect);
+      var purposeCustom = document.getElementById("purposeCustom");
+      if (purposeCustom) purposeCustom.value = data.purpose;
+    }
+    purposeSelect.dataset.lockValue = purposeSelect.value;
+    purposeSelect.addEventListener("change", function () {
+      this.value = this.dataset.lockValue || this.value;
+      onPurposeChange(this);
+    });
+    purposeSelect.classList.add("quick-trip-readonly");
+  }
+
+  [
+    "quickTagVehicle",
+    "quickTagDate",
+    "quickTagTimeStart",
+    "quickTagDriver",
+    "quickTagOdoStart",
+    "quickTagPurpose"
+  ].forEach(function (id) {
+    var tag = document.getElementById(id);
+    if (tag) tag.classList.remove("hidden");
+  });
+
+  var endField = document.getElementById("odo_end");
+  var endWrap = endField ? endField.closest(".form-field") : null;
+  var grid = endWrap ? endWrap.parentElement : null;
+  if (grid && endWrap && grid.firstElementChild !== endWrap) grid.insertBefore(endWrap, grid.firstElementChild);
+  if (endField) endField.classList.add("xl");
+
+  loadLastKm(data.vehicleId, "lastKmHint");
+  loadEquipment(data.vehicleId);
+}
+
 // Page init
 document.addEventListener("DOMContentLoaded", function () {
   var vp = document.querySelector('meta[name="viewport"]');
@@ -567,6 +872,8 @@ document.addEventListener("DOMContentLoaded", function () {
   _setupCountUp();
   _setupPullToRefresh();
   _setupSwipeToDelete();
+  ActiveTrip.bootstrap();
+  prefillFromActiveTrip();
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', function(event) {
