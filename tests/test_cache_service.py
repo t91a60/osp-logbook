@@ -1,5 +1,7 @@
 """Tests for backend/services/cache_service.py — thread-safe TTL cache."""
 
+# TODO: fix — cache_service switched to RedisCache backend; these tests depend on removed `_cache` internals.
+
 import time
 import threading
 import pytest

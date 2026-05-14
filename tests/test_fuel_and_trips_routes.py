@@ -7,7 +7,7 @@ import pytest
 
 class TestTripsRoute:
     @patch('backend.routes.trips.render_template')
-    @patch('backend.routes.trips.TripRepository.get_page')
+    @patch('backend.routes.trips.GetTripsUseCase.execute')
     @patch('backend.routes.trips.get_vehicles_cached')
     def test_get_renders(self, mock_vehicles, mock_get_page, mock_render, authenticated_client):
         mock_vehicles.return_value = [{'id': 1, 'name': 'GBA'}]
@@ -19,13 +19,10 @@ class TestTripsRoute:
         assert response.status_code == 200
         assert response.data == b'trips-page'
 
-    @patch('backend.routes.trips.AuditService')
-    @patch('backend.routes.trips.TripRepository')
-    @patch('backend.routes.trips.VehicleRepository.get_active')
+    @patch('backend.routes.trips.AddTripUseCase.execute')
     @patch('backend.routes.trips.get_vehicles_cached')
-    def test_post_valid_data_creates_trip(self, mock_vehicles, mock_get_active, mock_trip_repo, mock_audit, authenticated_client):
+    def test_post_valid_data_creates_trip(self, mock_vehicles, mock_execute, authenticated_client):
         mock_vehicles.return_value = [{'id': 1, 'name': 'GBA'}]
-        mock_get_active.return_value = {'id': 1}
 
         with authenticated_client.session_transaction() as sess:
             csrf = sess['_csrf_token']
@@ -41,14 +38,11 @@ class TestTripsRoute:
         })
 
         assert response.status_code == 302
-        mock_trip_repo.add.assert_called_once()
-        mock_audit.log.assert_called_once()
+        mock_execute.assert_called_once()
 
-    @patch('backend.routes.trips.VehicleRepository.get_active')
     @patch('backend.routes.trips.get_vehicles_cached')
-    def test_post_missing_vehicle_returns_400(self, mock_vehicles, mock_get_active, authenticated_client):
+    def test_post_missing_vehicle_returns_400(self, mock_vehicles, authenticated_client):
         mock_vehicles.return_value = []
-        mock_get_active.return_value = None
 
         with authenticated_client.session_transaction() as sess:
             csrf = sess['_csrf_token']
@@ -66,7 +60,7 @@ class TestTripsRoute:
 
 class TestFuelRoute:
     @patch('backend.routes.fuel.render_template')
-    @patch('backend.routes.fuel.FuelRepository.get_page')
+    @patch('backend.routes.fuel.GetFuelUseCase.execute')
     @patch('backend.routes.fuel.get_vehicles_cached')
     def test_get_renders(self, mock_vehicles, mock_get_page, mock_render, authenticated_client):
         mock_vehicles.return_value = [{'id': 1, 'name': 'GBA'}]
@@ -78,13 +72,10 @@ class TestFuelRoute:
         assert response.status_code == 200
         assert response.data == b'fuel-page'
 
-    @patch('backend.routes.fuel.AuditService')
-    @patch('backend.routes.fuel.FuelRepository')
-    @patch('backend.routes.fuel.VehicleRepository.get_active')
+    @patch('backend.routes.fuel.AddFuelUseCase.execute')
     @patch('backend.routes.fuel.get_vehicles_cached')
-    def test_post_valid_data_creates_entry(self, mock_vehicles, mock_get_active, mock_fuel_repo, mock_audit, authenticated_client):
+    def test_post_valid_data_creates_entry(self, mock_vehicles, mock_execute, authenticated_client):
         mock_vehicles.return_value = [{'id': 1, 'name': 'GBA'}]
-        mock_get_active.return_value = {'id': 1}
 
         with authenticated_client.session_transaction() as sess:
             csrf = sess['_csrf_token']
@@ -100,14 +91,11 @@ class TestFuelRoute:
         })
 
         assert response.status_code == 302
-        mock_fuel_repo.add.assert_called_once()
-        mock_audit.log.assert_called_once()
+        mock_execute.assert_called_once()
 
-    @patch('backend.routes.fuel.VehicleRepository.get_active')
     @patch('backend.routes.fuel.get_vehicles_cached')
-    def test_post_missing_vehicle_returns_400(self, mock_vehicles, mock_get_active, authenticated_client):
+    def test_post_missing_vehicle_returns_400(self, mock_vehicles, authenticated_client):
         mock_vehicles.return_value = []
-        mock_get_active.return_value = None
 
         with authenticated_client.session_transaction() as sess:
             csrf = sess['_csrf_token']

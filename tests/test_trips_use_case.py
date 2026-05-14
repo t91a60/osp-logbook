@@ -42,61 +42,80 @@ def _valid_cmd(**overrides) -> AddTripCommand:
 
 class TestAddTripUseCaseValidation:
     def test_missing_driver_raises_validation_error(self):
+        trip_repo = MagicMock()
+        vehicle_repo = MagicMock()
+        uc = AddTripUseCase(trip_repo=trip_repo, vehicle_repo=vehicle_repo)
         cmd = _valid_cmd(driver='')
         with pytest.raises(ValidationError, match='Kierowca'):
-            AddTripUseCase.execute(cmd)
+            uc.execute_instance(cmd)
 
     def test_missing_purpose_raises_validation_error(self):
+        trip_repo = MagicMock()
+        vehicle_repo = MagicMock()
+        uc = AddTripUseCase(trip_repo=trip_repo, vehicle_repo=vehicle_repo)
         cmd = _valid_cmd(purpose='')
         with pytest.raises(ValidationError, match='Cel wyjazdu'):
-            AddTripUseCase.execute(cmd)
+            uc.execute_instance(cmd)
 
     def test_bad_date_format_raises_validation_error(self):
+        trip_repo = MagicMock()
+        vehicle_repo = MagicMock()
+        uc = AddTripUseCase(trip_repo=trip_repo, vehicle_repo=vehicle_repo)
         cmd = _valid_cmd(date_val='12-05-2026')
         with pytest.raises(ValidationError):
-            AddTripUseCase.execute(cmd)
+            uc.execute_instance(cmd)
 
     def test_odometer_end_less_than_start_raises_validation_error(self):
+        trip_repo = MagicMock()
+        vehicle_repo = MagicMock()
+        uc = AddTripUseCase(trip_repo=trip_repo, vehicle_repo=vehicle_repo)
         cmd = _valid_cmd(odo_start='500', odo_end='400')
         with pytest.raises(ValidationError):
-            AddTripUseCase.execute(cmd)
+            uc.execute_instance(cmd)
 
     def test_negative_odo_raises_validation_error(self):
+        trip_repo = MagicMock()
+        vehicle_repo = MagicMock()
+        uc = AddTripUseCase(trip_repo=trip_repo, vehicle_repo=vehicle_repo)
         cmd = _valid_cmd(odo_start='-10', odo_end='100')
         with pytest.raises(ValidationError):
-            AddTripUseCase.execute(cmd)
+            uc.execute_instance(cmd)
 
-    @patch('backend.application.trips.VehicleRepository')
-    def test_invalid_vehicle_raises_validation_error(self, mock_repo):
-        mock_repo.get_active.return_value = None
+    def test_invalid_vehicle_raises_validation_error(self):
+        trip_repo = MagicMock()
+        vehicle_repo = MagicMock()
+        vehicle_repo.get_active.return_value = None
+        uc = AddTripUseCase(trip_repo=trip_repo, vehicle_repo=vehicle_repo)
         cmd = _valid_cmd(vehicle_id='999')
         with pytest.raises(ValidationError, match='pojazd'):
-            AddTripUseCase.execute(cmd)
+            uc.execute_instance(cmd)
 
 
 class TestAddTripUseCaseSuccess:
     @patch('backend.application.trips.invalidate_prefix')
     @patch('backend.application.trips.AuditService')
-    @patch('backend.application.trips.TripRepository')
-    @patch('backend.application.trips.VehicleRepository')
-    def test_returns_trip_id(self, mock_vehicle_repo, mock_trip_repo, mock_audit, mock_inv):
+    def test_returns_trip_id(self, mock_audit, mock_inv):
+        mock_vehicle_repo = MagicMock()
+        mock_trip_repo = MagicMock()
+        uc = AddTripUseCase(trip_repo=mock_trip_repo, vehicle_repo=mock_vehicle_repo)
         mock_vehicle_repo.get_active.return_value = {'id': 1, 'name': 'GBA'}
         mock_trip_repo.add.return_value = 42
 
         cmd = _valid_cmd()
-        trip_id = AddTripUseCase.execute(cmd)
+        trip_id = uc.execute_instance(cmd)
 
         assert trip_id == 42
 
     @patch('backend.application.trips.invalidate_prefix')
     @patch('backend.application.trips.AuditService')
-    @patch('backend.application.trips.TripRepository')
-    @patch('backend.application.trips.VehicleRepository')
-    def test_calls_trip_repository_add(self, mock_vehicle_repo, mock_trip_repo, mock_audit, mock_inv):
+    def test_calls_trip_repository_add(self, mock_audit, mock_inv):
+        mock_vehicle_repo = MagicMock()
+        mock_trip_repo = MagicMock()
+        uc = AddTripUseCase(trip_repo=mock_trip_repo, vehicle_repo=mock_vehicle_repo)
         mock_vehicle_repo.get_active.return_value = {'id': 1, 'name': 'GBA'}
         mock_trip_repo.add.return_value = 1
 
-        AddTripUseCase.execute(_valid_cmd())
+        uc.execute_instance(_valid_cmd())
 
         mock_trip_repo.add.assert_called_once()
         call_kwargs = mock_trip_repo.add.call_args.kwargs
@@ -107,13 +126,14 @@ class TestAddTripUseCaseSuccess:
 
     @patch('backend.application.trips.invalidate_prefix')
     @patch('backend.application.trips.AuditService')
-    @patch('backend.application.trips.TripRepository')
-    @patch('backend.application.trips.VehicleRepository')
-    def test_emits_audit_log(self, mock_vehicle_repo, mock_trip_repo, mock_audit, mock_inv):
+    def test_emits_audit_log(self, mock_audit, mock_inv):
+        mock_vehicle_repo = MagicMock()
+        mock_trip_repo = MagicMock()
+        uc = AddTripUseCase(trip_repo=mock_trip_repo, vehicle_repo=mock_vehicle_repo)
         mock_vehicle_repo.get_active.return_value = {'id': 1, 'name': 'GBA'}
         mock_trip_repo.add.return_value = 1
 
-        AddTripUseCase.execute(_valid_cmd())
+        uc.execute_instance(_valid_cmd())
 
         mock_audit.log.assert_called_once()
         args = mock_audit.log.call_args.args
@@ -122,14 +142,15 @@ class TestAddTripUseCaseSuccess:
 
     @patch('backend.application.trips.invalidate_prefix')
     @patch('backend.application.trips.AuditService')
-    @patch('backend.application.trips.TripRepository')
-    @patch('backend.application.trips.VehicleRepository')
-    def test_none_odo_accepted(self, mock_vehicle_repo, mock_trip_repo, mock_audit, mock_inv):
+    def test_none_odo_accepted(self, mock_audit, mock_inv):
+        mock_vehicle_repo = MagicMock()
+        mock_trip_repo = MagicMock()
+        uc = AddTripUseCase(trip_repo=mock_trip_repo, vehicle_repo=mock_vehicle_repo)
         mock_vehicle_repo.get_active.return_value = {'id': 1, 'name': 'GBA'}
         mock_trip_repo.add.return_value = 1
 
         cmd = _valid_cmd(odo_start=None, odo_end=None)
-        trip_id = AddTripUseCase.execute(cmd)
+        trip_id = uc.execute_instance(cmd)
 
         assert trip_id == 1
         call_kwargs = mock_trip_repo.add.call_args.kwargs
@@ -138,13 +159,14 @@ class TestAddTripUseCaseSuccess:
 
     @patch('backend.application.trips.invalidate_prefix')
     @patch('backend.application.trips.AuditService')
-    @patch('backend.application.trips.TripRepository')
-    @patch('backend.application.trips.VehicleRepository')
-    def test_cache_invalidation_called(self, mock_vehicle_repo, mock_trip_repo, mock_audit, mock_inv):
+    def test_cache_invalidation_called(self, mock_audit, mock_inv):
+        mock_vehicle_repo = MagicMock()
+        mock_trip_repo = MagicMock()
+        uc = AddTripUseCase(trip_repo=mock_trip_repo, vehicle_repo=mock_vehicle_repo)
         mock_vehicle_repo.get_active.return_value = {'id': 5, 'name': 'GBA'}
         mock_trip_repo.add.return_value = 10
 
-        AddTripUseCase.execute(_valid_cmd(vehicle_id='5'))
+        uc.execute_instance(_valid_cmd(vehicle_id='5'))
 
         mock_inv.assert_called_once_with('report:5:')
 
@@ -154,12 +176,13 @@ class TestAddTripUseCaseSuccess:
 # ---------------------------------------------------------------------------
 
 class TestGetTripsUseCase:
-    @patch('backend.application.trips.TripRepository')
-    def test_delegates_to_repository(self, mock_repo):
+    def test_delegates_to_repository(self):
+        mock_repo = MagicMock()
+        uc = GetTripsUseCase(trip_repo=mock_repo)
         mock_repo.get_page.return_value = ([{'id': 1}], 1, 1, 1)
 
         q = GetTripsQuery(vehicle_id='1', page=1)
-        entries, total, total_pages, page = GetTripsUseCase.execute(q)
+        entries, total, total_pages, page = uc.execute_instance(q)
 
         assert entries == [{'id': 1}]
         assert total == 1
@@ -171,11 +194,12 @@ class TestGetTripsUseCase:
             page=1,
         )
 
-    @patch('backend.application.trips.TripRepository')
-    def test_default_query_values(self, mock_repo):
+    def test_default_query_values(self):
+        mock_repo = MagicMock()
+        uc = GetTripsUseCase(trip_repo=mock_repo)
         mock_repo.get_page.return_value = ([], 0, 1, 1)
 
-        GetTripsUseCase.execute(GetTripsQuery())
+        uc.execute_instance(GetTripsQuery())
 
         mock_repo.get_page.assert_called_once_with(
             vehicle_id=None,

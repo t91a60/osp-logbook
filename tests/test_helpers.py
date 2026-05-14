@@ -174,9 +174,7 @@ class TestLoginRequired:
         assert '/login' in response.headers.get('Location', '')
 
     @patch('backend.routes.main.get_or_set')
-    @patch('backend.routes.main.get_cursor')
-    @patch('backend.routes.main.get_db')
-    def test_allows_access_when_logged_in(self, mock_get_db, mock_get_cursor, mock_cache, authenticated_client):
+    def test_allows_access_when_logged_in(self, mock_cache, authenticated_client):
         """GET to dashboard with an authenticated session does not redirect to login."""
         # Mock cache to return a pre-built dashboard payload
         mock_cache.return_value = {

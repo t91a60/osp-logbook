@@ -36,7 +36,7 @@ class TestCsrfJsonResponse:
 
 
 class TestUnhandledErrorHandler:
-    @patch('backend.routes.trips.TripRepository.get_page')
+    @patch('backend.routes.trips.GetTripsUseCase.execute')
     def test_browser_route_unhandled_exception_returns_500(self, mock_get_page, authenticated_client):
         mock_get_page.side_effect = RuntimeError('unexpected boom')
 
@@ -44,10 +44,8 @@ class TestUnhandledErrorHandler:
 
         assert response.status_code == 500
 
-    @patch('backend.routes.api.TripRepository.add')
-    @patch('backend.routes.api.VehicleRepository.get_active')
-    def test_api_route_unhandled_exception_returns_json_500(self, mock_get_active, mock_add, authenticated_client):
-        mock_get_active.return_value = {'id': 1}
+    @patch('backend.routes.api.AddTripUseCase.execute')
+    def test_api_route_unhandled_exception_returns_json_500(self, mock_add, authenticated_client):
         mock_add.side_effect = RuntimeError('api boom')
 
         with authenticated_client.session_transaction() as sess:

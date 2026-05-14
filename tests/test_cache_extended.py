@@ -1,5 +1,7 @@
 """Tests for cache_service — get_vehicles_cached, FIFO eviction, and edge cases."""
 
+# TODO: fix — cache_service switched to RedisCache backend; these tests depend on removed `_cache` internals.
+
 from unittest.mock import patch
 from backend.services import cache_service
 

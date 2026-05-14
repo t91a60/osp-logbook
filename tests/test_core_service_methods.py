@@ -5,9 +5,11 @@ from unittest.mock import MagicMock, patch
 
 class TestTripServiceAddTrip:
     @patch('backend.services.core_service.AuditService')
-    @patch('backend.services.core_service.TripRepository')
-    def test_add_trip_delegates_to_repository_and_audit(self, mock_trip_repository, mock_audit, app):
+    @patch('backend.services.core_service.UseCaseFactory.get_trip_repo')
+    def test_add_trip_delegates_to_repository_and_audit(self, mock_get_trip_repo, mock_audit, app):
         from backend.services.core_service import TripService
+        mock_trip_repository = MagicMock()
+        mock_get_trip_repo.return_value = mock_trip_repository
 
         with app.test_request_context():
             TripService.add_trip(
@@ -29,9 +31,11 @@ class TestTripServiceAddTrip:
         mock_audit.log.assert_called_once()
 
     @patch('backend.services.core_service.AuditService')
-    @patch('backend.services.core_service.TripRepository')
-    def test_add_trip_forwards_none_equipment(self, mock_trip_repository, mock_audit, app):
+    @patch('backend.services.core_service.UseCaseFactory.get_trip_repo')
+    def test_add_trip_forwards_none_equipment(self, mock_get_trip_repo, mock_audit, app):
         from backend.services.core_service import TripService
+        mock_trip_repository = MagicMock()
+        mock_get_trip_repo.return_value = mock_trip_repository
 
         with app.test_request_context():
             TripService.add_trip(
