@@ -458,8 +458,8 @@ function _setupCountUp() {
 function _setupPullToRefresh() {
   var endpoint = (document.body && document.body.dataset && document.body.dataset.endpoint) || "";
   if (endpoint === "trips" || endpoint === "fuel") {
-    var staleIndicator = document.querySelector(".pull-indicator");
-    if (staleIndicator && staleIndicator.parentElement) staleIndicator.remove();
+    var pullIndicator = document.querySelector(".pull-indicator");
+    if (pullIndicator && pullIndicator.parentElement) pullIndicator.remove();
     return;
   }
 
