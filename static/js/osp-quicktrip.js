@@ -1,207 +1,344 @@
 /* osp-quicktrip.js
-   Handles Quick Trip flow: modal, optimistic in-progress card, timer,
-   offline queue, CSRF handling, undo toast, pull-to-refresh.
-   Expects `window.ospConfig` with `csrfToken` and `apiAddTrip` set from Jinja.
+   Quick Trip: optimistic active-trip UI, server sync with CSRF,
+   offline queue (localStorage), and undo toast.
 */
-(function(){
+(function () {
   'use strict';
 
-  const QUEUE_KEY = 'osp_quick_queue_v1';
-  const INPROG_KEY = 'osp_in_progress_v1';
+  var QUEUE_KEY = 'osp_quick_queue_v2';
+  var INTERMEDIATE_QUEUE_KEY = 'osp_quicktrip_queue_v2';
+  // Legacy key kept for backwards-compatible localStorage migration.
+  var LEGACY_QUEUE_KEY = 'osp_quick_queue_v1';
+  var PENDING_UNDO_ID = null;
 
-  // DOM helpers
-  const $ = (sel, root=document) => root.querySelector(sel);
-  const create = (tag, attrs={}, txt='') => { const el = document.createElement(tag); for(const k in attrs) el.setAttribute(k, attrs[k]); if(txt) el.textContent=txt; return el; };
+  function formatLocalTime(now) {
+    return String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+  }
 
-  // Elements (existing in dashboard.html)
-  const activeCard = $('#activeTripCard');
-  const activeVehicle = $('#activeTripVehicle');
-  const activePurpose = $('#activeTripPurpose');
-  const activeTimer = $('#activeTripTimer');
-  const quickSheet = $('#quickTripSheet');
-  const quickBackdrop = $('#quickTripBackdrop');
-  const quickConfirmBtn = $('#quickTripConfirmBtn');
-  const purposeCustomWrap = $('#quickPurposeCustomWrap');
-  const purposeCustomInput = $('#quickPurposeCustom');
-  const purposeChips = document.querySelectorAll('.purpose-chip');
-  const quickOdo = $('#quickOdoStart');
+  function formatLocalDate(now) {
+    return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  }
 
-  let timerInterval = null;
+  function buildLocalId() {
+    return 'quick-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  }
 
-  function nowISO(){ return new Date().toISOString(); }
-  function startTimer(ts){
-    if(timerInterval) clearInterval(timerInterval);
-    function upd(){
-      const elapsed = Math.floor((Date.now() - ts)/1000);
-      const h = String(Math.floor(elapsed/3600)).padStart(2,'0');
-      const m = String(Math.floor((elapsed%3600)/60)).padStart(2,'0');
-      const s = String(elapsed%60).padStart(2,'0');
-      if(activeTimer) activeTimer.textContent = `${h}:${m}:${s}`;
+  function getCsrfToken() {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    var fromMeta = meta ? (meta.getAttribute('content') || '').trim() : '';
+    if (fromMeta) return fromMeta;
+
+    var hidden = document.querySelector('input[name="_csrf_token"]');
+    return hidden ? (hidden.value || '').trim() : '';
+  }
+
+  function getCurrentDriver() {
+    if (window.ospConfig && window.ospConfig.currentUser) {
+      return String(window.ospConfig.currentUser).trim();
     }
-    upd();
-    timerInterval = setInterval(upd,1000);
+    var topbarName = document.querySelector('.topbar-user span');
+    return topbarName ? String(topbarName.textContent || '').trim() : '';
   }
 
-  function showActive(trip){
-    if(!trip) return;
-    if(activeVehicle) activeVehicle.textContent = trip.vehicle_name || '—';
-    if(activePurpose) activePurpose.textContent = trip.purpose || '—';
-    if(activeCard) activeCard.classList.remove('hidden');
-    startTimer(new Date(trip.start_ts).getTime());
-    localStorage.setItem(INPROG_KEY, JSON.stringify(trip));
-  }
-  function clearActive(){
-    if(activeCard) activeCard.classList.add('hidden');
-    if(timerInterval) { clearInterval(timerInterval); timerInterval=null; }
-    localStorage.removeItem(INPROG_KEY);
-  }
-
-  function toast(msg, {undoLabel, undoFn, timeout=6000}={}){
-    const t = create('div', {role:'status','aria-live':'polite'});
-    t.className = 'toast fixed left-1/2 -translate-x-1/2 bottom-24 z-60 bg-black text-white px-4 py-2 rounded shadow';
-    t.textContent = msg;
-    if(undoLabel && undoFn){
-      const b = create('button', {type:'button'});
-      b.className = 'underline ml-3 text-sm';
-      b.textContent = undoLabel;
-      b.addEventListener('click', ()=>{ undoFn(); document.body.removeChild(t); });
-      t.appendChild(b);
+  function getApiEndpoint() {
+    if (window.ospConfig && window.ospConfig.apiAddTrip) {
+      return window.ospConfig.apiAddTrip;
     }
-    document.body.appendChild(t);
-    setTimeout(()=>{ if(document.body.contains(t)) document.body.removeChild(t); }, timeout);
-    return t;
+    return '/api/add_trip';
   }
 
-  function saveToQueue(formObj){
-    const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
-    q.push(formObj);
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
-  }
-
-  async function flushQueue(){
-    const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
-    if(!q.length) return;
-    for(let i=0;i<q.length;i++){
-      try{
-        const form = new FormData();
-        for(const k in q[i]) form.append(k, q[i][k]);
-        form.append('_csrf_token', window.ospConfig.csrfToken || '');
-        const resp = await fetch(window.ospConfig.apiAddTrip, {method:'POST', body: form});
-        if(resp.ok){ q.shift(); i--; }
-        else break;
-      }catch(e){ break; }
+  function loadQueue() {
+    try {
+      var parsed = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_err) {
+      return [];
     }
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
   }
 
-  async function postQuickTrip(formObj){
-    const form = new FormData();
-    for(const k in formObj) form.append(k, formObj[k]);
-    form.append('_csrf_token', window.ospConfig.csrfToken || '');
-    try{
-      const res = await fetch(window.ospConfig.apiAddTrip, {method:'POST', body: form});
-      if(res.ok) return await res.json();
-      else throw new Error('Server error');
-    }catch(e){ throw e; }
+  function saveQueue(queue) {
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
   }
 
-  // Wire purpose chips
-  purposeChips.forEach(ch => {
-    ch.addEventListener('click', () => {
-      const val = ch.dataset.value || '';
-      if(val === '__inne__'){
-        purposeCustomWrap.classList.remove('hidden');
-        purposeCustomInput.focus();
-      } else {
-        purposeCustomWrap.classList.add('hidden');
-        purposeCustomInput.value = '';
-      }
-      // toggle visual — keep compatibility with existing 'selected' classname
-      purposeChips.forEach(c=>{ c.classList.remove('active'); c.classList.remove('selected'); });
-      ch.classList.add('active'); ch.classList.add('selected');
+  function migrateLegacyQueue() {
+    if (localStorage.getItem(QUEUE_KEY)) return;
+
+    var legacy;
+    try {
+      legacy = JSON.parse(localStorage.getItem(INTERMEDIATE_QUEUE_KEY) || localStorage.getItem(LEGACY_QUEUE_KEY) || '[]');
+    } catch (_err) {
+      legacy = [];
+    }
+    if (!Array.isArray(legacy) || !legacy.length) return;
+
+    var migrated = legacy.map(function (item, index) {
+      var payload = item && item.payload ? item.payload : item;
+      // Legacy payloads may contain `_local_id` from older quick-trip drafts.
+      var localId = item && (item.localId || item._localId || item._local_id);
+      return {
+        localId: localId || ('legacy-' + Date.now() + '-' + index),
+        payload: payload || {},
+        queuedAt: item && item.queuedAt ? item.queuedAt : Date.now()
+      };
+    }).filter(function (item) {
+      return item && item.payload && Object.keys(item.payload).length;
     });
-  });
 
-  // Confirm quick trip
-  async function handleConfirmQuickTrip(){
-    // determine chosen vehicle from sheet label, or from page context
-    const vehicleName = (document.getElementById('quickVehicleLabel')||{}).textContent || '';
-    // driver from server-rendered session username
-    const driver = (window.ospConfig && window.ospConfig.currentUser) || '';
-    let purposeSel = '';
-    const activeChip = document.querySelector('.purpose-chip.active, .purpose-chip.selected');
-    if(activeChip) purposeSel = activeChip.dataset.value || '';
-    const purpose = purposeSel === '__inne__' ? (purposeCustomInput.value || '') : purposeSel || '';
-    const odo_start = quickOdo ? quickOdo.value || '' : '';
-
-    const payload = {
-      vehicle_id: (quickConfirmBtn && quickConfirmBtn.dataset && quickConfirmBtn.dataset.vehicleId) || (document.querySelector('[data-vehicle-id]') && document.querySelector('[data-vehicle-id]').dataset.vehicleId) || '',
-      driver: driver,
-      purpose_select: purposeSel || '',
-      purpose_custom: purposeSel === '__inne__' ? (purposeCustomInput.value || '') : '',
-      odo_start: odo_start || '',
-      date: new Date().toISOString().slice(0,10),
-      time_start: new Date().toISOString().slice(11,19),
-    };
-
-    // optimistic UI
-    const startTs = Date.now();
-    const localTrip = { vehicle_name: vehicleName, purpose: purpose || '—', start_ts: new Date(startTs).toISOString(), trip_id: 'local-'+startTs };
-    showActive(localTrip);
-    if(quickSheet) quickSheet.classList.add('hidden'); if(quickBackdrop) quickBackdrop.classList.add('hidden');
-
-    // toast with undo
-    const undo = () => { clearActive(); /* remove from queue if present */
-      const q = JSON.parse(localStorage.getItem(QUEUE_KEY)||'[]').filter(item=> item._local_id !== localTrip.trip_id);
-      localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
-    };
-    toast('Wyjazd rozpoczęty', {undoLabel:'Cofnij', undoFn:undo, timeout:7000});
-
-    // attempt POST, on failure enqueue
-    try{
-      await postQuickTrip(payload);
-      // success: try flush any queue
-      await flushQueue();
-    }catch(e){
-      // enqueue for later sync
-      payload._local_id = localTrip.trip_id;
-      saveToQueue(payload);
-    }
-    // persist in-progress
-    localStorage.setItem(INPROG_KEY, JSON.stringify(localTrip));
-    startTimer(startTs);
+    if (!migrated.length) return;
+    saveQueue(migrated);
+    localStorage.removeItem(INTERMEDIATE_QUEUE_KEY);
+    localStorage.removeItem(LEGACY_QUEUE_KEY);
   }
 
-  // expose global function used by inline onclick attribute
-  window.confirmQuickTrip = handleConfirmQuickTrip;
-  if(quickConfirmBtn) quickConfirmBtn.addEventListener('click', handleConfirmQuickTrip);
+  function enqueue(payload) {
+    var queue = loadQueue();
+    queue.push(payload);
+    saveQueue(queue);
+  }
 
-  // restore in-progress on load
-  document.addEventListener('DOMContentLoaded', ()=>{
-    const inprog = JSON.parse(localStorage.getItem(INPROG_KEY) || 'null');
-    if(inprog) showActive(inprog);
-    // flush queue when online
-    window.addEventListener('online', ()=> flushQueue());
-    // initial attempt to flush
+  function removeFromQueueById(localId) {
+    var queue = loadQueue().filter(function (item) {
+      return item && item.localId !== localId;
+    });
+    saveQueue(queue);
+  }
+
+  function showUndoToast(localId) {
+    var container = document.getElementById('toastContainer');
+    if (!container) {
+      if (typeof showToast === 'function') showToast('Wyjazd rozpoczęty.', 'success', 2600);
+      return;
+    }
+
+    var toast = document.createElement('div');
+    toast.className = 'toast success';
+    toast.setAttribute('role', 'status');
+
+    var text = document.createElement('span');
+    text.className = 'toast-message';
+    text.textContent = 'Wyjazd rozpoczęty.';
+
+    var undoBtn = document.createElement('button');
+    undoBtn.type = 'button';
+    undoBtn.className = 'btn btn-sm';
+    undoBtn.style.minHeight = '36px';
+    undoBtn.style.marginLeft = '6px';
+    undoBtn.style.width = 'auto';
+    undoBtn.style.padding = '0 12px';
+    undoBtn.textContent = 'Cofnij';
+
+    undoBtn.addEventListener('click', function () {
+      removeFromQueueById(localId);
+      if (window.ActiveTrip && typeof window.ActiveTrip.clear === 'function') {
+        window.ActiveTrip.clear();
+      }
+      if (toast.parentElement) toast.remove();
+      PENDING_UNDO_ID = null;
+      if (typeof showToast === 'function') showToast('Cofnięto szybki wyjazd.', 'info', 2400);
+    });
+
+    toast.appendChild(text);
+    toast.appendChild(undoBtn);
+    container.appendChild(toast);
+
+    PENDING_UNDO_ID = localId;
+    setTimeout(function () {
+      if (PENDING_UNDO_ID === localId) PENDING_UNDO_ID = null;
+      if (toast.parentElement) {
+        toast.classList.add('dismiss');
+        setTimeout(function () {
+          if (toast.parentElement) toast.remove();
+        }, 220);
+      }
+    }, 7000);
+  }
+
+  function syncCardActions(activeData) {
+    var completeLink = document.getElementById('activeTripCompleteLink');
+    var finishLink = document.getElementById('activeTripFinishLink');
+    if (!completeLink && !finishLink) return;
+
+    var vehicleId = activeData && activeData.vehicleId ? String(activeData.vehicleId) : '';
+    var base = '/wyjazdy?complete=1';
+    var href = vehicleId ? (base + '&vehicle_id=' + encodeURIComponent(vehicleId)) : base;
+
+    if (completeLink) completeLink.setAttribute('href', href);
+    if (finishLink) finishLink.setAttribute('href', href + '#trip_time_end');
+  }
+
+  function getQuickTripPayload() {
+    var sheet = document.getElementById('quickTripSheet');
+    if (!sheet) return null;
+
+    var selected = document.querySelector('.purpose-chip.selected');
+    if (!selected) {
+      if (typeof showToast === 'function') showToast('Wybierz cel wyjazdu.', 'error', 3200);
+      if (window.Haptics && typeof window.Haptics.error === 'function') window.Haptics.error();
+      return null;
+    }
+
+    var purpose = selected.dataset.value || '';
+    var purposeCustom = '';
+    if (purpose === '__inne__') {
+      var customInput = document.getElementById('quickPurposeCustom');
+      purposeCustom = customInput ? String(customInput.value || '').trim() : '';
+      if (!purposeCustom) {
+        if (typeof showToast === 'function') showToast('Opisz cel wyjazdu.', 'error', 3200);
+        if (window.Haptics && typeof window.Haptics.error === 'function') window.Haptics.error();
+        return null;
+      }
+      purpose = purposeCustom;
+    }
+
+    var now = new Date();
+    var odoStartInput = document.getElementById('quickOdoStart');
+    var vehicleId = String(sheet.dataset.vehicleId || '').trim();
+
+    if (!vehicleId) {
+      if (typeof showToast === 'function') showToast('Brak pojazdu do szybkiego wyjazdu.', 'error', 3200);
+      return null;
+    }
+
+    return {
+      localId: buildLocalId(),
+      vehicleId: vehicleId,
+      vehicleName: String(sheet.dataset.vehicleName || '—'),
+      purpose: purpose,
+      purpose_select: selected.dataset.value || '',
+      purpose_custom: selected.dataset.value === '__inne__' ? purposeCustom : '',
+      odoStart: odoStartInput ? String(odoStartInput.value || '').trim() : '',
+      driver: getCurrentDriver(),
+      dateStr: formatLocalDate(now),
+      timeStartStr: formatLocalTime(now),
+      timeStartMs: now.getTime()
+    };
+  }
+
+  function toRequestBody(activeData) {
+    return {
+      vehicle_id: activeData.vehicleId,
+      date: activeData.dateStr,
+      time_start: activeData.timeStartStr,
+      driver: activeData.driver || '',
+      odo_start: activeData.odoStart || '',
+      purpose_select: activeData.purpose_select || '',
+      purpose_custom: activeData.purpose_custom || ''
+    };
+  }
+
+  async function postQuickTrip(payload) {
+    var csrf = getCsrfToken();
+    var form = new FormData();
+    Object.keys(payload).forEach(function (key) {
+      var value = payload[key];
+      if (value !== undefined && value !== null) form.append(key, value);
+    });
+    form.append('_csrf_token', csrf);
+
+    var response = await fetch(getApiEndpoint(), {
+      method: 'POST',
+      body: form,
+      headers: {
+        Accept: 'application/json',
+        'X-CSRFToken': csrf
+      }
+    });
+
+    var data = {};
+    try {
+      data = await response.json();
+    } catch (_err) {
+      data = {};
+    }
+
+    if (!response.ok || data.success === false) {
+      throw new Error(data.message || 'Nie udało się zapisać wyjazdu.');
+    }
+
+    return data;
+  }
+
+  async function flushQueue() {
+    if (!navigator.onLine) return;
+
+    var queue = loadQueue();
+    if (!queue.length) return;
+
+    var remaining = [];
+    for (var i = 0; i < queue.length; i++) {
+      var item = queue[i];
+      if (!item || !item.payload) continue;
+
+      if (PENDING_UNDO_ID && item.localId === PENDING_UNDO_ID) {
+        remaining.push(item);
+        continue;
+      }
+
+      try {
+        await postQuickTrip(item.payload);
+      } catch (_err) {
+        remaining.push(item);
+      }
+    }
+
+    saveQueue(remaining);
+  }
+
+  function queueForRetry(localId, payload) {
+    enqueue({
+      localId: localId,
+      payload: payload,
+      queuedAt: Date.now()
+    });
+  }
+
+  async function handleQuickTripConfirm() {
+    var activeData = getQuickTripPayload();
+    if (!activeData) return;
+
+    var requestPayload = toRequestBody(activeData);
+
+    if (window.ActiveTrip && typeof window.ActiveTrip.save === 'function') {
+      window.ActiveTrip.save(activeData);
+      window.ActiveTrip.renderCard();
+    }
+    syncCardActions(activeData);
+
+    if (typeof closeQuickSheet === 'function') closeQuickSheet();
+    if (window.Haptics && typeof window.Haptics.success === 'function') window.Haptics.success();
+
+    showUndoToast(activeData.localId);
+
+    try {
+      await postQuickTrip(requestPayload);
+      if (typeof showToast === 'function') {
+        showToast('Szybki wyjazd zapisany.', 'success', 2600);
+      }
+      await flushQueue();
+    } catch (_err) {
+      queueForRetry(activeData.localId, requestPayload);
+      if (typeof showToast === 'function') {
+        showToast('Brak połączenia — zapisano do kolejki offline.', 'info', 4200);
+      }
+    }
+  }
+
+  function bootstrapQuickTrip() {
+    window.confirmQuickTrip = handleQuickTripConfirm;
+    migrateLegacyQueue();
+
+    var active = window.ActiveTrip && typeof window.ActiveTrip.load === 'function'
+      ? window.ActiveTrip.load()
+      : null;
+    syncCardActions(active);
+
     flushQueue();
-  });
+    window.addEventListener('online', flushQueue);
+  }
 
-  // Pull-to-refresh (mobile)
-  let touchStartY=0, pulling=false;
-  document.addEventListener('touchstart', e=>{ if(document.scrollingElement.scrollTop===0) touchStartY = e.touches[0].clientY; });
-  document.addEventListener('touchmove', e=>{
-    const dy = e.touches[0].clientY - touchStartY;
-    if(dy>100 && !pulling && document.scrollingElement.scrollTop===0){ pulling=true; if(navigator.vibrate) navigator.vibrate(20); location.reload(); }
-  });
-
-  // Expose some functions for inline buttons
-  window.showQuickSheet = function(vehicleName, vehicleId){
-    // set vehicle label and dataset
-    const lbl = document.getElementById('quickVehicleLabel'); if(lbl) lbl.textContent = vehicleName || '—';
-    if(quickConfirmBtn) quickConfirmBtn.dataset.vehicleId = vehicleId || '';
-    quickSheet.classList.remove('hidden'); quickBackdrop.classList.remove('hidden');
-    if(navigator.vibrate) navigator.vibrate(10);
-  };
-  window.closeQuickSheet = function(){ quickSheet.classList.add('hidden'); quickBackdrop.classList.add('hidden'); };
-
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrapQuickTrip);
+  } else {
+    bootstrapQuickTrip();
+  }
 })();
