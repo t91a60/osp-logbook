@@ -6,6 +6,7 @@
   'use strict';
 
   var QUEUE_KEY = 'osp_quicktrip_queue_v2';
+  // Legacy key kept for backwards-compatible localStorage migration.
   var LEGACY_QUEUE_KEY = 'osp_quick_queue_v1';
   var PENDING_UNDO_ID = null;
 
@@ -15,6 +16,10 @@
 
   function formatLocalDate(now) {
     return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  }
+
+  function buildLocalId() {
+    return 'quick-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
   }
 
   function getCsrfToken() {
@@ -67,7 +72,7 @@
 
     var migrated = legacy.map(function (item, index) {
       var payload = item && item.payload ? item.payload : item;
-      var localId = item && (item._localId || item._local_id);
+      var localId = item && (item._localId || item._local_id); // legacy payloads may contain snake_case
       return {
         _localId: localId || ('legacy-' + Date.now() + '-' + index),
         payload: payload || {},
@@ -192,7 +197,7 @@
     }
 
     return {
-      _localId: 'quick-' + Date.now(),
+      _localId: buildLocalId(),
       vehicleId: vehicleId,
       vehicleName: String(sheet.dataset.vehicleName || '—'),
       purpose: purpose,

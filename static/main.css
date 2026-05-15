@@ -61,6 +61,7 @@ body {
 input,
 select,
 textarea {
+  /* iOS Safari: >=16px prevents automatic viewport zoom on field focus */
   font-size: 16px;
 }
 
