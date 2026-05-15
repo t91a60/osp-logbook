@@ -24,6 +24,11 @@
   }
 
   function getCsrfToken() {
+    if (window.ospConfig && window.ospConfig.csrfToken) {
+      var fromConfig = String(window.ospConfig.csrfToken || '').trim();
+      if (fromConfig) return fromConfig;
+    }
+
     var meta = document.querySelector('meta[name="csrf-token"]');
     var fromMeta = meta ? (meta.getAttribute('content') || '').trim() : '';
     if (fromMeta) return fromMeta;
@@ -33,6 +38,12 @@
   }
 
   function getCurrentDriver() {
+    var quickDriverInput = document.getElementById('quickDriver');
+    if (quickDriverInput) {
+      var fromInput = String(quickDriverInput.value || '').trim();
+      if (fromInput) return fromInput;
+    }
+
     if (window.ospConfig && window.ospConfig.currentUser) {
       return String(window.ospConfig.currentUser).trim();
     }
@@ -193,21 +204,37 @@
     var now = new Date();
     var odoStartInput = document.getElementById('quickOdoStart');
     var vehicleId = String(sheet.dataset.vehicleId || '').trim();
+    var vehicleName = String(sheet.dataset.vehicleName || '—');
+    var quickVehicleSelect = document.getElementById('quickVehicleSelect');
+    if (quickVehicleSelect) {
+      var selectedOption = quickVehicleSelect.options[quickVehicleSelect.selectedIndex];
+      vehicleId = String(quickVehicleSelect.value || '').trim();
+      vehicleName = selectedOption
+        ? String(selectedOption.dataset.name || selectedOption.textContent || '—').trim()
+        : vehicleName;
+    }
 
     if (!vehicleId) {
       if (typeof showToast === 'function') showToast('Brak pojazdu do szybkiego wyjazdu.', 'error', 3200);
       return null;
     }
 
+    var driver = getCurrentDriver();
+    if (!driver) {
+      if (typeof showToast === 'function') showToast('Podaj kierowcę.', 'error', 3200);
+      if (window.Haptics && typeof window.Haptics.error === 'function') window.Haptics.error();
+      return null;
+    }
+
     return {
       localId: buildLocalId(),
       vehicleId: vehicleId,
-      vehicleName: String(sheet.dataset.vehicleName || '—'),
+      vehicleName: vehicleName,
       purpose: purpose,
       purpose_select: selected.dataset.value || '',
       purpose_custom: selected.dataset.value === '__inne__' ? purposeCustom : '',
       odoStart: odoStartInput ? String(odoStartInput.value || '').trim() : '',
-      driver: getCurrentDriver(),
+      driver: driver,
       dateStr: formatLocalDate(now),
       timeStartStr: formatLocalTime(now),
       timeStartMs: now.getTime()
@@ -326,6 +353,23 @@
   function bootstrapQuickTrip() {
     window.confirmQuickTrip = handleQuickTripConfirm;
     migrateLegacyQueue();
+
+    var quickVehicleSelect = document.getElementById('quickVehicleSelect');
+    if (quickVehicleSelect) {
+      quickVehicleSelect.addEventListener('change', function () {
+        var selected = quickVehicleSelect.options[quickVehicleSelect.selectedIndex];
+        var nextId = String(quickVehicleSelect.value || '').trim();
+        var nextName = selected ? String(selected.dataset.name || selected.textContent || '').trim() : '';
+        var sheet = document.getElementById('quickTripSheet');
+        if (sheet) {
+          sheet.dataset.vehicleId = nextId;
+          sheet.dataset.vehicleName = nextName;
+        }
+        var label = document.getElementById('quickVehicleLabel');
+        if (label) label.textContent = nextName || '—';
+      });
+      quickVehicleSelect.dispatchEvent(new Event('change'));
+    }
 
     var active = window.ActiveTrip && typeof window.ActiveTrip.load === 'function'
       ? window.ActiveTrip.load()

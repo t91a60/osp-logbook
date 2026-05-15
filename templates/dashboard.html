@@ -2,7 +2,7 @@
 {% block title %}Start – OSP Logbook{% endblock %}
 
 {% block content %}
-<div class="page" style="min-height: calc(100vh + 1px); min-height: calc(100dvh + 1px);">
+<div class="page">
 
 <script nonce="{{ csp_nonce() }}">document.body.setAttribute('data-autorefresh', 'true');</script>
 
@@ -199,7 +199,21 @@
       <button onclick="closeQuickSheet()" class="btn-icon" aria-label="Zamknij" type="button">✕</button>
     </div>
     <div class="bottom-sheet-body">
-      <div id="quickVehicleLabel" class="quick-vehicle-name">—</div>
+      <div class="form-field" style="margin-top:8px;">
+        <label class="form-label" for="quickVehicleSelect">Pojazd</label>
+        <select id="quickVehicleSelect" class="form-select xl" aria-label="Pojazd do szybkiego wyjazdu">
+          {% for vc in vehicle_cards %}
+          <option value="{{ vc.id }}" data-name="{{ vc.name }}" {% if loop.first %}selected{% endif %}>{{ vc.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-field" style="margin-top:12px;">
+        <label class="form-label" for="quickDriver">Kierowca</label>
+        <input type="text" id="quickDriver" class="form-input xl" value="{{ session.display_name }}" autocomplete="name" placeholder="Imię i nazwisko">
+      </div>
+
+      <div id="quickVehicleLabel" class="quick-vehicle-name" style="margin-top:12px;">—</div>
 
       <div class="purpose-grid">
         <button class="purpose-chip" data-value="Akcja ratownicza – pożar" aria-label="Akcja ratownicza – pożar" type="button">🔥 Pożar</button>
@@ -233,7 +247,7 @@
       window.ospConfig = {
         csrfToken: '{{ csrf_token() }}',
         apiAddTrip: '{{ url_for("api_add_trip") }}',
-        currentUser: '{{ session.get("username", "") }}'
+        currentUser: '{{ session.display_name or session.get("username", "") }}'
       };
     </script>
     <script nonce="{{ csp_nonce() }}" src="{{ asset_url('js/osp-quicktrip.js') }}"></script>

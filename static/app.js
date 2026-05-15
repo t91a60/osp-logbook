@@ -457,7 +457,11 @@ function _setupCountUp() {
 
 function _setupPullToRefresh() {
   var endpoint = (document.body && document.body.dataset && document.body.dataset.endpoint) || "";
-  if (endpoint === "trips" || endpoint === "fuel") return;
+  if (endpoint === "trips" || endpoint === "fuel") {
+    var staleIndicator = document.querySelector(".pull-indicator");
+    if (staleIndicator && staleIndicator.parentElement) staleIndicator.remove();
+    return;
+  }
 
   var indicator = document.createElement("div");
   indicator.className = "pull-indicator";
@@ -692,6 +696,16 @@ function startQuickTrip(btn) {
   var backdrop = document.getElementById("quickTripBackdrop");
   if (!sheet || !backdrop) return;
 
+  var vehicleSelect = document.getElementById("quickVehicleSelect");
+  if (vehicleSelect) {
+    if (vehicleId) {
+      vehicleSelect.value = vehicleId;
+    }
+    var selected = vehicleSelect.options[vehicleSelect.selectedIndex];
+    vehicleId = selected ? selected.value : (vehicleId || "");
+    vehicleName = selected ? (selected.dataset.name || selected.textContent || "") : (vehicleName || "");
+  }
+
   sheet.dataset.vehicleId = vehicleId || "";
   sheet.dataset.vehicleName = vehicleName || "";
   var vehicleLabel = document.getElementById("quickVehicleLabel");
@@ -704,6 +718,11 @@ function startQuickTrip(btn) {
   var customWrap = document.getElementById("quickPurposeCustomWrap");
   var customInput = document.getElementById("quickPurposeCustom");
   var odoStartInput = document.getElementById("quickOdoStart");
+  var quickDriverInput = document.getElementById("quickDriver");
+  if (quickDriverInput && !quickDriverInput.value.trim()) {
+    var topbarName = document.querySelector(".topbar-user span");
+    quickDriverInput.value = topbarName ? topbarName.textContent.trim() : "";
+  }
   if (customWrap) customWrap.classList.add("hidden");
   if (customInput) customInput.value = "";
   if (odoStartInput) odoStartInput.value = "";
