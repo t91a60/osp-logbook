@@ -456,6 +456,9 @@ function _setupCountUp() {
 }
 
 function _setupPullToRefresh() {
+  var endpoint = (document.body && document.body.dataset && document.body.dataset.endpoint) || "";
+  if (endpoint === "trips" || endpoint === "fuel") return;
+
   var indicator = document.createElement("div");
   indicator.className = "pull-indicator";
   indicator.innerHTML = _spinnerArcSVG();

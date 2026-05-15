@@ -15,9 +15,14 @@
       <div class="active-trip-purpose" id="activeTripPurpose">—</div>
       <div class="active-trip-timer" id="activeTripTimer">00:00</div>
     </div>
-    <a href="/wyjazdy?complete=1" class="btn btn-complete-trip">
-      Zakończ wyjazd
-    </a>
+    <div class="active-trip-actions">
+      <a href="/wyjazdy?complete=1" class="btn btn-complete-trip secondary" id="activeTripCompleteLink">
+        Uzupełnij
+      </a>
+      <a href="/wyjazdy?complete=1#trip_time_end" class="btn btn-complete-trip" id="activeTripFinishLink">
+        Zakończ
+      </a>
+    </div>
   </div>
 
   <!-- Quick Stats -->
@@ -173,6 +178,20 @@
   </div>
   {% endif %}
 
+  {% if vehicle_cards %}
+  <button
+    id="quickTripFab"
+    class="fab no-print"
+    type="button"
+    aria-label="Szybki wyjazd"
+    data-vehicle-id="{{ vehicle_cards[0].id }}"
+    data-vehicle-name="{{ vehicle_cards[0].name }}"
+    onclick="startQuickTrip(this)"
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  {% endif %}
+
   <div id="quickTripSheet" class="bottom-sheet hidden" role="dialog" aria-modal="true" aria-label="Szybki Wyjazd">
     <div class="bottom-sheet-handle"></div>
     <div class="bottom-sheet-header">
@@ -217,7 +236,7 @@
         currentUser: '{{ session.get("username", "") }}'
       };
     </script>
-    <script nonce="{{ csp_nonce() }}" src="{{ asset_url('static/js/osp-quicktrip.js') }}"></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ asset_url('js/osp-quicktrip.js') }}"></script>
   {% endblock %}
 
   {% endblock %}

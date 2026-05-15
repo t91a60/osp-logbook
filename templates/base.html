@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#0f0f0f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -23,7 +23,7 @@
 </script>
 <link rel="stylesheet" href="{{ asset_url('main.css') }}">
 </head>
-<body>
+<body data-endpoint="{{ request.endpoint or '' }}">
 
 <!-- Top Bar -->
 <header class="topbar">
@@ -92,6 +92,5 @@
 {% block extra_js %}{% endblock %}
 </body>
 </html>
-
 
 
