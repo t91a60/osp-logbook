@@ -5,7 +5,8 @@
 (function () {
   'use strict';
 
-  var QUEUE_KEY = 'osp_quicktrip_queue_v2';
+  var QUEUE_KEY = 'osp_quick_queue_v2';
+  var INTERMEDIATE_QUEUE_KEY = 'osp_quicktrip_queue_v2';
   // Legacy key kept for backwards-compatible localStorage migration.
   var LEGACY_QUEUE_KEY = 'osp_quick_queue_v1';
   var PENDING_UNDO_ID = null;
@@ -64,7 +65,7 @@
 
     var legacy;
     try {
-      legacy = JSON.parse(localStorage.getItem(LEGACY_QUEUE_KEY) || '[]');
+      legacy = JSON.parse(localStorage.getItem(INTERMEDIATE_QUEUE_KEY) || localStorage.getItem(LEGACY_QUEUE_KEY) || '[]');
     } catch (_err) {
       legacy = [];
     }
@@ -72,9 +73,10 @@
 
     var migrated = legacy.map(function (item, index) {
       var payload = item && item.payload ? item.payload : item;
-      var localId = item && (item._localId || item._local_id); // legacy payloads may contain snake_case
+      // Legacy payloads may contain `_local_id` from older quick-trip drafts.
+      var localId = item && (item.localId || item._localId || item._local_id);
       return {
-        _localId: localId || ('legacy-' + Date.now() + '-' + index),
+        localId: localId || ('legacy-' + Date.now() + '-' + index),
         payload: payload || {},
         queuedAt: item && item.queuedAt ? item.queuedAt : Date.now()
       };
@@ -84,6 +86,7 @@
 
     if (!migrated.length) return;
     saveQueue(migrated);
+    localStorage.removeItem(INTERMEDIATE_QUEUE_KEY);
     localStorage.removeItem(LEGACY_QUEUE_KEY);
   }
 
@@ -95,7 +98,7 @@
 
   function removeFromQueueById(localId) {
     var queue = loadQueue().filter(function (item) {
-      return item && item._localId !== localId;
+      return item && item.localId !== localId;
     });
     saveQueue(queue);
   }
@@ -197,7 +200,7 @@
     }
 
     return {
-      _localId: buildLocalId(),
+      localId: buildLocalId(),
       vehicleId: vehicleId,
       vehicleName: String(sheet.dataset.vehicleName || '—'),
       purpose: purpose,
@@ -266,7 +269,7 @@
       var item = queue[i];
       if (!item || !item.payload) continue;
 
-      if (PENDING_UNDO_ID && item._localId === PENDING_UNDO_ID) {
+      if (PENDING_UNDO_ID && item.localId === PENDING_UNDO_ID) {
         remaining.push(item);
         continue;
       }
@@ -283,7 +286,7 @@
 
   function queueForRetry(localId, payload) {
     enqueue({
-      _localId: localId,
+      localId: localId,
       payload: payload,
       queuedAt: Date.now()
     });
@@ -304,7 +307,7 @@
     if (typeof closeQuickSheet === 'function') closeQuickSheet();
     if (window.Haptics && typeof window.Haptics.success === 'function') window.Haptics.success();
 
-    showUndoToast(activeData._localId);
+    showUndoToast(activeData.localId);
 
     try {
       await postQuickTrip(requestPayload);
@@ -313,7 +316,7 @@
       }
       await flushQueue();
     } catch (_err) {
-      queueForRetry(activeData._localId, requestPayload);
+      queueForRetry(activeData.localId, requestPayload);
       if (typeof showToast === 'function') {
         showToast('Brak połączenia — zapisano do kolejki offline.', 'info', 4200);
       }
