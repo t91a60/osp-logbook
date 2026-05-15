@@ -6,6 +6,7 @@
   'use strict';
 
   var QUEUE_KEY = 'osp_quicktrip_queue_v2';
+  var LEGACY_QUEUE_KEY = 'osp_quick_queue_v1';
   var PENDING_UNDO_ID = null;
 
   function formatLocalTime(now) {
@@ -51,6 +52,34 @@
 
   function saveQueue(queue) {
     localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+  }
+
+  function migrateLegacyQueue() {
+    if (localStorage.getItem(QUEUE_KEY)) return;
+
+    var legacy;
+    try {
+      legacy = JSON.parse(localStorage.getItem(LEGACY_QUEUE_KEY) || '[]');
+    } catch (_err) {
+      legacy = [];
+    }
+    if (!Array.isArray(legacy) || !legacy.length) return;
+
+    var migrated = legacy.map(function (item, index) {
+      var payload = item && item.payload ? item.payload : item;
+      var localId = item && (item._localId || item._local_id);
+      return {
+        _localId: localId || ('legacy-' + Date.now() + '-' + index),
+        payload: payload || {},
+        queuedAt: item && item.queuedAt ? item.queuedAt : Date.now()
+      };
+    }).filter(function (item) {
+      return item && item.payload && Object.keys(item.payload).length;
+    });
+
+    if (!migrated.length) return;
+    saveQueue(migrated);
+    localStorage.removeItem(LEGACY_QUEUE_KEY);
   }
 
   function enqueue(payload) {
@@ -288,15 +317,7 @@
 
   function bootstrapQuickTrip() {
     window.confirmQuickTrip = handleQuickTripConfirm;
-
-    if (window.ActiveTrip && typeof window.ActiveTrip.clear === 'function' && !window.ActiveTrip._quickTripPatched) {
-      var originalClear = window.ActiveTrip.clear.bind(window.ActiveTrip);
-      window.ActiveTrip.clear = function () {
-        originalClear();
-        syncCardActions(null);
-      };
-      window.ActiveTrip._quickTripPatched = true;
-    }
+    migrateLegacyQueue();
 
     var active = window.ActiveTrip && typeof window.ActiveTrip.load === 'function'
       ? window.ActiveTrip.load()
