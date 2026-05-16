@@ -4,7 +4,20 @@
 {% block content %}
 <div class="page">
 
-<script nonce="{{ csp_nonce() }}">document.body.setAttribute('data-autorefresh', 'true');</script>
+<script nonce="{{ csp_nonce() }}">
+  document.body.setAttribute('data-autorefresh', 'true');
+  document.body.setAttribute('data-dashboard-loading', 'true');
+</script>
+
+  <div class="dashboard-skeleton" aria-hidden="true">
+    <span class="skeleton" style="height:18px; width:42%;"></span>
+    <span class="skeleton" style="height:86px;"></span>
+    <span class="skeleton" style="height:18px; width:34%; margin-top:14px;"></span>
+    <span class="skeleton" style="height:92px;"></span>
+    <span class="skeleton" style="height:92px;"></span>
+  </div>
+
+  <div class="dashboard-content">
 
   <!-- Active Trip Banner — shown via JS when localStorage has active trip -->
   <div id="activeTripCard" class="active-trip-card hidden" aria-live="polite">
@@ -209,26 +222,21 @@
       </div>
 
       <div class="form-field" style="margin-top:12px;">
-        <label class="form-label" for="quickDriver">Kierowca</label>
-        <input type="text" id="quickDriver" class="form-input xl" value="{{ session.display_name }}" autocomplete="name" placeholder="Imię i nazwisko">
-      </div>
-
-      <div id="quickVehicleLabel" class="quick-vehicle-name" style="margin-top:12px;">—</div>
-
-      <div class="purpose-grid">
-        <button class="purpose-chip" data-value="Akcja ratownicza – pożar" aria-label="Akcja ratownicza – pożar" type="button">🔥 Pożar</button>
-        <button class="purpose-chip" data-value="Akcja ratownicza – wypadek drogowy" aria-label="Akcja ratownicza – wypadek drogowy" type="button">🚗 Wypadek</button>
-        <button class="purpose-chip" data-value="Akcja ratownicza – miejscowe zagrożenie" aria-label="Akcja ratownicza – miejscowe zagrożenie" type="button">⚠️ Zagrożenie</button>
-        <button class="purpose-chip" data-value="Ćwiczenia" aria-label="Ćwiczenia" type="button">🎯 Ćwiczenia</button>
-        <button class="purpose-chip" data-value="__inne__" aria-label="Inne" type="button">✏️ Inne</button>
-      </div>
-      <div id="quickPurposeCustomWrap" class="hidden">
-        <input type="text" id="quickPurposeCustom" class="form-input" placeholder="Opisz cel...">
+        <label class="form-label" for="quickDriverSelect">Kierowca (wybór)</label>
+        <select id="quickDriverSelect" class="form-select xl" aria-label="Wybierz kierowcę">
+          <option value="{{ session.display_name }}" selected>{{ session.display_name }}</option>
+          <option value="__manual__">Inny — wpisz ręcznie</option>
+        </select>
       </div>
 
       <div class="form-field" style="margin-top:12px;">
-        <label class="form-label" for="quickOdoStart">Km start (opcjonalnie)</label>
-        <input type="number" id="quickOdoStart" class="form-input xl" inputmode="numeric" placeholder="np. 12 450">
+        <label class="form-label" for="quickDriver">Kierowca (wpisz)</label>
+        <input type="text" id="quickDriver" class="form-input xl" value="{{ session.display_name }}" autocomplete="name" placeholder="Imię i nazwisko">
+      </div>
+
+      <div class="form-field" style="margin-top:12px;">
+        <label class="form-label" for="quickPurposeInput">Cel</label>
+        <input type="text" id="quickPurposeInput" class="form-input xl" placeholder="Np. Akcja ratownicza">
       </div>
     </div>
     <div class="bottom-sheet-footer">
@@ -239,9 +247,18 @@
   </div>
   <div class="bottom-sheet-backdrop hidden" id="quickTripBackdrop" onclick="closeQuickSheet()"></div>
 
+  </div>
+
 </div>
 
   {% block extra_js %}
+    <script nonce="{{ csp_nonce() }}">
+      document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(function () {
+          document.body.removeAttribute('data-dashboard-loading');
+        }, 180);
+      });
+    </script>
     <script nonce="{{ csp_nonce() }}">
       // Expose CSRF token and small config for the quick-trip JS
       window.ospConfig = {

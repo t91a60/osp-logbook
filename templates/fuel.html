@@ -3,6 +3,7 @@
 
 {% block content %}
 <div class="page">
+  <script nonce="{{ csp_nonce() }}">document.body.setAttribute('data-history-loading', 'true');</script>
 
   <!-- Entry Form -->
   <form id="fuelForm" onsubmit="return submitFuel()" style="margin-top:16px;" method="POST">
@@ -128,65 +129,75 @@
   </div>
 
   <!-- History -->
-  <div class="section-title">
-    Historia tankowań
-    {% if total is defined %}<span style="color:var(--text-dimmer); font-weight:400;">({{ total }})</span>{% endif %}
+  <div class="history-skeleton" aria-hidden="true">
+    <span class="skeleton skeleton-line" style="height:18px; width:44%; margin-bottom:10px;"></span>
+    <span class="skeleton" style="height:92px;"></span>
+    <span class="skeleton" style="height:92px;"></span>
+    <span class="skeleton" style="height:92px;"></span>
   </div>
 
-  {% if entries %}
-  {% for f in entries %}
-  <div class="entry">
-    <div class="entry-header">
-      <span class="entry-vehicle">{{ f.vname }}</span>
-      <span class="entry-date">{{ f.date }}</span>
+  <section class="history-content">
+    <div class="section-title">
+      Historia tankowań
+      {% if total is defined %}<span style="color:var(--text-dimmer); font-weight:400;">({{ total }})</span>{% endif %}
     </div>
-    <div class="entry-meta">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      {{ f.driver }}
-      <span class="badge">⛽ {{ f.liters }} L</span>
-      {% if f.cost %}<span class="badge">{{ "%.2f"|format(f.cost) }} zł</span>{% endif %}
-      {% if f.odometer %}<span>{{ f.odometer }} km</span>{% endif %}
-      <form method="POST" action="{{ url_for('delete_entry', kind='tankowanie', eid=f.id) }}"
-            style="display:inline; margin-left:auto;"
-            onsubmit="return confirm('Usunąć ten wpis?')" class="no-print">
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-danger btn-sm" aria-label="Usuń tankowanie">✕</button>
-      </form>
+
+    {% if entries %}
+    {% for f in entries %}
+    <div class="entry">
+      <div class="entry-header">
+        <span class="entry-vehicle">{{ f.vname }}</span>
+        <span class="entry-date">{{ f.date }}</span>
+      </div>
+      <div class="entry-meta">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        {{ f.driver }}
+        <span class="badge">⛽ {{ f.liters }} L</span>
+        {% if f.cost %}<span class="badge">{{ "%.2f"|format(f.cost) }} zł</span>{% endif %}
+        {% if f.odometer %}<span>{{ f.odometer }} km</span>{% endif %}
+        <form method="POST" action="{{ url_for('delete_entry', kind='tankowanie', eid=f.id) }}"
+              style="display:inline; margin-left:auto;"
+              onsubmit="return confirm('Usunąć ten wpis?')" class="no-print">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger btn-sm" aria-label="Usuń tankowanie">✕</button>
+        </form>
+      </div>
+      {% if f.notes %}
+      <div class="text-mute" style="font-size:.85rem;">{{ f.notes }}</div>
+      {% endif %}
     </div>
-    {% if f.notes %}
-    <div class="text-mute" style="font-size:.85rem;">{{ f.notes }}</div>
-    {% endif %}
-  </div>
-  {% endfor %}
+    {% endfor %}
 
-  <!-- Pagination -->
-  {% if total_pages > 1 %}
-  <div class="pagination no-print">
-    {% if page > 1 %}
-    <a href="{{ url_for('fuel', vehicle_id=selected_vehicle, okres=okres, od=od, do=do_, page=page-1) }}" id="fuel-prev">← Wcześniejsze</a>
-    {% else %}
-    <span>← Wcześniejsze</span>
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="pagination no-print">
+      {% if page > 1 %}
+      <a href="{{ url_for('fuel', vehicle_id=selected_vehicle, okres=okres, od=od, do=do_, page=page-1) }}" id="fuel-prev">← Wcześniejsze</a>
+      {% else %}
+      <span>← Wcześniejsze</span>
+      {% endif %}
+      <span>{{ page }} / {{ total_pages }}</span>
+      {% if page < total_pages %}
+      <a href="{{ url_for('fuel', vehicle_id=selected_vehicle, okres=okres, od=od, do=do_, page=page+1) }}" id="fuel-next">Następne →</a>
+      {% else %}
+      <span>Następne →</span>
+      {% endif %}
+    </div>
     {% endif %}
-    <span>{{ page }} / {{ total_pages }}</span>
-    {% if page < total_pages %}
-    <a href="{{ url_for('fuel', vehicle_id=selected_vehicle, okres=okres, od=od, do=do_, page=page+1) }}" id="fuel-next">Następne →</a>
-    {% else %}
-    <span>Następne →</span>
-    {% endif %}
-  </div>
-  {% endif %}
 
-  {% else %}
-  <div class="empty-state">
-    <div class="empty-state-icon">⛽</div>
-    <p>Brak wpisów</p>
-  </div>
-  {% endif %}
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">⛽</div>
+      <p>Brak wpisów</p>
+    </div>
+    {% endif %}
+  </section>
 
 </div>
 
 <script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() { document.body.removeAttribute('data-history-loading'); }, 120);
   setupAutoSave('fuelForm');
   setupFormKeyboardShortcuts('fuelForm');
   restoreVehicle('fuel_vehicle_id', 'fuel');
@@ -225,5 +236,4 @@ function submitFuel() {
 }
 </script>
 {% endblock %}
-
 

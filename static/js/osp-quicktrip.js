@@ -38,6 +38,12 @@
   }
 
   function getCurrentDriver() {
+    var quickDriverSelect = document.getElementById('quickDriverSelect');
+    if (quickDriverSelect) {
+      var selected = String(quickDriverSelect.value || '').trim();
+      if (selected && selected !== '__manual__') return selected;
+    }
+
     var quickDriverInput = document.getElementById('quickDriver');
     if (quickDriverInput) {
       var fromInput = String(quickDriverInput.value || '').trim();
@@ -181,25 +187,14 @@
     var sheet = document.getElementById('quickTripSheet');
     if (!sheet) return null;
 
-    var selected = document.querySelector('.purpose-chip.selected');
-    if (!selected) {
-      if (typeof showToast === 'function') showToast('Wybierz cel wyjazdu.', 'error', 3200);
+    var purposeInput = document.getElementById('quickPurposeInput');
+    var purposeCustom = purposeInput ? String(purposeInput.value || '').trim() : '';
+    if (!purposeCustom) {
+      if (typeof showToast === 'function') showToast('Opisz cel wyjazdu.', 'error', 3200);
       if (window.Haptics && typeof window.Haptics.error === 'function') window.Haptics.error();
       return null;
     }
-
-    var purpose = selected.dataset.value || '';
-    var purposeCustom = '';
-    if (purpose === '__inne__') {
-      var customInput = document.getElementById('quickPurposeCustom');
-      purposeCustom = customInput ? String(customInput.value || '').trim() : '';
-      if (!purposeCustom) {
-        if (typeof showToast === 'function') showToast('Opisz cel wyjazdu.', 'error', 3200);
-        if (window.Haptics && typeof window.Haptics.error === 'function') window.Haptics.error();
-        return null;
-      }
-      purpose = purposeCustom;
-    }
+    var purpose = purposeCustom;
 
     var now = new Date();
     var odoStartInput = document.getElementById('quickOdoStart');
@@ -231,8 +226,8 @@
       vehicleId: vehicleId,
       vehicleName: vehicleName,
       purpose: purpose,
-      purpose_select: selected.dataset.value || '',
-      purpose_custom: selected.dataset.value === '__inne__' ? purposeCustom : '',
+      purpose_select: '__inne__',
+      purpose_custom: purposeCustom,
       odoStart: odoStartInput ? String(odoStartInput.value || '').trim() : '',
       driver: driver,
       dateStr: formatLocalDate(now),
@@ -369,6 +364,25 @@
         if (label) label.textContent = nextName || '—';
       });
       quickVehicleSelect.dispatchEvent(new Event('change'));
+    }
+
+    var quickDriverSelect = document.getElementById('quickDriverSelect');
+    var quickDriver = document.getElementById('quickDriver');
+    if (quickDriverSelect && quickDriver) {
+      var syncDriverInput = function () {
+        var selectedValue = String(quickDriverSelect.value || '').trim();
+        if (selectedValue && selectedValue !== '__manual__') {
+          quickDriver.value = selectedValue;
+          quickDriver.readOnly = true;
+          quickDriver.classList.add('quick-trip-readonly');
+          return;
+        }
+        quickDriver.readOnly = false;
+        quickDriver.classList.remove('quick-trip-readonly');
+        if (!quickDriver.value.trim()) quickDriver.focus();
+      };
+      quickDriverSelect.addEventListener('change', syncDriverInput);
+      syncDriverInput();
     }
 
     var active = window.ActiveTrip && typeof window.ActiveTrip.load === 'function'
