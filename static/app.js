@@ -457,9 +457,14 @@ function _setupCountUp() {
 
 function _setupPullToRefresh() {
   var endpoint = (document.body && document.body.dataset && document.body.dataset.endpoint) || "";
+  var refreshTarget = document.querySelector("main.container") || document.querySelector(".page") || document.body;
+
   if (endpoint === "trips" || endpoint === "fuel") {
     var pullIndicator = document.querySelector(".pull-indicator");
     if (pullIndicator && pullIndicator.parentElement) pullIndicator.remove();
+    document.documentElement.style.overscrollBehaviorY = "none";
+    document.body.style.overscrollBehaviorY = "none";
+    document.body.style.webkitOverflowScrolling = "auto";
     return;
   }
 
@@ -477,7 +482,7 @@ function _setupPullToRefresh() {
       startY = e.touches[0].clientY;
       pull = 0;
       armed = false;
-      document.body.style.transition = 'none';
+      refreshTarget.style.transition = "none";
     }
   }, { passive: true });
 
@@ -485,7 +490,7 @@ function _setupPullToRefresh() {
     if (window.scrollY > 0 || !startY) return;
     pull = (e.touches[0].clientY - startY) * 0.45; // Spring resistance
     if (pull > 0) {
-      document.body.style.transform = "translateY(" + pull + "px)";
+      refreshTarget.style.transform = "translateY(" + pull + "px)";
     }
     if (pull > 8) indicator.classList.add("visible");
     if (pull > 65) armed = true;
@@ -493,8 +498,8 @@ function _setupPullToRefresh() {
 
   document.body.addEventListener("touchend", function () {
     if (!startY) return;
-    document.body.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-    document.body.style.transform = '';
+    refreshTarget.style.transition = "transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
+    refreshTarget.style.transform = "";
     
     if (armed) {
       indicator.classList.add("visible");
@@ -711,21 +716,17 @@ function startQuickTrip(btn) {
   var vehicleLabel = document.getElementById("quickVehicleLabel");
   if (vehicleLabel) vehicleLabel.textContent = vehicleName || "—";
 
-  var chips = document.querySelectorAll(".purpose-chip");
-  chips.forEach(function (chip) { chip.classList.remove("selected"); });
-  if (chips.length) chips[0].classList.add("selected");
-
-  var customWrap = document.getElementById("quickPurposeCustomWrap");
-  var customInput = document.getElementById("quickPurposeCustom");
-  var odoStartInput = document.getElementById("quickOdoStart");
+  var purposeInput = document.getElementById("quickPurposeInput");
   var quickDriverInput = document.getElementById("quickDriver");
+  var quickDriverSelect = document.getElementById("quickDriverSelect");
   if (quickDriverInput && !quickDriverInput.value.trim()) {
     var topbarName = document.querySelector(".topbar-user span");
     quickDriverInput.value = topbarName ? topbarName.textContent.trim() : "";
   }
-  if (customWrap) customWrap.classList.add("hidden");
-  if (customInput) customInput.value = "";
-  if (odoStartInput) odoStartInput.value = "";
+  if (quickDriverSelect && quickDriverInput && quickDriverInput.value.trim()) {
+    quickDriverSelect.value = "__manual__";
+  }
+  if (purposeInput) purposeInput.value = "";
 
   backdrop.classList.remove("hidden");
   sheet.classList.remove("hidden");

@@ -48,6 +48,7 @@ html {
   height: 100%;
   min-height: 100vh;
   min-height: 100dvh;
+  overflow-x: hidden;
 }
 
 body {
@@ -59,8 +60,11 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   padding-bottom: calc(var(--bottom-nav-total-height) + 20px);
-  overscroll-behavior-y: none;
+  /* Default: contain bounce globally; trips/fuel enforce stricter none below. */
+  overscroll-behavior-y: contain;
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   touch-action: manipulation;
 }
 
@@ -69,6 +73,7 @@ select,
 textarea {
   /* iOS Safari: >=16px prevents automatic viewport zoom on field focus */
   font-size: 16px;
+  touch-action: manipulation;
 }
 
 /* Layout */
@@ -79,7 +84,7 @@ textarea {
 }
 
 .page {
-  padding: 0 16px calc(var(--bottom-nav-total-height) + 20px);
+  padding: 0 16px 20px;
 }
 
 @keyframes pageSlideUp {
@@ -169,9 +174,13 @@ textarea {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   height: var(--bottom-nav-total-height);
+  min-height: var(--bottom-nav-total-height);
   padding-bottom: var(--safe-area-bottom);
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
   will-change: transform;
+  contain: paint;
 }
 
 .nav-link {
@@ -1173,6 +1182,41 @@ textarea {
   height: 14px;
 }
 
+.dashboard-skeleton,
+.history-skeleton {
+  display: none;
+  margin-top: 16px;
+}
+
+.dashboard-skeleton .skeleton,
+.history-skeleton .skeleton {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.dashboard-skeleton .skeleton:last-child,
+.history-skeleton .skeleton:last-child {
+  margin-bottom: 0;
+}
+
+body[data-dashboard-loading="true"] .dashboard-content {
+  display: none;
+}
+
+body[data-dashboard-loading="true"] .dashboard-skeleton {
+  display: block;
+}
+
+body[data-history-loading="true"][data-endpoint="trips"] .history-content,
+body[data-history-loading="true"][data-endpoint="fuel"] .history-content {
+  display: none;
+}
+
+body[data-history-loading="true"][data-endpoint="trips"] .history-skeleton,
+body[data-history-loading="true"][data-endpoint="fuel"] .history-skeleton {
+  display: block;
+}
+
 /* Pull indicator */
 .pull-indicator {
   position: fixed;
@@ -1295,4 +1339,17 @@ textarea {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+body[data-endpoint="trips"],
+body[data-endpoint="fuel"] {
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: auto;
+}
+
+body[data-endpoint="trips"] .container,
+body[data-endpoint="fuel"] .container,
+body[data-endpoint="trips"] .page,
+body[data-endpoint="fuel"] .page {
+  overscroll-behavior-y: none;
 }
