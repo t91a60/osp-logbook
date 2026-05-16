@@ -197,7 +197,6 @@
     var purpose = purposeCustom;
 
     var now = new Date();
-    var odoStartInput = document.getElementById('quickOdoStart');
     var vehicleId = String(sheet.dataset.vehicleId || '').trim();
     var vehicleName = String(sheet.dataset.vehicleName || '—');
     var quickVehicleSelect = document.getElementById('quickVehicleSelect');
@@ -228,7 +227,7 @@
       purpose: purpose,
       purpose_select: '__inne__',
       purpose_custom: purposeCustom,
-      odoStart: odoStartInput ? String(odoStartInput.value || '').trim() : '',
+      odoStart: '',
       driver: driver,
       dateStr: formatLocalDate(now),
       timeStartStr: formatLocalTime(now),

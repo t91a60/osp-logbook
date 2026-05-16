@@ -222,7 +222,7 @@
       </div>
 
       <div class="form-field" style="margin-top:12px;">
-        <label class="form-label" for="quickDriverSelect">Kierowca (wybór)</label>
+        <label class="form-label" for="quickDriverSelect">Kierowca (wybierz)</label>
         <select id="quickDriverSelect" class="form-select xl" aria-label="Wybierz kierowcę">
           <option value="{{ session.display_name }}" selected>{{ session.display_name }}</option>
           <option value="__manual__">Inny — wpisz ręcznie</option>
@@ -230,7 +230,7 @@
       </div>
 
       <div class="form-field" style="margin-top:12px;">
-        <label class="form-label" for="quickDriver">Kierowca (wpisz)</label>
+        <label class="form-label" for="quickDriver">Kierowca</label>
         <input type="text" id="quickDriver" class="form-input xl" value="{{ session.display_name }}" autocomplete="name" placeholder="Imię i nazwisko">
       </div>
 

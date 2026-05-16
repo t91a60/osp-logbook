@@ -721,10 +721,7 @@ function startQuickTrip(btn) {
   chips.forEach(function (chip) { chip.classList.remove("selected"); });
   if (chips.length) chips[0].classList.add("selected");
 
-  var customWrap = document.getElementById("quickPurposeCustomWrap");
-  var customInput = document.getElementById("quickPurposeCustom");
   var purposeInput = document.getElementById("quickPurposeInput");
-  var odoStartInput = document.getElementById("quickOdoStart");
   var quickDriverInput = document.getElementById("quickDriver");
   var quickDriverSelect = document.getElementById("quickDriverSelect");
   if (quickDriverInput && !quickDriverInput.value.trim()) {
@@ -734,10 +731,7 @@ function startQuickTrip(btn) {
   if (quickDriverSelect && quickDriverInput && quickDriverInput.value.trim()) {
     quickDriverSelect.value = "__manual__";
   }
-  if (customWrap) customWrap.classList.add("hidden");
-  if (customInput) customInput.value = "";
   if (purposeInput) purposeInput.value = "";
-  if (odoStartInput) odoStartInput.value = "";
 
   backdrop.classList.remove("hidden");
   sheet.classList.remove("hidden");
