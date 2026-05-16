@@ -1,5 +1,6 @@
 import os
 import hmac
+import hashlib
 from datetime import datetime, timezone
 
 from flask import Flask, session, request, abort, url_for, g, jsonify, redirect, flash, render_template
@@ -113,16 +114,19 @@ def create_app(config_class=None):
 
         def sw_url() -> str:
             sw_assets = ('sw.js', 'main.css', 'mobile.css', 'login.css', 'app.js', 'manifest.json')
-            version = 0
+            version_seed = []
             for asset in sw_assets:
                 filepath = os.path.realpath(os.path.join(static_root, asset))
                 if not filepath.startswith(static_root + os.sep):
+                    version_seed.append(f'{asset}:0')
                     continue
                 try:
-                    version ^= int(os.path.getmtime(filepath))
+                    mtime = int(os.path.getmtime(filepath))
                 except (OSError, ValueError):
-                    pass
-            return url_for('sw', v=version)
+                    mtime = 0
+                version_seed.append(f'{asset}:{mtime}')
+            version_hash = hashlib.sha1('|'.join(version_seed).encode('utf-8')).hexdigest()[:12]
+            return url_for('sw', v=version_hash)
 
         def csp_nonce():
             return getattr(g, 'csp_nonce', '')

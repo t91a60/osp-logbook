@@ -123,6 +123,15 @@ async function flushQueue() {
             self.clients.matchAll().then(clients => {
               clients.forEach(client => client.postMessage({ type: 'SYNC_SUCCESS', message: 'Zsynchronizowano zaległy wpis z bazy offline.' }));
             });
+          } else if (response.status === 403 || response.status === 401) {
+            const delTx = db.transaction('sync-queue', 'readwrite');
+            delTx.objectStore('sync-queue').delete(item.id);
+            self.clients.matchAll().then(clients => {
+              clients.forEach(client => client.postMessage({
+                type: 'SYNC_SESSION_EXPIRED',
+                message: 'Sesja wygasła. Zaloguj się ponownie, aby kontynuować synchronizację.'
+              }));
+            });
           } else {
             allSuccess = false;
           }
