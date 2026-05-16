@@ -111,10 +111,23 @@ def create_app(config_class=None):
                     mtime = 0
             return url_for('static', filename=filename, v=mtime)
 
+        def sw_url() -> str:
+            sw_assets = ('sw.js', 'main.css', 'mobile.css', 'login.css', 'app.js', 'manifest.json')
+            version = 0
+            for asset in sw_assets:
+                filepath = os.path.realpath(os.path.join(static_root, asset))
+                if not filepath.startswith(static_root + os.sep):
+                    continue
+                try:
+                    version ^= int(os.path.getmtime(filepath))
+                except (OSError, ValueError):
+                    pass
+            return url_for('sw', v=version)
+
         def csp_nonce():
             return getattr(g, 'csp_nonce', '')
 
-        return dict(csrf_token=generate_csrf_token, asset_url=asset_url, csp_nonce=csp_nonce)
+        return dict(csrf_token=generate_csrf_token, asset_url=asset_url, sw_url=sw_url, csp_nonce=csp_nonce)
 
     @app.after_request
     def add_security_headers(response):

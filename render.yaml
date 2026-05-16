@@ -21,7 +21,15 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: RATELIMIT_STORAGE_URI
-        value: memory://
+        fromService:
+          type: redis
+          name: osp-logbook-redis
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: osp-logbook-redis
+          property: connectionString
       - key: GUNICORN_WORKERS
         value: "2"
       - key: GUNICORN_THREADS
@@ -32,6 +40,10 @@ services:
         value: "1"
       - key: DB_POOL_MAX
         value: "10"
+  - type: redis
+    name: osp-logbook-redis
+    region: frankfurt
+    plan: free
 
 databases:
   - name: osp-logbook-db

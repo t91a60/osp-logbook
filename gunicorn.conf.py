@@ -1,6 +1,10 @@
-workers = 2
-worker_class = "sync"
-timeout = 30
+import os
+
+
+workers = int(os.environ.get("GUNICORN_WORKERS", 2))
+worker_class = os.environ.get("GUNICORN_WORKER_CLASS", "gthread")
+threads = max(1, int(os.environ.get("GUNICORN_THREADS", 2))) if worker_class == "gthread" else 1
+timeout = int(os.environ.get("GUNICORN_TIMEOUT", 30))
 keepalive = 5
 max_requests = 1000
 max_requests_jitter = 100

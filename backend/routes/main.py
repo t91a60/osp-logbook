@@ -7,6 +7,9 @@ application layer (no Flask).  The route itself remains thin:
   - Cache wrapper (get_or_set)
   - Template rendering
 """
+import hashlib
+import os
+
 from flask import render_template, make_response, current_app
 from datetime import date
 
@@ -22,7 +25,23 @@ from backend.application.dashboard import GetDashboardUseCase
 def register_routes(app):
     @app.route('/sw.js', endpoint='sw')
     def sw():
-        response = make_response(current_app.send_static_file('sw.js'))
+        static_root = os.path.realpath(os.path.join(current_app.root_path, 'static'))
+        cache_assets = ['main.css', 'mobile.css', 'login.css', 'app.js', 'manifest.json']
+        version_seed = []
+        for asset_name in cache_assets:
+            asset_path = os.path.realpath(os.path.join(static_root, asset_name))
+            if asset_path.startswith(static_root + os.sep):
+                try:
+                    version_seed.append(f"{asset_name}:{int(os.path.getmtime(asset_path))}")
+                except (OSError, ValueError):
+                    version_seed.append(f"{asset_name}:0")
+        sw_path = os.path.realpath(os.path.join(static_root, 'sw.js'))
+        with open(sw_path, encoding='utf-8') as sw_file:
+            sw_text = sw_file.read()
+
+        version_hash = hashlib.sha1('|'.join(version_seed).encode('utf-8')).hexdigest()[:12]
+        cache_name = f'osp-logbook-{version_hash}'
+        response = make_response(sw_text.replace('__SW_CACHE_NAME__', cache_name))
         response.headers['Content-Type'] = 'application/javascript'
         response.headers['Service-Worker-Allowed'] = '/'
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'

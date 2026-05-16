@@ -1,4 +1,4 @@
-const CACHE_NAME = 'osp-logbook-v2';
+const CACHE_NAME = '__SW_CACHE_NAME__';
 const PRECACHE_URLS = [
   '/static/main.css',
   '/static/app.js',
