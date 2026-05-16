@@ -373,10 +373,12 @@
         if (selectedValue && selectedValue !== '__manual__') {
           quickDriver.value = selectedValue;
           quickDriver.readOnly = true;
+          quickDriver.setAttribute('aria-readonly', 'true');
           quickDriver.classList.add('quick-trip-readonly');
           return;
         }
         quickDriver.readOnly = false;
+        quickDriver.removeAttribute('aria-readonly');
         quickDriver.classList.remove('quick-trip-readonly');
         if (!quickDriver.value.trim()) quickDriver.focus();
       };

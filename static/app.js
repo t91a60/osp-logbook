@@ -457,7 +457,7 @@ function _setupCountUp() {
 
 function _setupPullToRefresh() {
   var endpoint = (document.body && document.body.dataset && document.body.dataset.endpoint) || "";
-  var refreshLayer = document.querySelector("main.container") || document.querySelector(".page") || document.body;
+  var refreshTarget = document.querySelector("main.container") || document.querySelector(".page") || document.body;
 
   if (endpoint === "trips" || endpoint === "fuel") {
     var pullIndicator = document.querySelector(".pull-indicator");
@@ -482,7 +482,7 @@ function _setupPullToRefresh() {
       startY = e.touches[0].clientY;
       pull = 0;
       armed = false;
-      refreshLayer.style.transition = "none";
+      refreshTarget.style.transition = "none";
     }
   }, { passive: true });
 
@@ -490,7 +490,7 @@ function _setupPullToRefresh() {
     if (window.scrollY > 0 || !startY) return;
     pull = (e.touches[0].clientY - startY) * 0.45; // Spring resistance
     if (pull > 0) {
-      refreshLayer.style.transform = "translateY(" + pull + "px)";
+      refreshTarget.style.transform = "translateY(" + pull + "px)";
     }
     if (pull > 8) indicator.classList.add("visible");
     if (pull > 65) armed = true;
@@ -498,8 +498,8 @@ function _setupPullToRefresh() {
 
   document.body.addEventListener("touchend", function () {
     if (!startY) return;
-    refreshLayer.style.transition = "transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
-    refreshLayer.style.transform = "";
+    refreshTarget.style.transition = "transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
+    refreshTarget.style.transform = "";
     
     if (armed) {
       indicator.classList.add("visible");
