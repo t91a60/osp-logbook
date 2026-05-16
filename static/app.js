@@ -921,6 +921,9 @@ document.addEventListener("DOMContentLoaded", function () {
         Haptics.success();
         // Optional: reload to show new entries
         setTimeout(() => window.location.reload(), 2000);
+      } else if (event.data && event.data.type === 'SYNC_SESSION_EXPIRED') {
+        showToast(event.data.message || 'Sesja wygasła. Zaloguj się ponownie.', 'error', 7000);
+        Haptics.error();
       }
     });
   }

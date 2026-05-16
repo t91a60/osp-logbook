@@ -103,6 +103,7 @@ async function flushQueue() {
       if (!items || items.length === 0) return resolve();
       
       let allSuccess = true;
+      let sessionExpiredNotified = false;
       for (const item of items) {
         try {
           const bodyData = new URLSearchParams(item.payload).toString();
@@ -117,12 +118,22 @@ async function flushQueue() {
           });
           
           if (response.ok) {
-            const delTx = db.transaction('sync-queue', 'readwrite');
-            delTx.objectStore('sync-queue').delete(item.id);
+            await deleteQueueItem(db, item.id);
             // Notify client if available
             self.clients.matchAll().then(clients => {
               clients.forEach(client => client.postMessage({ type: 'SYNC_SUCCESS', message: 'Zsynchronizowano zaległy wpis z bazy offline.' }));
             });
+          } else if (response.status === 403 || response.status === 401) {
+            await deleteQueueItem(db, item.id);
+            if (!sessionExpiredNotified) {
+              sessionExpiredNotified = true;
+              self.clients.matchAll().then(clients => {
+                clients.forEach(client => client.postMessage({
+                  type: 'SYNC_SESSION_EXPIRED',
+                  message: 'Sesja wygasła. Zaloguj się ponownie, aby kontynuować synchronizację.'
+                }));
+              });
+            }
           } else {
             allSuccess = false;
           }
@@ -133,5 +144,14 @@ async function flushQueue() {
       allSuccess ? resolve() : reject(new Error('Sync failed for some items'));
     };
     getReq.onerror = () => reject(getReq.error);
+  });
+}
+
+function deleteQueueItem(db, itemId) {
+  return new Promise((resolve, reject) => {
+    const delTx = db.transaction('sync-queue', 'readwrite');
+    const deleteReq = delTx.objectStore('sync-queue').delete(itemId);
+    deleteReq.onsuccess = () => resolve();
+    deleteReq.onerror = () => reject(deleteReq.error);
   });
 }
