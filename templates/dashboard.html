@@ -254,9 +254,10 @@
   {% block extra_js %}
     <script nonce="{{ csp_nonce() }}">
       document.addEventListener('DOMContentLoaded', function () {
+        const SKELETON_DISPLAY_DURATION_MS = 120;
         setTimeout(function () {
           document.body.removeAttribute('data-dashboard-loading');
-        }, 180);
+        }, SKELETON_DISPLAY_DURATION_MS);
       });
     </script>
     <script nonce="{{ csp_nonce() }}">

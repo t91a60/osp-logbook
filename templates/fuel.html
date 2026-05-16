@@ -197,7 +197,8 @@
 
 <script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(function() { document.body.removeAttribute('data-history-loading'); }, 120);
+  const SKELETON_DISPLAY_DURATION_MS = 120;
+  setTimeout(function() { document.body.removeAttribute('data-history-loading'); }, SKELETON_DISPLAY_DURATION_MS);
   setupAutoSave('fuelForm');
   setupFormKeyboardShortcuts('fuelForm');
   restoreVehicle('fuel_vehicle_id', 'fuel');
@@ -236,4 +237,3 @@ function submitFuel() {
 }
 </script>
 {% endblock %}
-

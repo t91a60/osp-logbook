@@ -225,6 +225,7 @@
       vehicleId: vehicleId,
       vehicleName: vehicleName,
       purpose: purpose,
+      // Keep backend compatibility: minimal UI always maps to custom purpose flow.
       purpose_select: '__inne__',
       purpose_custom: purposeCustom,
       odoStart: '',

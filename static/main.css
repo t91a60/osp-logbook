@@ -60,6 +60,7 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   padding-bottom: calc(var(--bottom-nav-total-height) + 20px);
+  /* Default: contain bounce globally; trips/fuel enforce stricter none below. */
   overscroll-behavior-y: contain;
   overflow-x: hidden;
   overflow-y: auto;
