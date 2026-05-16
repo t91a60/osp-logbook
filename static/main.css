@@ -35,8 +35,7 @@ label,
   --mono: "SF Mono", "Courier New", Courier, monospace;
   --radius: 12px;
   --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  --safe-area-bottom-fallback: 0px;
-  --safe-area-bottom: env(safe-area-inset-bottom, var(--safe-area-bottom-fallback));
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --bottom-nav-height: 66px;
   --bottom-nav-total-height: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
 }

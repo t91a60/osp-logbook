@@ -458,7 +458,6 @@ function _setupCountUp() {
 function _setupPullToRefresh() {
   var endpoint = (document.body && document.body.dataset && document.body.dataset.endpoint) || "";
   var refreshLayer = document.querySelector("main.container") || document.querySelector(".page") || document.body;
-  if (refreshLayer && refreshLayer.classList) refreshLayer.classList.add("pull-refresh-layer");
 
   if (endpoint === "trips" || endpoint === "fuel") {
     var pullIndicator = document.querySelector(".pull-indicator");
@@ -716,10 +715,6 @@ function startQuickTrip(btn) {
   sheet.dataset.vehicleName = vehicleName || "";
   var vehicleLabel = document.getElementById("quickVehicleLabel");
   if (vehicleLabel) vehicleLabel.textContent = vehicleName || "—";
-
-  var chips = document.querySelectorAll(".purpose-chip");
-  chips.forEach(function (chip) { chip.classList.remove("selected"); });
-  if (chips.length) chips[0].classList.add("selected");
 
   var purposeInput = document.getElementById("quickPurposeInput");
   var quickDriverInput = document.getElementById("quickDriver");
