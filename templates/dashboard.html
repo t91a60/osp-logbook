@@ -25,6 +25,7 @@
     <div class="active-trip-content">
       <div class="active-trip-label">🚒 WYJAZD W TOKU</div>
       <div class="active-trip-vehicle" id="activeTripVehicle">—</div>
+      <div class="active-trip-driver" id="activeTripDriver">—</div>
       <div class="active-trip-purpose" id="activeTripPurpose">—</div>
       <div class="active-trip-timer" id="activeTripTimer">00:00</div>
     </div>
@@ -232,6 +233,11 @@
       <div class="form-field" style="margin-top:12px;">
         <label class="form-label" for="quickDriver">Kierowca</label>
         <input type="text" id="quickDriver" class="form-input xl" value="{{ session.display_name }}" autocomplete="name" placeholder="Imię i nazwisko">
+      </div>
+
+      <div class="form-field" style="margin-top:12px;">
+        <label class="form-label" for="quickTimeStart">Czas startu (opcjonalnie)</label>
+        <input type="time" id="quickTimeStart" class="form-input xl" aria-label="Czas startu wyjazdu">
       </div>
 
       <div class="form-field" style="margin-top:12px;">

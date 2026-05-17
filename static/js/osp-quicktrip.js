@@ -220,6 +220,12 @@
       return null;
     }
 
+    // Honour the user-supplied start time; fall back to current time.
+    var timeStartInput = document.getElementById('quickTimeStart');
+    var timeStartStr = timeStartInput && timeStartInput.value.trim()
+      ? timeStartInput.value.trim()
+      : formatLocalTime(now);
+
     return {
       localId: buildLocalId(),
       vehicleId: vehicleId,
@@ -231,7 +237,7 @@
       odoStart: '',
       driver: driver,
       dateStr: formatLocalDate(now),
-      timeStartStr: formatLocalTime(now),
+      timeStartStr: timeStartStr,
       timeStartMs: now.getTime()
     };
   }
@@ -314,6 +320,65 @@
     });
   }
 
+  function loadRecentDrivers() {
+    var select = document.getElementById('quickDriverSelect');
+    if (!select) return;
+
+    var currentUser = (window.ospConfig && window.ospConfig.currentUser)
+      ? String(window.ospConfig.currentUser).trim()
+      : '';
+
+    fetch('/api/drivers', {
+      headers: { 'Accept': 'application/json' }
+    })
+      .then(function (res) {
+        return res.ok ? res.json() : Promise.reject(new Error('Failed to fetch drivers'));
+      })
+      .then(function (drivers) {
+        if (!Array.isArray(drivers) || !drivers.length) return;
+
+        // Deduplicate, always placing the current user first.
+        var seen = {};
+        var ordered = [];
+
+        // Current user goes first (if known)
+        if (currentUser) {
+          seen[currentUser] = true;
+          ordered.push(currentUser);
+        }
+
+        drivers.forEach(function (name) {
+          var val = String(name || '').trim();
+          if (!val || seen[val]) return;
+          seen[val] = true;
+          ordered.push(val);
+        });
+
+        // Rebuild option list
+        var fragment = document.createDocumentFragment();
+        ordered.forEach(function (val, index) {
+          var opt = document.createElement('option');
+          opt.value = val;
+          opt.textContent = val;
+          if (index === 0) opt.selected = true;
+          fragment.appendChild(opt);
+        });
+
+        var manualOpt = document.createElement('option');
+        manualOpt.value = '__manual__';
+        manualOpt.textContent = 'Inny — wpisz ręcznie';
+        fragment.appendChild(manualOpt);
+
+        // Replace children, keeping the select otherwise intact
+        while (select.firstChild) select.removeChild(select.firstChild);
+        select.appendChild(fragment);
+
+        // Trigger sync so the text input reflects the new selection
+        select.dispatchEvent(new Event('change'));
+      })
+      .catch(function () { /* silently keep existing options on network error */ });
+  }
+
   async function handleQuickTripConfirm() {
     var activeData = getQuickTripPayload();
     if (!activeData) return;
@@ -347,6 +412,7 @@
 
   function bootstrapQuickTrip() {
     window.confirmQuickTrip = handleQuickTripConfirm;
+    window._ospQuickTripConfirm = handleQuickTripConfirm;
     migrateLegacyQueue();
 
     var quickVehicleSelect = document.getElementById('quickVehicleSelect');
@@ -386,6 +452,16 @@
       quickDriverSelect.addEventListener('change', syncDriverInput);
       syncDriverInput();
     }
+
+    // Pre-fill start time with current local time
+    var quickTimeStart = document.getElementById('quickTimeStart');
+    if (quickTimeStart && !quickTimeStart.value) {
+      var now = new Date();
+      quickTimeStart.value = formatLocalTime(now);
+    }
+
+    // Fetch recent drivers and populate the driver select
+    loadRecentDrivers();
 
     var active = window.ActiveTrip && typeof window.ActiveTrip.load === 'function'
       ? window.ActiveTrip.load()

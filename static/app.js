@@ -609,8 +609,10 @@ var ActiveTrip = window.ActiveTrip = {
     }
 
     var vehicleEl = document.getElementById("activeTripVehicle");
+    var driverEl = document.getElementById("activeTripDriver");
     var purposeEl = document.getElementById("activeTripPurpose");
     if (vehicleEl) vehicleEl.textContent = data.vehicleName || "—";
+    if (driverEl) driverEl.textContent = data.driver || "—";
     if (purposeEl) purposeEl.textContent = data.purpose || "—";
     card.classList.remove("hidden");
     this._startTimer(data.timeStartMs);
@@ -747,49 +749,13 @@ function closeQuickSheet() {
   }, 420);
 }
 
+// confirmQuickTrip is provided by osp-quicktrip.js (loaded via extra_js block).
+// A stub is defined here so the onclick attribute never throws a ReferenceError
+// on pages where the dedicated script has not yet executed.
 function confirmQuickTrip() {
-  var sheet = document.getElementById("quickTripSheet");
-  if (!sheet) return;
-
-  var selected = document.querySelector(".purpose-chip.selected");
-  if (!selected) {
-    showToast("Wybierz cel wyjazdu.", "error");
-    Haptics.error();
-    return;
+  if (typeof window._ospQuickTripConfirm === 'function') {
+    window._ospQuickTripConfirm();
   }
-
-  var purpose = selected.dataset.value || "";
-  if (purpose === CUSTOM_PURPOSE_VALUE) {
-    var custom = document.getElementById("quickPurposeCustom");
-    var customValue = custom ? custom.value.trim() : "";
-    if (!customValue) {
-      showToast("Opisz cel wyjazdu.", "error");
-      Haptics.error();
-      return;
-    }
-    purpose = customValue;
-  }
-
-  var now = new Date();
-  var topbarName = document.querySelector(".topbar-user span");
-  var driverName = topbarName ? topbarName.textContent.trim() : "";
-  var odoStartInput = document.getElementById("quickOdoStart");
-  var data = {
-    vehicleId: sheet.dataset.vehicleId || "",
-    vehicleName: sheet.dataset.vehicleName || "—",
-    purpose: purpose,
-    odoStart: odoStartInput ? odoStartInput.value : "",
-    timeStartMs: Date.now(),
-    timeStartStr: _formatLocalTime(now),
-    dateStr: _formatLocalDate(now),
-    driver: driverName
-  };
-
-  ActiveTrip.save(data);
-  closeQuickSheet();
-  ActiveTrip.renderCard();
-  Haptics.success();
-  showToast("🚒 Wyjazd zarejestrowany! " + data.vehicleName, "success", 3000);
 }
 
 function prefillFromActiveTrip() {
