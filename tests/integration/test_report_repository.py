@@ -1,5 +1,6 @@
 import pytest
 import psycopg2
+from psycopg2.extras import RealDictCursor
 
 from backend.infrastructure.repositories.report import ReportRepository
 from backend.services import cache_service
@@ -55,6 +56,13 @@ def seeded_db(pg_dsn):
                 """,
                 (vehicle_id, "2026-05-15", "Nowak", 45.0, 290.0, "test"),
             )
+            cur.execute(
+                """
+                INSERT INTO maintenance (vehicle_id, date, description, cost, added_by)
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                (vehicle_id, "2026-05-16", "Przeglad", 123.0, "test"),
+            )
         conn.commit()
         yield {"vid": vehicle_id}
     finally:
@@ -66,7 +74,7 @@ def test_get_trip_summary_returns_correct_totals(seeded_db, pg_dsn):
     vehicle_id = seeded_db["vid"]
 
     with psycopg2.connect(pg_dsn) as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
             result = repository.get_trip_summary(
                 "2026-05-01", "2026-05-31", vehicle_id, cur=cur
             )
@@ -81,7 +89,7 @@ def test_get_fuel_summary_returns_correct_totals(seeded_db, pg_dsn):
     vehicle_id = seeded_db["vid"]
 
     with psycopg2.connect(pg_dsn) as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
             result = repository.get_fuel_summary(
                 "2026-05-01", "2026-05-31", vehicle_id, cur=cur
             )
@@ -96,7 +104,7 @@ def test_get_trip_entries_returns_ordered_rows(seeded_db, pg_dsn):
     vehicle_id = seeded_db["vid"]
 
     with psycopg2.connect(pg_dsn) as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
             rows = repository.get_trip_entries(
                 "2026-05-01", "2026-05-31", vehicle_id, cur=cur
             )
@@ -110,7 +118,7 @@ def test_empty_period_returns_zero_totals(pg_dsn):
     repository = ReportRepository()
 
     with psycopg2.connect(pg_dsn) as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
             result = repository.get_trip_summary(
                 "2025-01-01", "2025-01-31", 9999, cur=cur
             )
@@ -122,9 +130,44 @@ def test_get_total_km_returns_zero_for_empty_period(pg_dsn):
     repository = ReportRepository()
 
     with psycopg2.connect(pg_dsn) as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
             total_km = repository.get_total_km(
                 "2025-01-01", "2025-01-31", 9999, cur=cur
             )
 
     assert total_km == 0
+
+
+def test_get_maintenance_summary_returns_totals(seeded_db, pg_dsn):
+    repository = ReportRepository()
+    vehicle_id = seeded_db["vid"]
+
+    with psycopg2.connect(pg_dsn) as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            result = repository.get_maintenance_summary(
+                "2026-05-01", "2026-05-31", vehicle_id, cur=cur
+            )
+
+    assert vehicle_id in result
+    assert abs(result[vehicle_id]["total_cost"] - 123.0) < 0.01
+
+
+def test_run_with_cursor_uses_repo_db_helpers_when_cur_not_provided(pg_dsn, monkeypatch):
+    repository = ReportRepository()
+    conn = psycopg2.connect(pg_dsn)
+
+    def fake_get_db():
+        return conn
+
+    def fake_get_cursor(db_conn):
+        assert db_conn is conn
+        return db_conn.cursor(cursor_factory=RealDictCursor)
+
+    monkeypatch.setattr("backend.infrastructure.repositories.report.get_db", fake_get_db)
+    monkeypatch.setattr("backend.infrastructure.repositories.report.get_cursor", fake_get_cursor)
+
+    try:
+        result = repository.get_trip_summary("2025-01-01", "2025-01-31", 9999)
+        assert result == []
+    finally:
+        conn.close()

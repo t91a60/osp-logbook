@@ -85,3 +85,59 @@ def test_lru_eviction_when_max_entries_reached_in_memory_fallback(monkeypatch):
 
     remaining = sum(1 for i in range(7) if cache.get(f"lru_{i}") is not None)
     assert remaining <= 5
+
+
+def test_in_memory_invalidate_tags_and_prefix(monkeypatch):
+    monkeypatch.delenv("REDIS_URL", raising=False)
+    cache = RedisCache(url=None)
+    cache.set("report:1", {"a": 1}, ttl_seconds=60, tags=["report"])
+    cache.set("report:2", {"b": 2}, ttl_seconds=60, tags=["report"])
+    cache.set("dashboard:1", {"c": 3}, ttl_seconds=60, tags=["dashboard"])
+
+    cache.invalidate_tags(["report"])
+    assert cache.get("report:1") is None
+    assert cache.get("report:2") is None
+    assert cache.get("dashboard:1") == {"c": 3}
+
+    cache.invalidate_prefix("dashboard:")
+    assert cache.get("dashboard:1") is None
+
+
+def test_redis_connection_errors_fall_back_to_in_memory(monkeypatch):
+    class FailingRedis:
+        def get(self, _key):
+            raise redis.ConnectionError("boom")
+
+        def pipeline(self):
+            raise redis.ConnectionError("boom")
+
+        def scan(self, *args, **kwargs):
+            raise redis.ConnectionError("boom")
+
+        def smembers(self, _key):
+            raise redis.ConnectionError("boom")
+
+    monkeypatch.delenv("REDIS_URL", raising=False)
+    cache = RedisCache(url=None)
+    cache.redis = FailingRedis()
+
+    cache.set("k", "v", ttl_seconds=60, tags=["t"])
+    assert cache.get("k") == "v"
+
+    cache.invalidate_tags(["t"])
+    assert cache.get("k") is None
+
+    cache.set("prefix:1", "x", ttl_seconds=60)
+    cache.invalidate_prefix("prefix:")
+    assert cache.get("prefix:1") is None
+
+
+def test_set_fallback_keeps_unserializable_values(monkeypatch):
+    class Unserializable:
+        pass
+
+    monkeypatch.delenv("REDIS_URL", raising=False)
+    cache = RedisCache(url=None)
+    obj = Unserializable()
+    cache.set("obj", obj, ttl_seconds=60)
+    assert cache.get("obj") is obj
