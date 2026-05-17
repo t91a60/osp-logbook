@@ -60,8 +60,8 @@ def test_invalidate_prefix_removes_matching_keys(redis_url):
 
 def test_set_complex_object_serialises(redis_url):
     cache = RedisCache(redis_url)
-    payload = {"date": date.today(), "count": 42, "items": [1, 2, 3]}
-    cache.set("complex", payload, ttl_seconds=60)
+    complex_object = {"date": date.today(), "count": 42, "items": [1, 2, 3]}
+    cache.set("complex", complex_object, ttl_seconds=60)
     result = cache.get("complex")
     assert result["count"] == 42
     assert result["items"] == [1, 2, 3]
@@ -78,13 +78,12 @@ def test_pipeline_atomic_set_writes_tag_index(redis_url):
 def test_lru_eviction_when_max_entries_reached_in_memory_fallback(monkeypatch):
     monkeypatch.delenv("REDIS_URL", raising=False)
     cache = RedisCache(url=None)
-    cache._MAX_SIZE = 5
 
-    for i in range(7):
+    for i in range(1030):
         cache.set(f"lru_{i}", i, ttl_seconds=300)
 
-    remaining = sum(1 for i in range(7) if cache.get(f"lru_{i}") is not None)
-    assert remaining <= 5
+    assert cache.get("lru_0") is None
+    assert cache.get("lru_1029") == 1029
 
 
 def test_in_memory_invalidate_tags_and_prefix(monkeypatch):

@@ -61,7 +61,7 @@ def seeded_db(pg_dsn):
                 INSERT INTO maintenance (vehicle_id, date, description, cost, added_by)
                 VALUES (%s, %s, %s, %s, %s)
                 """,
-                (vehicle_id, "2026-05-16", "Przeglad", 123.0, "test"),
+                (vehicle_id, "2026-05-16", "Przegląd", 123.0, "test"),
             )
         conn.commit()
         yield {"vid": vehicle_id}
