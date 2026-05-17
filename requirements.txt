@@ -6,3 +6,5 @@ flask-limiter>=3.5.0
 yoyo-migrations>=8.2.0
 Flask-Compress>=1.13.0
 redis>=4.5.0
+testcontainers[redis,postgresql]>=4.4.0
+pytest-postgresql>=6.0.0
