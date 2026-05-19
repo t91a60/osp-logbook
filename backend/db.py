@@ -1,17 +1,22 @@
 import os
 import time
 import logging
+import re
+from pathlib import Path
 
 import psycopg2
 from psycopg2.pool import SimpleConnectionPool
 from psycopg2.extras import RealDictCursor
 from werkzeug.security import generate_password_hash
 from flask import g, Flask
+import sqlparse
 
 logger = logging.getLogger(__name__)
 
 _db_pool: SimpleConnectionPool | None = None
 ADMIN_PLACEHOLDER_PASSWORD = 'CHANGE_ME_RUN_FLASK_INIT'
+MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / 'migrations'
+_MIGRATION_FILE_RE = re.compile(r'^(?P<version>\d+)_.*\.sql$')
 
 
 def _create_pool() -> SimpleConnectionPool:
@@ -140,6 +145,68 @@ def _fetch_schema_version(conn) -> int | None:
         return int(row['version']) if row else None
 
 
+def _discover_sql_migrations() -> list[tuple[int, Path]]:
+    migrations: list[tuple[int, Path]] = []
+    seen_versions: set[int] = set()
+
+    if not MIGRATIONS_DIR.exists():
+        return migrations
+
+    for path in sorted(MIGRATIONS_DIR.glob('*.sql')):
+        match = _MIGRATION_FILE_RE.match(path.name)
+        if not match:
+            continue
+
+        version = int(match.group('version'))
+        if version in seen_versions:
+            raise RuntimeError(f'Duplicate migration version detected: {version}')
+        seen_versions.add(version)
+        migrations.append((version, path))
+
+    return migrations
+
+
+def apply_pending_migrations() -> None:
+    migrations = _discover_sql_migrations()
+    if not migrations:
+        return
+
+    conn = None
+    pool = get_pool()
+    try:
+        conn = pool.getconn()
+        conn.autocommit = False
+
+        with get_cursor(conn) as cur:
+            cur.execute("SELECT pg_advisory_xact_lock(hashtext('osp-logbook-schema-migrations'));")
+            current_version = _fetch_schema_version(conn)
+            if current_version is None:
+                raise RuntimeError('schema_version table missing or empty; run schema.sql first')
+
+            pending = [(version, path) for version, path in migrations if version > current_version]
+            if not pending:
+                conn.rollback()
+                return
+
+            for version, path in pending:
+                migration_sql = path.read_text(encoding='utf-8')
+                for statement in sqlparse.split(migration_sql):
+                    statement = statement.strip()
+                    if statement:
+                        cur.execute(statement)
+                cur.execute('INSERT INTO schema_version (version) VALUES (%s);', (version,))
+
+        conn.commit()
+        logger.info('Applied %s pending migrations (schema_version %s -> %s)', len(pending), current_version, pending[-1][0])
+    except Exception:
+        if conn is not None and not conn.closed:
+            conn.rollback()
+        raise
+    finally:
+        if conn is not None:
+            pool.putconn(conn, close=conn.closed)
+
+
 def log_schema_version() -> None:
     conn = None
     try:
@@ -239,6 +306,15 @@ def init_db() -> None:
 def register_db(app: Flask) -> None:
     """Registers DB teardown cleanup with the app context."""
     app.teardown_appcontext(close_db)
+    try:
+        apply_pending_migrations()
+        logger.info('Database migrations checked at startup')
+    except (psycopg2.Error, RuntimeError) as exc:
+        logger.warning(
+            'apply_pending_migrations() failed during register_db(); app will continue without startup migration: %s',
+            exc,
+        )
+        return
     try:
         init_db()
     except (psycopg2.Error, RuntimeError) as exc:

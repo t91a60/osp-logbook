@@ -5,8 +5,9 @@ services:
     region: frankfurt
     plan: free
     # Render przekazuje PORT do kontenera; Gunicorn binduje się do tego portu.
-    # Schema jest bootstrapowana z schema.sql, bo migracja Yoyo jest tylko
-    # no-op baseline i nie tworzy tabel wymaganych przez aplikację.
+    # Pre-deploy bootstrapuje bazę pełnym schema.sql dla nowych środowisk.
+    # Dalsze zmiany schematu aplikacja wykonuje inkrementalnie przy starcie
+    # na podstawie plików SQL w migrations/ oraz tabeli schema_version.
     preDeployCommand: python scripts/apply_schema.py
     healthCheckPath: /health
     envVars:

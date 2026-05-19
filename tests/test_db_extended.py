@@ -335,3 +335,74 @@ class TestCheckDbHealthExtended:
             result = db_module.check_db_health()
 
         assert result is False
+
+
+class TestMigrations:
+    @patch('backend.db.get_pool')
+    @patch('backend.db._fetch_schema_version')
+    @patch('backend.db._discover_sql_migrations')
+    def test_apply_pending_migrations_runs_only_new_versions(
+        self, mock_discover, mock_fetch_schema_version, mock_get_pool, tmp_path
+    ):
+        migration_11 = tmp_path / '0011_add_idx.sql'
+        migration_11.write_text(
+            '''
+            CREATE INDEX IF NOT EXISTS idx_trips_driver ON trips(driver);
+            ''',
+            encoding='utf-8',
+        )
+        migration_12 = tmp_path / '0012_add_col.sql'
+        migration_12.write_text(
+            '''
+            ALTER TABLE trips ADD COLUMN IF NOT EXISTS imported_at TIMESTAMPTZ;
+            ''',
+            encoding='utf-8',
+        )
+
+        mock_discover.return_value = [(11, migration_11), (12, migration_12)]
+        mock_fetch_schema_version.return_value = 10
+
+        mock_pool = MagicMock()
+        mock_conn = MagicMock()
+        mock_conn.closed = False
+        mock_pool.getconn.return_value = mock_conn
+        mock_get_pool.return_value = mock_pool
+
+        mock_cur = MagicMock()
+        mock_cur.__enter__.return_value = mock_cur
+        mock_cur.__exit__.return_value = False
+
+        with patch('backend.db.get_cursor', return_value=mock_cur):
+            db_module.apply_pending_migrations()
+
+        assert mock_conn.commit.call_count == 1
+        inserts = [
+            call for call in mock_cur.execute.call_args_list
+            if call.args and call.args[0] == 'INSERT INTO schema_version (version) VALUES (%s);'
+        ]
+        assert [call.args[1][0] for call in inserts] == [11, 12]
+
+    @patch('backend.db.get_pool')
+    @patch('backend.db._fetch_schema_version')
+    @patch('backend.db._discover_sql_migrations')
+    def test_apply_pending_migrations_noop_when_up_to_date(
+        self, mock_discover, mock_fetch_schema_version, mock_get_pool
+    ):
+        mock_discover.return_value = [(11, MagicMock())]
+        mock_fetch_schema_version.return_value = 11
+
+        mock_pool = MagicMock()
+        mock_conn = MagicMock()
+        mock_conn.closed = False
+        mock_pool.getconn.return_value = mock_conn
+        mock_get_pool.return_value = mock_pool
+
+        mock_cur = MagicMock()
+        mock_cur.__enter__.return_value = mock_cur
+        mock_cur.__exit__.return_value = False
+
+        with patch('backend.db.get_cursor', return_value=mock_cur):
+            db_module.apply_pending_migrations()
+
+        mock_conn.commit.assert_not_called()
+        assert mock_conn.rollback.call_count == 1
