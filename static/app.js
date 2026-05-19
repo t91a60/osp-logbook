@@ -566,6 +566,14 @@ function _formatLocalDate(now) {
   return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
 }
 
+function _formatElapsedHMS(totalSeconds) {
+  var elapsed = Math.max(0, Math.floor(totalSeconds || 0));
+  var h = Math.floor(elapsed / 3600);
+  var m = Math.floor((elapsed % 3600) / 60);
+  var s = elapsed % 60;
+  return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+}
+
 var CUSTOM_PURPOSE_VALUE = "__inne__";
 
 // Active Trip Module
@@ -625,10 +633,7 @@ var ActiveTrip = window.ActiveTrip = {
 
     var tick = function () {
       var elapsed = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
-      var h = Math.floor(elapsed / 3600);
-      var m = Math.floor((elapsed % 3600) / 60);
-      var s = elapsed % 60;
-      el.textContent = (h ? h + ":" : "") + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+      el.textContent = _formatElapsedHMS(elapsed);
     };
     tick();
     this._timerInterval = setInterval(tick, 1000);
@@ -726,7 +731,13 @@ function startQuickTrip(btn) {
     quickDriverInput.value = topbarName ? topbarName.textContent.trim() : "";
   }
   if (quickDriverSelect && quickDriverInput && quickDriverInput.value.trim()) {
-    quickDriverSelect.value = "__manual__";
+    var inputValue = String(quickDriverInput.value || "").trim();
+    var inputValueLower = inputValue.toLowerCase();
+    var matchingOption = Array.prototype.find.call(quickDriverSelect.options, function (opt) {
+      return String(opt.value || "").trim().toLowerCase() === inputValueLower;
+    });
+    quickDriverSelect.value = matchingOption ? String(matchingOption.value || "").trim() : "__manual__";
+    quickDriverSelect.dispatchEvent(new Event("change"));
   }
   if (purposeInput) purposeInput.value = "";
 
@@ -735,7 +746,9 @@ function startQuickTrip(btn) {
   requestAnimationFrame(function () {
     sheet.classList.add("open");
   });
-  Haptics.longPress();
+  if (window.Haptics && typeof window.Haptics.longPress === "function") {
+    window.Haptics.longPress();
+  }
 }
 
 function closeQuickSheet() {
@@ -769,11 +782,8 @@ function prefillFromActiveTrip() {
     var elapsedEl = document.getElementById("activeTripElapsed");
     var started = data.timeStartStr || "—";
     var elapsedSec = Math.max(0, Math.floor((Date.now() - (data.timeStartMs || Date.now())) / 1000));
-    var h = Math.floor(elapsedSec / 3600);
-    var m = Math.floor((elapsedSec % 3600) / 60);
-    var s = elapsedSec % 60;
     if (startedEl) startedEl.textContent = started;
-    if (elapsedEl) elapsedEl.textContent = (h ? h + ":" : "") + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    if (elapsedEl) elapsedEl.textContent = _formatElapsedHMS(elapsedSec);
     banner.classList.remove("hidden");
   }
 

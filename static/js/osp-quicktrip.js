@@ -61,7 +61,7 @@
     if (window.ospConfig && window.ospConfig.apiAddTrip) {
       return window.ospConfig.apiAddTrip;
     }
-    return '/api/add_trip';
+    return '/api/trips';
   }
 
   function loadQueue() {
@@ -414,6 +414,47 @@
     window.confirmQuickTrip = handleQuickTripConfirm;
     window._ospQuickTripConfirm = handleQuickTripConfirm;
     migrateLegacyQueue();
+
+    var triggerButtons = document.querySelectorAll('[data-quick-trip-trigger="1"]');
+    triggerButtons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (typeof window.startQuickTrip === 'function') {
+          window.startQuickTrip(btn);
+        }
+      });
+    });
+
+    var closeBtn = document.getElementById('quickTripCloseBtn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function () {
+        if (typeof window.closeQuickSheet === 'function') {
+          window.closeQuickSheet();
+        }
+      });
+    }
+
+    var backdrop = document.getElementById('quickTripBackdrop');
+    if (backdrop) {
+      backdrop.addEventListener('click', function () {
+        if (typeof window.closeQuickSheet === 'function') {
+          window.closeQuickSheet();
+        }
+      });
+    }
+
+    var confirmBtn = document.getElementById('quickTripConfirmBtn');
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', handleQuickTripConfirm);
+    }
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key !== 'Escape') return;
+      var sheet = document.getElementById('quickTripSheet');
+      if (!sheet || sheet.classList.contains('hidden')) return;
+      if (typeof window.closeQuickSheet === 'function') {
+        window.closeQuickSheet();
+      }
+    });
 
     var quickVehicleSelect = document.getElementById('quickVehicleSelect');
     if (quickVehicleSelect) {
