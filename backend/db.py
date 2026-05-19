@@ -18,6 +18,7 @@ ADMIN_PLACEHOLDER_PASSWORD = 'CHANGE_ME_RUN_FLASK_INIT'
 MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / 'migrations'
 _MIGRATION_FILE_RE = re.compile(r'^(?P<version>\d+)_.*\.sql$')
 MIGRATIONS_LOCK_ID = 91726051
+MAX_MIGRATION_STATEMENT_PREVIEW = 160
 
 
 def _create_pool() -> SimpleConnectionPool:
@@ -197,7 +198,11 @@ def apply_pending_migrations() -> None:
                         try:
                             cur.execute(statement)
                         except Exception as exc:
-                            statement_preview = statement if len(statement) <= 160 else f'{statement[:157]}...'
+                            statement_preview = (
+                                statement
+                                if len(statement) <= MAX_MIGRATION_STATEMENT_PREVIEW
+                                else f'{statement[:MAX_MIGRATION_STATEMENT_PREVIEW - 3]}...'
+                            )
                             raise RuntimeError(
                                 f'Failed applying migration {version} ({path.name}): {statement_preview}'
                             ) from exc
