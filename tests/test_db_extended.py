@@ -376,6 +376,9 @@ class TestMigrations:
             db_module.apply_pending_migrations()
 
         assert mock_conn.commit.call_count == 1
+        executed_sql = [call.args[0] for call in mock_cur.execute.call_args_list if call.args]
+        assert any(sql.startswith('CREATE INDEX IF NOT EXISTS idx_trips_driver') for sql in executed_sql)
+        assert any(sql.startswith('ALTER TABLE trips ADD COLUMN IF NOT EXISTS imported_at') for sql in executed_sql)
         inserts = [
             call for call in mock_cur.execute.call_args_list
             if call.args and call.args[0] == 'INSERT INTO schema_version (version) VALUES (%s);'

@@ -193,7 +193,12 @@ def apply_pending_migrations() -> None:
                 for statement in sqlparse.split(migration_sql):
                     statement = statement.strip()
                     if statement:
-                        cur.execute(statement)
+                        try:
+                            cur.execute(statement)
+                        except Exception as exc:
+                            raise RuntimeError(
+                                f'Failed applying migration {version} ({path.name}): {statement}'
+                            ) from exc
                 cur.execute('INSERT INTO schema_version (version) VALUES (%s);', (version,))
 
         conn.commit()
