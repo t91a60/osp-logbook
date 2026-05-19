@@ -93,6 +93,9 @@ class TestVehicleRepositoryMetrics:
 
         assert km == 12345
         assert dt == '2024-01-15'
+        sql = mock_cur.execute.call_args.args[0]
+        assert 'MAX(' not in sql
+        assert 'ORDER BY dt DESC NULLS LAST, created_at DESC NULLS LAST' in sql
         mock_cur.close.assert_called_once()
 
     @patch('backend.infrastructure.repositories.vehicles.get_cursor')
