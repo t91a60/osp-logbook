@@ -19,11 +19,12 @@ from backend.bootstrap import ensure_bootstrap_admin
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=[],
-    storage_uri=os.environ.get('RATELIMIT_STORAGE_URI', 'memory://'),
+    storage_uri='memory://',
 )
 
 
 def create_app(config_class=None):
+    global limiter
     if config_class is None:
         config_class = get_config()
 
@@ -36,8 +37,23 @@ def create_app(config_class=None):
     if not app.config.get('DATABASE_URL'):
         raise RuntimeError('DATABASE_URL environment variable is not set.')
 
+    is_production = os.environ.get('FLASK_ENV', 'development') == 'production'
+    ratelimit_storage_uri = (os.environ.get('RATELIMIT_STORAGE_URI') or '').strip()
+    if is_production:
+        if not ratelimit_storage_uri:
+            raise RuntimeError('RATELIMIT_STORAGE_URI environment variable is required in production.')
+        if ratelimit_storage_uri == 'memory://':
+            raise RuntimeError('RATELIMIT_STORAGE_URI must use Redis backend in production.')
+    if not ratelimit_storage_uri:
+        ratelimit_storage_uri = 'memory://'
+
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
+    limiter = Limiter(
+        key_func=get_remote_address,
+        default_limits=[],
+        storage_uri=ratelimit_storage_uri,
+    )
     limiter.init_app(app)
 
     def _is_json_request():

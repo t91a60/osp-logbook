@@ -117,9 +117,10 @@ class TestTripRepositoryQueries:
 
 
 class TestTripRepositoryDelete:
+    @patch('backend.infrastructure.repositories.trips.invalidate_prefix')
     @patch('backend.infrastructure.repositories.trips.get_cursor')
     @patch('backend.infrastructure.repositories.trips.get_db')
-    def test_delete_not_found_raises(self, mock_get_db, mock_get_cursor):
+    def test_delete_not_found_raises(self, mock_get_db, mock_get_cursor, mock_invalidate):
         repo = TripRepository()
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn
@@ -149,18 +150,21 @@ class TestTripRepositoryDelete:
         mock_conn.rollback.assert_called_once()
         mock_cur.close.assert_called_once()
 
+    @patch('backend.infrastructure.repositories.trips.invalidate_prefix')
     @patch('backend.infrastructure.repositories.trips.get_cursor')
     @patch('backend.infrastructure.repositories.trips.get_db')
-    def test_delete_success_for_owner(self, mock_get_db, mock_get_cursor):
+    def test_delete_success_for_owner(self, mock_get_db, mock_get_cursor, mock_invalidate):
         repo = TripRepository()
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn
         mock_cur = MagicMock()
         mock_get_cursor.return_value = mock_cur
-        mock_cur.fetchone.return_value = {'id': 1, 'added_by': 'jan'}
+        mock_cur.fetchone.return_value = {'id': 1, 'vehicle_id': 7, 'added_by': 'jan'}
 
         repo.delete(1, requester='jan', is_admin=False)
 
         assert mock_cur.execute.call_count == 3
         mock_conn.commit.assert_called_once()
+        mock_invalidate.assert_any_call('dashboard:')
+        mock_invalidate.assert_any_call('api:last_km:7')
         mock_cur.close.assert_called_once()

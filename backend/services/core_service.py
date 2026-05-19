@@ -39,7 +39,12 @@ class TripService:
             time_end=time_end,
             equipment_used=equipment_used,
         )
-        AuditService.log('Dodanie', 'Wyjazd', f'Pojazd ID: {vehicle_id}, Kierowca: {driver}, Data: {date_val}')
+        AuditService.log(
+            'Dodanie',
+            'Wyjazd',
+            f'Pojazd ID: {vehicle_id}, Kierowca: {driver}, Data: {date_val}',
+            username=added_by,
+        )
         # Invalidate report caches for this vehicle (keys: report:{vehicle_id}:<period>)
         try:
             invalidate_prefix(f'report:{vehicle_id}:')

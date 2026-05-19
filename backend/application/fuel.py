@@ -111,6 +111,7 @@ class AddFuelUseCase:
         AuditService.log(
             'Dodanie', 'Tankowanie',
             f'Pojazd ID: {vehicle["id"]}, Litry: {liters}, Data: {fuel_date}',
+            username=cmd.added_by,
         )
 
     @classmethod
@@ -198,6 +199,7 @@ class EditFuelUseCase:
         AuditService.log(
             'Edycja', 'Tankowanie',
             f'ID: {cmd.entry_id}, Pojazd: {vehicle["id"]}, Data: {fuel_date}',
+            username=cmd.requester,
         )
 
     @classmethod
@@ -231,7 +233,7 @@ class DeleteFuelUseCase:
             requester=cmd.requester,
             is_admin=cmd.is_admin,
         )
-        AuditService.log('Usunięcie', 'Tankowanie', f'ID: {cmd.entry_id}')
+        AuditService.log('Usunięcie', 'Tankowanie', f'ID: {cmd.entry_id}', username=cmd.requester)
 
     @classmethod
     def execute(cls, cmd: DeleteFuelCommand) -> None:

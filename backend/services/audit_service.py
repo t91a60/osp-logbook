@@ -1,7 +1,6 @@
 import logging
 
 import psycopg2
-from flask import session
 
 from backend.db import get_pool, get_cursor
 
@@ -10,14 +9,18 @@ logger = logging.getLogger(__name__)
 
 class AuditService:
     @staticmethod
-    def log(action: str, obj_name: str, details: str) -> None:
+    def log(
+        action: str,
+        obj_name: str,
+        details: str,
+        *,
+        user_id: int | None = None,
+        username: str | None = None,
+    ) -> None:
         """
         Zapisuje zdarzenie w audycie w niezależnej transakcji, aby
         nie zaburzać i nie przedwcześnie commitować głównej transakcji zgłoszenia HTTP.
         """
-        user_id: int | None = session.get('user_id')
-        username: str | None = session.get('username')
-
         pool = get_pool()
         conn = None
         try:

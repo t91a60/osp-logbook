@@ -98,7 +98,7 @@ class AddTripUseCase:
         """
         # ── 1. Validate fields ──────────────────────────────────────────
         try:
-            trip_date = validate_iso_date(cmd.date_val, 'Data')
+            trip_date = validate_iso_date(cmd.date_val, 'Data', max_future_days=1)
             driver = ensure_non_empty_text(cmd.driver, 'Kierowca')
             purpose = ensure_non_empty_text(cmd.purpose, 'Cel wyjazdu')
         except ValueError as exc:
@@ -139,6 +139,7 @@ class AddTripUseCase:
         AuditService.log(
             'Dodanie', 'Wyjazd',
             f'Pojazd ID: {vehicle["id"]}, Kierowca: {driver}, Data: {trip_date}',
+            username=cmd.added_by,
         )
         try:
             invalidate_prefix(f'report:{vehicle["id"]}:')

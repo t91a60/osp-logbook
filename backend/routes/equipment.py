@@ -145,7 +145,13 @@ def equipment_add():
              category, f.get('notes', '').strip())
         )
         conn.commit()
-        AuditService.log('Dodanie', 'Sprzęt', f'Pojazd ID: {vehicle_id}, Nazwa: {name}')
+        AuditService.log(
+            'Dodanie',
+            'Sprzęt',
+            f'Pojazd ID: {vehicle_id}, Nazwa: {name}',
+            user_id=session.get('user_id'),
+            username=session.get('username'),
+        )
         flash('Sprzęt dodany.', 'success')
     finally:
         cur.close()
@@ -181,7 +187,13 @@ def equipment_edit(eid):
                  category, f.get('notes', '').strip(), eid)
             )
             conn.commit()
-            AuditService.log('Edycja', 'Sprzęt', f'ID: {eid}, Nazwa: {name}')
+            AuditService.log(
+                'Edycja',
+                'Sprzęt',
+                f'ID: {eid}, Nazwa: {name}',
+                user_id=session.get('user_id'),
+                username=session.get('username'),
+            )
             flash('Sprzęt zaktualizowany.', 'success')
             return redirect(url_for('equipment.equipment_list', vehicle_id=item['vehicle_id']))
 
@@ -206,7 +218,13 @@ def equipment_delete(eid):
         vid = item['vehicle_id']
         cur.execute('DELETE FROM equipment WHERE id = %s', (eid,))
         conn.commit()
-        AuditService.log('Usunięcie', 'Sprzęt', f'ID: {eid}, Nazwa: {item["name"]}')
+        AuditService.log(
+            'Usunięcie',
+            'Sprzęt',
+            f'ID: {eid}, Nazwa: {item["name"]}',
+            user_id=session.get('user_id'),
+            username=session.get('username'),
+        )
         flash('Sprzęt usunięty.', 'success')
     finally:
         cur.close()
@@ -242,7 +260,13 @@ def equipment_preload(eid):
         added = len(to_insert)
 
         conn.commit()
-        AuditService.log('Dodanie', 'Sprzęt', f'Preload Ducato dla pojazdu ID: {eid}, dodano: {added} pozycji')
+        AuditService.log(
+            'Dodanie',
+            'Sprzęt',
+            f'Preload Ducato dla pojazdu ID: {eid}, dodano: {added} pozycji',
+            user_id=session.get('user_id'),
+            username=session.get('username'),
+        )
         flash(f'Dodano {added} pozycji sprzętu Ducato.', 'success')
     finally:
         cur.close()
