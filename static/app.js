@@ -731,10 +731,12 @@ function startQuickTrip(btn) {
     quickDriverInput.value = topbarName ? topbarName.textContent.trim() : "";
   }
   if (quickDriverSelect && quickDriverInput && quickDriverInput.value.trim()) {
-    var hasOption = Array.prototype.some.call(quickDriverSelect.options, function (opt) {
-      return String(opt.value || "").trim() === String(quickDriverInput.value || "").trim();
+    var inputValue = String(quickDriverInput.value || "").trim();
+    var inputValueLower = inputValue.toLowerCase();
+    var matchingOption = Array.prototype.find.call(quickDriverSelect.options, function (opt) {
+      return String(opt.value || "").trim().toLowerCase() === inputValueLower;
     });
-    quickDriverSelect.value = hasOption ? quickDriverInput.value.trim() : "__manual__";
+    quickDriverSelect.value = matchingOption ? String(matchingOption.value || "").trim() : "__manual__";
     quickDriverSelect.dispatchEvent(new Event("change"));
   }
   if (purposeInput) purposeInput.value = "";
