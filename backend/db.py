@@ -202,7 +202,12 @@ def apply_pending_migrations() -> None:
                 cur.execute('INSERT INTO schema_version (version) VALUES (%s);', (version,))
 
         conn.commit()
-        logger.info('Applied %s pending migrations (schema_version %s -> %s)', len(pending), current_version, pending[-1][0])
+        logger.info(
+            'Applied %d pending migrations (schema_version %d -> %d)',
+            len(pending),
+            current_version,
+            pending[-1][0],
+        )
     except Exception:
         if conn is not None and not conn.closed:
             conn.rollback()
@@ -316,7 +321,7 @@ def register_db(app: Flask) -> None:
         logger.info('Database migrations checked at startup')
     except (psycopg2.Error, RuntimeError) as exc:
         logger.warning(
-            'apply_pending_migrations() failed during register_db(); app will continue without startup migration: %s',
+            'apply_pending_migrations() failed during register_db(); app will continue without applying pending migrations: %s',
             exc,
         )
         return
