@@ -27,14 +27,14 @@
       <div class="active-trip-vehicle" id="activeTripVehicle">—</div>
       <div class="active-trip-driver" id="activeTripDriver">—</div>
       <div class="active-trip-purpose" id="activeTripPurpose">—</div>
-      <div class="active-trip-timer" id="activeTripTimer">00:00</div>
+      <div class="active-trip-timer" id="activeTripTimer">00:00:00</div>
     </div>
     <div class="active-trip-actions">
       <a href="/wyjazdy?complete=1" class="btn btn-complete-trip secondary" id="activeTripCompleteLink">
-        Uzupełnij
+        Uzupełnij dane
       </a>
       <a href="/wyjazdy?complete=1#trip_time_end" class="btn btn-complete-trip" id="activeTripFinishLink">
-        Zakończ
+        Zakończ wyjazd
       </a>
     </div>
   </div>
@@ -93,7 +93,7 @@
               data-vehicle-id="{{ vc.id }}"
               data-vehicle-name="{{ vc.name }}"
               aria-label="Szybki wyjazd dla {{ vc.name }}"
-              onclick="startQuickTrip(this)" type="button">
+              data-quick-trip-trigger="1" type="button">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Szybki Wyjazd
       </button>
@@ -200,7 +200,7 @@
     aria-label="Szybki wyjazd"
     data-vehicle-id="{{ vehicle_cards[0].id }}"
     data-vehicle-name="{{ vehicle_cards[0].name }}"
-    onclick="startQuickTrip(this)"
+    data-quick-trip-trigger="1"
   >
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </button>
@@ -210,7 +210,7 @@
     <div class="bottom-sheet-handle"></div>
     <div class="bottom-sheet-header">
       <span>🚒 Szybki Wyjazd</span>
-      <button onclick="closeQuickSheet()" class="btn-icon" aria-label="Zamknij" type="button">✕</button>
+      <button id="quickTripCloseBtn" class="btn-icon" aria-label="Zamknij" type="button">✕</button>
     </div>
     <div class="bottom-sheet-body">
       <div class="form-field" style="margin-top:8px;">
@@ -241,17 +241,17 @@
       </div>
 
       <div class="form-field" style="margin-top:12px;">
-        <label class="form-label" for="quickPurposeInput">Cel</label>
-        <input type="text" id="quickPurposeInput" class="form-input xl" placeholder="Np. Akcja ratownicza">
+        <label class="form-label" for="quickPurposeInput">Cel wyjazdu *</label>
+        <input type="text" id="quickPurposeInput" class="form-input xl" placeholder="Np. Akcja ratownicza" required aria-required="true">
       </div>
     </div>
     <div class="bottom-sheet-footer">
-      <button class="btn btn-primary btn-xl" id="quickTripConfirmBtn" onclick="confirmQuickTrip()" type="button">
+      <button class="btn btn-primary btn-xl" id="quickTripConfirmBtn" type="button">
         🚒 START — Wyjeżdżam!
       </button>
     </div>
   </div>
-  <div class="bottom-sheet-backdrop hidden" id="quickTripBackdrop" onclick="closeQuickSheet()"></div>
+  <div class="bottom-sheet-backdrop hidden" id="quickTripBackdrop"></div>
 
   </div>
 
