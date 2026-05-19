@@ -82,7 +82,7 @@ class TestCloseDb:
 class TestCreatePool:
     """Test _create_pool configuration."""
 
-    @patch('backend.db.SimpleConnectionPool')
+    @patch('backend.db.ThreadedConnectionPool')
     def test_pool_creation_with_defaults(self, mock_pool_cls, monkeypatch):
         monkeypatch.setenv('DATABASE_URL', 'postgresql://localhost/test')
         monkeypatch.delenv('DB_POOL_MIN', raising=False)
@@ -93,7 +93,7 @@ class TestCreatePool:
         assert call_kwargs['minconn'] == 1
         assert call_kwargs['maxconn'] == 5
 
-    @patch('backend.db.SimpleConnectionPool')
+    @patch('backend.db.ThreadedConnectionPool')
     def test_pool_maxconn_clamped_to_minconn(self, mock_pool_cls, monkeypatch):
         """If maxconn < minconn, maxconn is adjusted."""
         monkeypatch.setenv('DATABASE_URL', 'postgresql://localhost/test')

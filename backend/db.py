@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 import psycopg2
-from psycopg2.pool import SimpleConnectionPool
+from psycopg2.pool import ThreadedConnectionPool
 from psycopg2.extras import RealDictCursor
 from werkzeug.security import generate_password_hash
 from flask import g, Flask
@@ -13,7 +13,7 @@ import sqlparse
 
 logger = logging.getLogger(__name__)
 
-_db_pool: SimpleConnectionPool | None = None
+_db_pool: ThreadedConnectionPool | None = None
 ADMIN_PLACEHOLDER_PASSWORD = 'CHANGE_ME_RUN_FLASK_INIT'
 MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / 'migrations'
 _MIGRATION_FILE_RE = re.compile(r'^(?P<version>\d+)_.*\.sql$')
@@ -21,9 +21,9 @@ MIGRATIONS_LOCK_ID = 91726051
 MAX_MIGRATION_STATEMENT_PREVIEW = 160
 
 
-def _create_pool() -> SimpleConnectionPool:
+def _create_pool() -> ThreadedConnectionPool:
     """Create a new connection pool."""
-    return SimpleConnectionPool(
+    return ThreadedConnectionPool(
         minconn=1,
         maxconn=5,
         dsn=os.environ.get('DATABASE_URL'),
@@ -39,14 +39,14 @@ def _create_pool() -> SimpleConnectionPool:
     )
 
 
-def get_pool() -> SimpleConnectionPool:
+def get_pool() -> ThreadedConnectionPool:
     global _db_pool
     if _db_pool is None:
         _db_pool = _create_pool()
     return _db_pool
 
 
-def reset_pool() -> SimpleConnectionPool:
+def reset_pool() -> ThreadedConnectionPool:
     """Close all connections and create a fresh pool."""
     global _db_pool
     if _db_pool is not None:
