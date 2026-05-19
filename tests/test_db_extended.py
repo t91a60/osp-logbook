@@ -344,22 +344,22 @@ class TestMigrations:
     def test_apply_pending_migrations_runs_only_new_versions(
         self, mock_discover, mock_fetch_schema_version, mock_get_pool, tmp_path
     ):
-        migration_11 = tmp_path / '0011_add_idx.sql'
-        migration_11.write_text(
+        migration_v11 = tmp_path / '0011_add_idx.sql'
+        migration_v11.write_text(
             '''
             CREATE INDEX IF NOT EXISTS idx_trips_driver ON trips(driver);
             ''',
             encoding='utf-8',
         )
-        migration_12 = tmp_path / '0012_add_col.sql'
-        migration_12.write_text(
+        migration_v12 = tmp_path / '0012_add_col.sql'
+        migration_v12.write_text(
             '''
             ALTER TABLE trips ADD COLUMN IF NOT EXISTS imported_at TIMESTAMPTZ;
             ''',
             encoding='utf-8',
         )
 
-        mock_discover.return_value = [(11, migration_11), (12, migration_12)]
+        mock_discover.return_value = [(11, migration_v11), (12, migration_v12)]
         mock_fetch_schema_version.return_value = 10
 
         mock_pool = MagicMock()

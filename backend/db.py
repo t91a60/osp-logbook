@@ -17,6 +17,7 @@ _db_pool: SimpleConnectionPool | None = None
 ADMIN_PLACEHOLDER_PASSWORD = 'CHANGE_ME_RUN_FLASK_INIT'
 MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / 'migrations'
 _MIGRATION_FILE_RE = re.compile(r'^(?P<version>\d+)_.*\.sql$')
+MIGRATIONS_LOCK_ID = 91726051
 
 
 def _create_pool() -> SimpleConnectionPool:
@@ -178,7 +179,7 @@ def apply_pending_migrations() -> None:
         conn.autocommit = False
 
         with get_cursor(conn) as cur:
-            cur.execute("SELECT pg_advisory_xact_lock(hashtext('osp-logbook-schema-migrations'));")
+            cur.execute('SELECT pg_advisory_xact_lock(%s);', (MIGRATIONS_LOCK_ID,))
             current_version = _fetch_schema_version(conn)
             if current_version is None:
                 raise RuntimeError('schema_version table missing or empty; run schema.sql first')
@@ -196,8 +197,9 @@ def apply_pending_migrations() -> None:
                         try:
                             cur.execute(statement)
                         except Exception as exc:
+                            statement_preview = statement if len(statement) <= 160 else f'{statement[:157]}...'
                             raise RuntimeError(
-                                f'Failed applying migration {version} ({path.name}): {statement}'
+                                f'Failed applying migration {version} ({path.name}): {statement_preview}'
                             ) from exc
                 cur.execute('INSERT INTO schema_version (version) VALUES (%s);', (version,))
 
