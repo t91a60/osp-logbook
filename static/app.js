@@ -886,9 +886,10 @@ document.addEventListener("DOMContentLoaded", function () {
   _setupPullToRefresh();
   _setupSwipeToDelete();
   ActiveTrip.bootstrap();
+  var QUICK_TRIP_SHORTCUT_DELAY_MS = 300;
   if (new URLSearchParams(location.search).has("quick") && typeof startQuickTrip === "function") {
     var fab = document.getElementById("quickTripFab");
-    if (fab) setTimeout(function () { startQuickTrip(fab); }, 300);
+    if (fab) setTimeout(function () { startQuickTrip(fab); }, QUICK_TRIP_SHORTCUT_DELAY_MS);
   }
   prefillFromActiveTrip();
 

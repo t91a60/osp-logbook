@@ -245,6 +245,11 @@ document.addEventListener('DOMContentLoaded', function() {
   setupAutoSave('maintenanceForm');
   setupFormKeyboardShortcuts('maintenanceForm');
   restoreVehicle('maint_vehicle_id', 'maintenance');
+
+  {% if add_open %}
+  document.getElementById('maintenanceForm')?.scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('maint_vehicle_id')?.focus();
+  {% endif %}
 });
 
 function submitMaintenance() {
@@ -254,5 +259,4 @@ function submitMaintenance() {
 }
 </script>
 {% endblock %}
-
 
