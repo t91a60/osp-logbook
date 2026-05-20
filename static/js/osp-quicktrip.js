@@ -234,10 +234,8 @@
       var isValidMinute = !isNaN(parsedMinute) && parsedMinute >= 0 && parsedMinute <= 59;
       if (isValidHour && isValidMinute) {
         var parsedStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parsedHour, parsedMinute, 0, 0);
-        if (parsedStart.getTime() > now.getTime()) {
-          parsedStart = now;
-        }
-        timeStartMs = parsedStart.getTime();
+        var startAt = parsedStart.getTime() > now.getTime() ? now : parsedStart;
+        timeStartMs = startAt.getTime();
       }
     }
 
