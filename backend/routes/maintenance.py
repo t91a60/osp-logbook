@@ -72,6 +72,7 @@ def register_routes(app):
         okres = request.args.get('okres', '')
         od = request.args.get('od', '')
         do_ = request.args.get('do', '')
+        add_open = request.args.get('add', '') == '1'
         page = parse_positive_int(request.args.get('page'), default=1)
 
         query = GetMaintenanceQuery(
@@ -91,6 +92,7 @@ def register_routes(app):
             today=date.today().isoformat(),
             selected_status=selected_status,
             selected_vehicle=selected_vehicle,
+            add_open=add_open,
             okres=okres, od=od, do_=do_,
             page=page, total_pages=total_pages, total=total,
         )

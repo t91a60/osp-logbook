@@ -3,6 +3,7 @@
 
 {% block content %}
 <div class="page">
+  <script nonce="{{ csp_nonce() }}">document.body.setAttribute('data-history-loading', 'true');</script>
 
   <!-- Entry Form -->
   <form id="maintenanceForm" onsubmit="return submitMaintenance()" style="margin-top:16px;" method="POST">
@@ -146,74 +147,83 @@
   </form>
 
   <!-- History -->
-  <div class="section-title">
-    Historia serwisów
-    {% if total is defined %}<span style="color:var(--text-dimmer); font-weight:400;">({{ total }})</span>{% endif %}
+  <div class="history-skeleton" aria-hidden="true">
+    <span class="skeleton skeleton-line" style="height:18px; width:44%; margin-bottom:10px;"></span>
+    <span class="skeleton" style="height:92px;"></span>
+    <span class="skeleton" style="height:92px;"></span>
+    <span class="skeleton" style="height:92px;"></span>
   </div>
 
-  {% if entries %}
-  {% for m in entries %}
-  <div class="entry {% if m.effective_status == 'overdue' %}entry-overdue{% endif %}">
-    <div class="entry-header">
-      <span class="entry-vehicle">{{ m.vname }}</span>
-      <span class="entry-date">{{ m.date }}</span>
+  <section class="history-content">
+    <div class="section-title">
+      Historia serwisów
+      {% if total is defined %}<span style="color:var(--text-dimmer); font-weight:400;">({{ total }})</span>{% endif %}
     </div>
-    <div class="entry-main">{{ m.description }}</div>
-    <div class="entry-meta">
-      <span class="badge status-{{ m.effective_status }}">
-        {% if m.effective_status == 'pending' %}Oczekuje
-        {% elif m.effective_status == 'completed' %}Wykonane
-        {% else %}Zaległe{% endif %}
-      </span>
-      <span class="badge priority-{{ m.priority or 'medium' }}">
-        {% if m.priority == 'low' %}Niski{% elif m.priority == 'high' %}Wysoki{% else %}Średni{% endif %}
-      </span>
-      {% if m.cost %}<span class="badge">{{ "%.2f"|format(m.cost) }} zł</span>{% endif %}
-      {% if m.odometer %}<span>{{ m.odometer }} km</span>{% endif %}
-      {% if m.due_date %}<span>Termin: {{ m.due_date }}</span>{% endif %}
-    </div>
-    {% if m.notes %}
-    <div class="text-mute" style="font-size:.85rem;">{{ m.notes }}</div>
-    {% endif %}
-    <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" class="no-print">
-      {% if m.status != 'completed' %}
-      <form method="POST" action="{{ url_for('complete_maintenance', eid=m.id) }}">
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-secondary btn-sm">✓ Oznacz jako wykonane</button>
-      </form>
+
+    {% if entries %}
+    {% for m in entries %}
+    <div class="entry {% if m.effective_status == 'overdue' %}entry-overdue{% endif %}">
+      <div class="entry-header">
+        <span class="entry-vehicle">{{ m.vname }}</span>
+        <span class="entry-date">{{ m.date }}</span>
+      </div>
+      <div class="entry-main">{{ m.description }}</div>
+      <div class="entry-meta">
+        <span class="badge status-{{ m.effective_status }}">
+          {% if m.effective_status == 'pending' %}Oczekuje
+          {% elif m.effective_status == 'completed' %}Wykonane
+          {% else %}Zaległe{% endif %}
+        </span>
+        <span class="badge priority-{{ m.priority or 'medium' }}">
+          {% if m.priority == 'low' %}Niski{% elif m.priority == 'high' %}Wysoki{% else %}Średni{% endif %}
+        </span>
+        {% if m.cost %}<span class="badge">{{ "%.2f"|format(m.cost) }} zł</span>{% endif %}
+        {% if m.odometer %}<span>{{ m.odometer }} km</span>{% endif %}
+        {% if m.due_date %}<span>Termin: {{ m.due_date }}</span>{% endif %}
+      </div>
+      {% if m.notes %}
+      <div class="text-mute" style="font-size:.85rem;">{{ m.notes }}</div>
       {% endif %}
-      <form method="POST" action="{{ url_for('create_next_maintenance', eid=m.id) }}">
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-secondary btn-sm">+ Utwórz następny</button>
-      </form>
-      <form method="POST" action="{{ url_for('delete_entry', kind='serwis', eid=m.id) }}"
-            onsubmit="return confirm('Usunąć ten wpis?')">
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-danger btn-sm">Usuń</button>
-      </form>
+      <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" class="no-print">
+        {% if m.status != 'completed' %}
+        <form method="POST" action="{{ url_for('complete_maintenance', eid=m.id) }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-secondary btn-sm">✓ Oznacz jako wykonane</button>
+        </form>
+        {% endif %}
+        <form method="POST" action="{{ url_for('create_next_maintenance', eid=m.id) }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-secondary btn-sm">+ Utwórz następny</button>
+        </form>
+        <form method="POST" action="{{ url_for('delete_entry', kind='serwis', eid=m.id) }}"
+              onsubmit="return confirm('Usunąć ten wpis?')">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger btn-sm">Usuń</button>
+        </form>
+      </div>
     </div>
-  </div>
-  {% endfor %}
+    {% endfor %}
 
-  <!-- Pagination -->
-  {% if total_pages > 1 %}
-  <div class="pagination no-print">
-    {% if page > 1 %}
-    <a href="{{ url_for('maintenance', vehicle_id=selected_vehicle, status=selected_status, okres=okres, od=od, do=do_, page=page-1) }}">← Wcześniejsze</a>
-    {% else %}<span>← Wcześniejsze</span>{% endif %}
-    <span>{{ page }} / {{ total_pages }}</span>
-    {% if page < total_pages %}
-    <a href="{{ url_for('maintenance', vehicle_id=selected_vehicle, status=selected_status, okres=okres, od=od, do=do_, page=page+1) }}">Następne →</a>
-    {% else %}<span>Następne →</span>{% endif %}
-  </div>
-  {% endif %}
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="pagination no-print">
+      {% if page > 1 %}
+      <a href="{{ url_for('maintenance', vehicle_id=selected_vehicle, status=selected_status, okres=okres, od=od, do=do_, page=page-1) }}">← Wcześniejsze</a>
+      {% else %}<span>← Wcześniejsze</span>{% endif %}
+      <span>{{ page }} / {{ total_pages }}</span>
+      {% if page < total_pages %}
+      <a href="{{ url_for('maintenance', vehicle_id=selected_vehicle, status=selected_status, okres=okres, od=od, do=do_, page=page+1) }}">Następne →</a>
+      {% else %}<span>Następne →</span>{% endif %}
+    </div>
+    {% endif %}
 
-  {% else %}
-  <div class="empty-state">
-    <div class="empty-state-icon">🔧</div>
-    <p>Brak wpisów</p>
-  </div>
-  {% endif %}
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">🔧</div>
+      <p>Brak wpisów</p>
+    </div>
+    {% endif %}
+  </section>
 
 </div>
 
@@ -229,9 +239,17 @@
 
 <script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    document.body.removeAttribute('data-history-loading');
+  }, 120);
   setupAutoSave('maintenanceForm');
   setupFormKeyboardShortcuts('maintenanceForm');
   restoreVehicle('maint_vehicle_id', 'maintenance');
+
+  {% if add_open %}
+  document.getElementById('maintenanceForm')?.scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('maint_vehicle_id')?.focus();
+  {% endif %}
 });
 
 function submitMaintenance() {
@@ -241,6 +259,4 @@ function submitMaintenance() {
 }
 </script>
 {% endblock %}
-
-
 

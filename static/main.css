@@ -1244,12 +1244,14 @@ body[data-dashboard-loading="true"] .dashboard-skeleton {
 }
 
 body[data-history-loading="true"][data-endpoint="trips"] .history-content,
-body[data-history-loading="true"][data-endpoint="fuel"] .history-content {
+body[data-history-loading="true"][data-endpoint="fuel"] .history-content,
+body[data-history-loading="true"][data-endpoint="maintenance"] .history-content {
   display: none;
 }
 
 body[data-history-loading="true"][data-endpoint="trips"] .history-skeleton,
-body[data-history-loading="true"][data-endpoint="fuel"] .history-skeleton {
+body[data-history-loading="true"][data-endpoint="fuel"] .history-skeleton,
+body[data-history-loading="true"][data-endpoint="maintenance"] .history-skeleton {
   display: block;
 }
 
@@ -1378,14 +1380,17 @@ body[data-history-loading="true"][data-endpoint="fuel"] .history-skeleton {
 }
 
 body[data-endpoint="trips"],
-body[data-endpoint="fuel"] {
+body[data-endpoint="fuel"],
+body[data-endpoint="maintenance"] {
   overscroll-behavior-y: none;
   -webkit-overflow-scrolling: auto;
 }
 
 body[data-endpoint="trips"] .container,
 body[data-endpoint="fuel"] .container,
+body[data-endpoint="maintenance"] .container,
 body[data-endpoint="trips"] .page,
-body[data-endpoint="fuel"] .page {
+body[data-endpoint="fuel"] .page,
+body[data-endpoint="maintenance"] .page {
   overscroll-behavior-y: none;
 }
