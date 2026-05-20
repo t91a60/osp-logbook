@@ -6,6 +6,7 @@ const Haptics = {
   error: () => { if(navigator.vibrate) navigator.vibrate([20, 40, 20, 40, 30]); },
   longPress: () => { if(navigator.vibrate) navigator.vibrate(40); }
 };
+window.Haptics = Haptics;
 
 function _hapticSuccess() { Haptics.success(); }
 function _hapticError() { Haptics.error(); }
@@ -733,9 +734,14 @@ function startQuickTrip(btn) {
   if (quickDriverSelect && quickDriverInput && quickDriverInput.value.trim()) {
     var inputValue = String(quickDriverInput.value || "").trim();
     var inputValueLower = inputValue.toLowerCase();
-    var matchingOption = Array.prototype.find.call(quickDriverSelect.options, function (opt) {
-      return String(opt.value || "").trim().toLowerCase() === inputValueLower;
-    });
+    var matchingOption = null;
+    for (var i = 0; i < quickDriverSelect.options.length; i++) {
+      var option = quickDriverSelect.options[i];
+      if (String(option.value || "").trim().toLowerCase() === inputValueLower) {
+        matchingOption = option;
+        break;
+      }
+    }
     quickDriverSelect.value = matchingOption ? String(matchingOption.value || "").trim() : "__manual__";
     quickDriverSelect.dispatchEvent(new Event("change"));
   }
@@ -761,6 +767,8 @@ function closeQuickSheet() {
     backdrop.classList.add("hidden");
   }, 420);
 }
+window.startQuickTrip = startQuickTrip;
+window.closeQuickSheet = closeQuickSheet;
 
 // confirmQuickTrip is provided by osp-quicktrip.js (loaded via extra_js block).
 // A stub is defined here so the onclick attribute never throws a ReferenceError
