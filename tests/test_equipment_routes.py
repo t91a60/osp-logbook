@@ -113,7 +113,13 @@ class TestEquipmentMutationRoutes:
         )
         mock_conn.commit.assert_called_once()
         mock_cursor.close.assert_called_once()
-        mock_audit.log.assert_called_once_with('Dodanie', 'Sprzęt', 'Pojazd ID: 3, Nazwa: Defibrylator AED')
+        mock_audit.log.assert_called_once_with(
+            'Dodanie',
+            'Sprzęt',
+            'Pojazd ID: 3, Nazwa: Defibrylator AED',
+            user_id=1,
+            username='admin',
+        )
 
     @patch('backend.routes.equipment.AuditService')
     @patch('backend.routes.equipment.get_cursor')
@@ -138,4 +144,10 @@ class TestEquipmentMutationRoutes:
         )
         assert mock_cursor.execute.call_args_list[1].args == ('DELETE FROM equipment WHERE id = %s', (9,))
         mock_conn.commit.assert_called_once()
-        mock_audit.log.assert_called_once_with('Usunięcie', 'Sprzęt', 'ID: 9, Nazwa: Torba medyczna')
+        mock_audit.log.assert_called_once_with(
+            'Usunięcie',
+            'Sprzęt',
+            'ID: 9, Nazwa: Torba medyczna',
+            user_id=1,
+            username='admin',
+        )

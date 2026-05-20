@@ -32,7 +32,14 @@ CREATE TABLE IF NOT EXISTS trips (
     added_by TEXT NOT NULL DEFAULT '',
     time_start TEXT,
     time_end TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_trips_odo_start_non_negative CHECK (odo_start IS NULL OR odo_start >= 0),
+    CONSTRAINT chk_trips_odo_end_non_negative CHECK (odo_end IS NULL OR odo_end >= 0),
+    CONSTRAINT chk_trips_odo_range CHECK (
+        odo_start IS NULL
+        OR odo_end IS NULL
+        OR odo_end >= odo_start
+    )
 );
 
 CREATE TABLE IF NOT EXISTS fuel (
@@ -45,7 +52,10 @@ CREATE TABLE IF NOT EXISTS fuel (
     cost REAL,
     notes TEXT NOT NULL DEFAULT '',
     added_by TEXT NOT NULL DEFAULT '',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_fuel_odometer_non_negative CHECK (odometer IS NULL OR odometer >= 0),
+    CONSTRAINT chk_fuel_liters_positive CHECK (liters > 0),
+    CONSTRAINT chk_fuel_cost_non_negative CHECK (cost IS NULL OR cost >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS maintenance (
@@ -60,7 +70,9 @@ CREATE TABLE IF NOT EXISTS maintenance (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status TEXT NOT NULL DEFAULT 'pending',
     priority TEXT NOT NULL DEFAULT 'medium',
-    due_date DATE
+    due_date DATE,
+    CONSTRAINT chk_maintenance_odometer_non_negative CHECK (odometer IS NULL OR odometer >= 0),
+    CONSTRAINT chk_maintenance_cost_non_negative CHECK (cost IS NULL OR cost >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS equipment (
@@ -122,8 +134,8 @@ CREATE INDEX IF NOT EXISTS idx_maintenance_due_date_pending ON maintenance (due_
 CREATE INDEX IF NOT EXISTS idx_trips_purpose_trgm ON trips USING gin(purpose gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_trips_driver_trgm ON trips USING gin(driver gin_trgm_ops);
 
-INSERT INTO schema_version (version) VALUES (10);
--- version 10 = first unified schema, skip yoyo tracking
+INSERT INTO schema_version (version) VALUES (11);
+-- version 11 = CHECK constraints for odometer/fuel/maintenance numeric integrity
 
 INSERT INTO users (username, password, display_name, role, is_admin)
 VALUES ('admin', 'CHANGE_ME_RUN_FLASK_INIT', 'Administrator', 'admin', TRUE)

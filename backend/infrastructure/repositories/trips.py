@@ -157,7 +157,7 @@ class TripRepository:
         cur = get_cursor(conn)
         try:
             cur.execute(
-                "SELECT id, added_by FROM trips WHERE id = %s LIMIT 1", (trip_id,)
+                "SELECT id, vehicle_id, added_by FROM trips WHERE id = %s LIMIT 1", (trip_id,)
             )
             row = cur.fetchone()
             if not row:
@@ -168,6 +168,11 @@ class TripRepository:
             cur.execute("DELETE FROM trip_equipment WHERE trip_id = %s", (trip_id,))
             cur.execute("DELETE FROM trips WHERE id = %s", (trip_id,))
             conn.commit()
+            try:
+                invalidate_prefix('dashboard:')
+                invalidate_prefix(f'api:last_km:{row["vehicle_id"]}')
+            except Exception:
+                pass
         except Exception:
             conn.rollback()
             raise

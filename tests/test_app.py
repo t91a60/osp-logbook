@@ -213,6 +213,34 @@ class TestValidateRequiredConfig:
         with pytest.raises(RuntimeError, match='DATABASE_URL'):
             create_app(config_class=BadConfig)
 
+    def test_missing_ratelimit_storage_uri_in_production_raises(self, monkeypatch):
+        """Production requires explicit RATELIMIT_STORAGE_URI."""
+        monkeypatch.setenv('FLASK_ENV', 'production')
+        monkeypatch.delenv('RATELIMIT_STORAGE_URI', raising=False)
+
+        from backend.config import ProductionConfig
+
+        class StrictConfig(ProductionConfig):
+            SECRET_KEY = 'secret'
+            DATABASE_URL = 'postgresql://localhost/test'
+
+        with pytest.raises(RuntimeError, match='RATELIMIT_STORAGE_URI'):
+            create_app(config_class=StrictConfig)
+
+    def test_memory_ratelimit_storage_uri_in_production_raises(self, monkeypatch):
+        """Production cannot use in-memory limiter backend."""
+        monkeypatch.setenv('FLASK_ENV', 'production')
+        monkeypatch.setenv('RATELIMIT_STORAGE_URI', 'memory://')
+
+        from backend.config import ProductionConfig
+
+        class StrictConfig(ProductionConfig):
+            SECRET_KEY = 'secret'
+            DATABASE_URL = 'postgresql://localhost/test'
+
+        with pytest.raises(RuntimeError, match='Redis backend'):
+            create_app(config_class=StrictConfig)
+
     def test_missing_config_in_development_still_raises(self, monkeypatch):
         """Missing config in development mode should still fail fast."""
         monkeypatch.setenv('FLASK_ENV', 'development')

@@ -39,7 +39,13 @@ def register_routes(app):
                 )
                 invalidate_prefix('vehicles:')
                 invalidate_prefix('dashboard:')
-                AuditService.log('Dodanie', 'Pojazd', f'Nazwa: {name}')
+                AuditService.log(
+                    'Dodanie',
+                    'Pojazd',
+                    f'Nazwa: {name}',
+                    user_id=session.get('user_id'),
+                    username=session.get('username'),
+                )
                 flash('Pojazd dodany.', 'success')
             except IntegrityError:
                 flash('Nie udało się dodać pojazdu. Sprawdź dane.', 'error')
@@ -56,7 +62,13 @@ def register_routes(app):
             vehicle_repo.delete(vid)
             invalidate_prefix('vehicles:')
             invalidate_prefix('dashboard:')
-            AuditService.log('Usunięcie', 'Pojazd', f'Usunięto pojazd ID: {vid}')
+            AuditService.log(
+                'Usunięcie',
+                'Pojazd',
+                f'Usunięto pojazd ID: {vid}',
+                user_id=session.get('user_id'),
+                username=session.get('username'),
+            )
             flash('Pojazd usunięty.', 'success')
         except NotFoundError:
             flash('Pojazd nie istnieje.', 'error')
@@ -73,7 +85,13 @@ def register_routes(app):
             vehicle_repo.delete(vid)
             invalidate_prefix('vehicles:')
             invalidate_prefix('dashboard:')
-            AuditService.log('Usunięcie', 'Pojazd', f'Usunięto pojazd ID: {vid}')
+            AuditService.log(
+                'Usunięcie',
+                'Pojazd',
+                f'Usunięto pojazd ID: {vid}',
+                user_id=session.get('user_id'),
+                username=session.get('username'),
+            )
             flash('Pojazd usunięty.', 'success')
         except NotFoundError:
             flash('Pojazd nie istnieje.', 'error')
@@ -105,7 +123,13 @@ def register_routes(app):
                     )
                     invalidate_prefix('vehicles:')
                     invalidate_prefix('dashboard:')
-                    AuditService.log('Edycja', 'Pojazd', f'ID: {vid}, Nazwa: {name}')
+                    AuditService.log(
+                        'Edycja',
+                        'Pojazd',
+                        f'ID: {vid}, Nazwa: {name}',
+                        user_id=session.get('user_id'),
+                        username=session.get('username'),
+                    )
                     flash('Pojazd zaktualizowany.', 'success')
                     return redirect(url_for('vehicles'))
                 except NotFoundError:

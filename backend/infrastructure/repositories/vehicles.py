@@ -77,22 +77,17 @@ class VehicleRepository:
         cur = get_cursor(conn)
         try:
             cur.execute('''
-                SELECT km, dt FROM (
-                     SELECT odo_end AS km, date AS dt, created_at
-                     FROM trips
-                     WHERE vehicle_id = %s AND odo_end IS NOT NULL
-                     ORDER BY date DESC NULLS LAST, created_at DESC NULLS LAST
-                     LIMIT 1
-                 ) latest_trip
-                 UNION ALL
-                 SELECT km, dt FROM (
-                     SELECT odometer AS km, date AS dt, created_at
-                     FROM fuel
-                     WHERE vehicle_id = %s AND odometer IS NOT NULL
-                     ORDER BY date DESC NULLS LAST, created_at DESC NULLS LAST
-                     LIMIT 1
-                 ) latest_fuel
-                 ORDER BY dt DESC NULLS LAST
+                SELECT km, dt
+                FROM (
+                    SELECT odo_end AS km, date AS dt, created_at
+                    FROM trips
+                    WHERE vehicle_id = %s AND odo_end IS NOT NULL
+                    UNION ALL
+                    SELECT odometer AS km, date AS dt, created_at
+                    FROM fuel
+                    WHERE vehicle_id = %s AND odometer IS NOT NULL
+                ) readings
+                ORDER BY dt DESC NULLS LAST, created_at DESC NULLS LAST
                 LIMIT 1
             ''', (vid, vid))
             row = cur.fetchone()

@@ -111,6 +111,7 @@ class AddMaintenanceUseCase:
         AuditService.log(
             'Dodanie', 'Serwis',
             f'Pojazd ID: {vehicle["id"]}, Opis: {description}, Data: {maint_date}',
+            username=cmd.added_by,
         )
 
     @classmethod
@@ -198,6 +199,7 @@ class EditMaintenanceUseCase:
         AuditService.log(
             'Edycja', 'Serwis',
             f'ID: {cmd.entry_id}, Pojazd: {vehicle["id"]}, Data: {maint_date}',
+            username=cmd.requester,
         )
 
     @classmethod
@@ -231,7 +233,7 @@ class DeleteMaintenanceUseCase:
             requester=cmd.requester,
             is_admin=cmd.is_admin,
         )
-        AuditService.log('Usunięcie', 'Serwis', f'ID: {cmd.entry_id}')
+        AuditService.log('Usunięcie', 'Serwis', f'ID: {cmd.entry_id}', username=cmd.requester)
 
     @classmethod
     def execute(cls, cmd: DeleteMaintenanceCommand) -> None:
@@ -335,7 +337,7 @@ class CompleteMaintenanceUseCase:
             raise NotFoundError('Nie znaleziono wpisu serwisowego.')
         if not cmd.is_admin and row.get('added_by') != cmd.requester:
             raise ForbiddenError('Brak uprawnień.')
-        AuditService.log('Zakończenie', 'Serwis', f'ID: {cmd.entry_id}')
+        AuditService.log('Zakończenie', 'Serwis', f'ID: {cmd.entry_id}', username=cmd.requester)
         return row
 
     @classmethod
@@ -378,7 +380,7 @@ class CreateNextMaintenanceUseCase:
             raise NotFoundError('Nie znaleziono wpisu serwisowego.')
         if not cmd.is_admin and row.get('added_by') != cmd.requester:
             raise ForbiddenError('Brak uprawnień.')
-        AuditService.log('Duplikacja', 'Serwis', f'Źródło ID: {cmd.entry_id}')
+        AuditService.log('Duplikacja', 'Serwis', f'Źródło ID: {cmd.entry_id}', username=cmd.requester)
         return row
 
     @classmethod
