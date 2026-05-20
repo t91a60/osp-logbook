@@ -225,6 +225,20 @@
     var timeStartStr = timeStartInput && timeStartInput.value.trim()
       ? timeStartInput.value.trim()
       : formatLocalTime(now);
+    var timeStartMs = now.getTime();
+    if (/^\d{2}:\d{2}$/.test(timeStartStr)) {
+      var parts = timeStartStr.split(':');
+      var parsedHour = parseInt(parts[0], 10);
+      var parsedMinute = parseInt(parts[1], 10);
+      var isValidHour = !isNaN(parsedHour) && parsedHour >= 0 && parsedHour <= 23;
+      var isValidMinute = !isNaN(parsedMinute) && parsedMinute >= 0 && parsedMinute <= 59;
+      if (isValidHour && isValidMinute) {
+        var parsedStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parsedHour, parsedMinute, 0, 0);
+        // Future start time would produce a negative elapsed timer, so clamp to "now".
+        var effectiveStartDate = parsedStart.getTime() > now.getTime() ? now : parsedStart;
+        timeStartMs = effectiveStartDate.getTime();
+      }
+    }
 
     return {
       localId: buildLocalId(),
@@ -238,7 +252,7 @@
       driver: driver,
       dateStr: formatLocalDate(now),
       timeStartStr: timeStartStr,
-      timeStartMs: now.getTime()
+      timeStartMs: timeStartMs
     };
   }
 
@@ -416,7 +430,7 @@
     migrateLegacyQueue();
 
     var triggerButtons = document.querySelectorAll('[data-quick-trip-trigger="1"]');
-    triggerButtons.forEach(function (btn) {
+    Array.prototype.forEach.call(triggerButtons, function (btn) {
       btn.addEventListener('click', function () {
         if (typeof window.startQuickTrip === 'function') {
           window.startQuickTrip(btn);
