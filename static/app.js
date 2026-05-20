@@ -457,17 +457,7 @@ function _setupCountUp() {
 }
 
 function _setupPullToRefresh() {
-  var endpoint = (document.body && document.body.dataset && document.body.dataset.endpoint) || "";
   var refreshTarget = document.querySelector("main.container") || document.querySelector(".page") || document.body;
-
-  if (endpoint === "trips" || endpoint === "fuel") {
-    var pullIndicator = document.querySelector(".pull-indicator");
-    if (pullIndicator && pullIndicator.parentElement) pullIndicator.remove();
-    document.documentElement.style.overscrollBehaviorY = "none";
-    document.body.style.overscrollBehaviorY = "none";
-    document.body.style.webkitOverflowScrolling = "auto";
-    return;
-  }
 
   var indicator = document.createElement("div");
   indicator.className = "pull-indicator";
@@ -896,6 +886,10 @@ document.addEventListener("DOMContentLoaded", function () {
   _setupPullToRefresh();
   _setupSwipeToDelete();
   ActiveTrip.bootstrap();
+  if (new URLSearchParams(location.search).has("quick") && typeof startQuickTrip === "function") {
+    var fab = document.getElementById("quickTripFab");
+    if (fab) setTimeout(function () { startQuickTrip(fab); }, 300);
+  }
   prefillFromActiveTrip();
 
   if ('serviceWorker' in navigator) {
