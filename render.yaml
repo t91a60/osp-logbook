@@ -51,3 +51,4 @@ databases:
     databaseName: osp_logbook
     user: logbook_user
     plan: free
+    region: frankfurt
