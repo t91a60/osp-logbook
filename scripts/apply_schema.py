@@ -45,7 +45,7 @@ def main() -> None:
                 pass
 
             for statement in sqlparse.split(schema_sql):
-                statement = statement.strip()
+                statement = sqlparse.format(statement, strip_comments=True).strip()
                 if not statement:
                     continue
                 try:
