@@ -234,8 +234,9 @@
       var isValidMinute = !isNaN(parsedMinute) && parsedMinute >= 0 && parsedMinute <= 59;
       if (isValidHour && isValidMinute) {
         var parsedStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parsedHour, parsedMinute, 0, 0);
-        var startAt = parsedStart.getTime() > now.getTime() ? now : parsedStart;
-        timeStartMs = startAt.getTime();
+        // Future start time would produce a negative elapsed timer, so clamp to "now".
+        var effectiveStartDate = parsedStart.getTime() > now.getTime() ? now : parsedStart;
+        timeStartMs = effectiveStartDate.getTime();
       }
     }
 
