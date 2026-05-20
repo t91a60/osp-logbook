@@ -8,7 +8,6 @@ services:
     # Pre-deploy bootstrapuje bazę pełnym schema.sql dla nowych środowisk.
     # Dalsze zmiany schematu aplikacja wykonuje inkrementalnie przy starcie
     # na podstawie plików SQL w migrations/ oraz tabeli schema_version.
-    preDeployCommand: python scripts/apply_schema.py
     healthCheckPath: /health
     envVars:
       - key: APP_ENV
@@ -45,6 +44,7 @@ services:
     name: osp-logbook-redis
     region: frankfurt
     plan: free
+    ipAllowList: []
 
 databases:
   - name: osp-logbook-db
