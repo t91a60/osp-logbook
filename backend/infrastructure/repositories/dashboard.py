@@ -15,15 +15,23 @@ class DashboardRepository:
             cursor.execute("""
                 WITH trip_max AS (
                     SELECT vehicle_id, MAX(odo_end) AS last_km, MAX(date) AS last_km_date
-                    FROM trips WHERE odo_end IS NOT NULL GROUP BY vehicle_id
+                    FROM trips
+                    WHERE odo_end IS NOT NULL
+                      AND deleted_at IS NULL
+                    GROUP BY vehicle_id
                 ),
                 fuel_max AS (
                     SELECT vehicle_id, MAX(odometer) AS last_km, MAX(date) AS last_km_date
-                    FROM fuel WHERE odometer IS NOT NULL GROUP BY vehicle_id
+                    FROM fuel
+                    WHERE odometer IS NOT NULL
+                      AND deleted_at IS NULL
+                    GROUP BY vehicle_id
                 ),
                 last_trip_date AS (
                     SELECT vehicle_id, MAX(date) AS last_trip_date
-                    FROM trips GROUP BY vehicle_id
+                    FROM trips
+                    WHERE deleted_at IS NULL
+                    GROUP BY vehicle_id
                 )
                 SELECT
                     v.id, v.name, v.plate, v.type,
@@ -54,6 +62,7 @@ class DashboardRepository:
                 SELECT t.*, v.name AS vname
                 FROM trips t
                 JOIN vehicles v ON t.vehicle_id = v.id
+                WHERE t.deleted_at IS NULL
                 ORDER BY t.date DESC, t.created_at DESC
                 LIMIT %s
             """,
@@ -73,6 +82,7 @@ class DashboardRepository:
                 SELECT f.*, v.name AS vname
                 FROM fuel f
                 JOIN vehicles v ON f.vehicle_id = v.id
+                WHERE f.deleted_at IS NULL
                 ORDER BY f.date DESC, f.created_at DESC
                 LIMIT %s
             """,
@@ -87,9 +97,9 @@ class DashboardRepository:
         def _execute(cursor):
             cursor.execute("""
                 SELECT
-                    (SELECT COUNT(*) FROM trips)       AS trips_count,
-                    (SELECT COUNT(*) FROM fuel)        AS fuel_count,
-                    (SELECT COUNT(*) FROM maintenance) AS maint_count
+                    (SELECT COUNT(*) FROM trips WHERE deleted_at IS NULL)       AS trips_count,
+                    (SELECT COUNT(*) FROM fuel WHERE deleted_at IS NULL)        AS fuel_count,
+                    (SELECT COUNT(*) FROM maintenance WHERE deleted_at IS NULL) AS maint_count
             """)
             row = cursor.fetchone()
             return {

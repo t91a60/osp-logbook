@@ -81,6 +81,10 @@ class TestTripRepositoryQueries:
         assert total == 1
         assert total_pages == 1
         assert page == 1
+        count_sql = mock_paginate.call_args.args[2]
+        base_sql = mock_paginate.call_args.args[4]
+        assert 't.deleted_at IS NULL' in count_sql
+        assert 't.deleted_at IS NULL' in base_sql
         mock_cur.close.assert_called_once()
 
     @patch('backend.infrastructure.repositories.vehicles.get_cursor')
@@ -113,6 +117,7 @@ class TestTripRepositoryQueries:
 
         assert row == {'id': 7, 'vname': 'Auto 1'}
         mock_cur.execute.assert_called_once()
+        assert 't.deleted_at IS NULL' in mock_cur.execute.call_args.args[0]
         mock_cur.close.assert_called_once()
 
 
@@ -163,7 +168,8 @@ class TestTripRepositoryDelete:
 
         repo.delete(1, requester='jan', is_admin=False)
 
-        assert mock_cur.execute.call_count == 3
+        assert mock_cur.execute.call_count == 2
+        assert 'SET deleted_at = CURRENT_TIMESTAMP' in mock_cur.execute.call_args_list[1].args[0]
         mock_conn.commit.assert_called_once()
         mock_invalidate.assert_any_call('dashboard:')
         mock_invalidate.assert_any_call('api:last_km:7')

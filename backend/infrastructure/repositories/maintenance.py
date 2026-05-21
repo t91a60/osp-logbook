@@ -62,6 +62,7 @@ class MaintenanceRepository:
                 FROM maintenance m
                 JOIN vehicles v ON m.vehicle_id = v.id
                 WHERE m.id = %s
+                  AND m.deleted_at IS NULL
                 LIMIT 1
                 """,
                 (entry_id,),
@@ -104,6 +105,7 @@ class MaintenanceRepository:
                         priority    = %s,
                         due_date    = %s
                     WHERE id = %s
+                      AND deleted_at IS NULL
                     """,
                     (
                         vehicle_id, date_val, odometer, description,
@@ -139,7 +141,13 @@ class MaintenanceRepository:
         cur = get_cursor(conn)
         try:
             cur.execute(
-                'SELECT id, added_by, vehicle_id FROM maintenance WHERE id = %s LIMIT 1',
+                '''
+                SELECT id, added_by, vehicle_id
+                FROM maintenance
+                WHERE id = %s
+                  AND deleted_at IS NULL
+                LIMIT 1
+                ''',
                 (entry_id,),
             )
             row = cur.fetchone()
@@ -149,7 +157,15 @@ class MaintenanceRepository:
                 raise ForbiddenError('Brak uprawnień do usunięcia wpisu serwisowego.')
 
             vid = row.get('vehicle_id')
-            cur.execute('DELETE FROM maintenance WHERE id = %s', (entry_id,))
+            cur.execute(
+                '''
+                UPDATE maintenance
+                SET deleted_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+                  AND deleted_at IS NULL
+                ''',
+                (entry_id,),
+            )
             conn.commit()
             try:
                 invalidate_prefix('dashboard:')
@@ -176,7 +192,7 @@ class MaintenanceRepository:
         cur = get_cursor(conn)
         try:
             page = parse_positive_int(page, default=1)
-            where_parts = []
+            where_parts = ['m.deleted_at IS NULL']
             params = []
 
             if vehicle_id and vehicle_id != 'all':
@@ -219,11 +235,27 @@ class MaintenanceRepository:
         conn = get_db()
         cur = get_cursor(conn)
         try:
-            cur.execute('SELECT id, added_by FROM maintenance WHERE id = %s', (entry_id,))
+            cur.execute(
+                '''
+                SELECT id, added_by
+                FROM maintenance
+                WHERE id = %s
+                  AND deleted_at IS NULL
+                ''',
+                (entry_id,),
+            )
             row = cur.fetchone()
             if not row:
                 return None
-            cur.execute("UPDATE maintenance SET status = 'completed' WHERE id = %s", (entry_id,))
+            cur.execute(
+                """
+                UPDATE maintenance
+                SET status = 'completed'
+                WHERE id = %s
+                  AND deleted_at IS NULL
+                """,
+                (entry_id,),
+            )
             conn.commit()
             return row
         except Exception:
@@ -244,7 +276,9 @@ class MaintenanceRepository:
         try:
             cur.execute('''
                 SELECT vehicle_id, odometer, description, notes, priority, due_date, added_by
-                FROM maintenance WHERE id = %s
+                FROM maintenance
+                WHERE id = %s
+                  AND deleted_at IS NULL
             ''', (entry_id,))
             row = cur.fetchone()
             if not row:

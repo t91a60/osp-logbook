@@ -107,6 +107,10 @@ class TestMaintenanceRepositoryGetPage:
 
         assert entries == [{'id': 1, 'effective_status': 'pending'}]
         assert total == 1
+        count_sql = mock_paginate.call_args.args[2]
+        base_sql = mock_paginate.call_args.args[4]
+        assert 'm.deleted_at IS NULL' in count_sql
+        assert 'm.deleted_at IS NULL' in base_sql
         mock_cur.close.assert_called_once()
 
     @patch('backend.infrastructure.repositories.maintenance.paginate')
@@ -185,6 +189,8 @@ class TestMaintenanceRepositoryComplete:
         row = repo.complete(1)
 
         assert row == {'id': 1, 'added_by': 'testuser'}
+        assert 'deleted_at IS NULL' in mock_cur.execute.call_args_list[0].args[0]
+        assert 'deleted_at IS NULL' in mock_cur.execute.call_args_list[1].args[0]
         mock_conn.commit.assert_called_once()
 
     @patch('backend.infrastructure.repositories.maintenance.get_cursor')
@@ -241,6 +247,7 @@ class TestMaintenanceRepositoryCreateNext:
         row = repo.create_next(1)
 
         assert row['description'] == 'Wymiana oleju'
+        assert 'deleted_at IS NULL' in mock_cur.execute.call_args_list[0].args[0]
         mock_conn.commit.assert_called_once()
 
     @patch('backend.infrastructure.repositories.maintenance.get_cursor')
@@ -327,6 +334,7 @@ class TestMaintenanceRepositoryGetById:
         assert result['id'] == 5
         assert result['effective_status'] == 'pending'
         mock_cur.execute.assert_called_once()
+        assert 'm.deleted_at IS NULL' in mock_cur.execute.call_args.args[0]
         mock_cur.close.assert_called_once()
 
     @patch('backend.infrastructure.repositories.maintenance.get_cursor')
@@ -385,6 +393,7 @@ class TestMaintenanceRepositoryUpdate:
         )
 
         mock_cur.execute.assert_called_once()
+        assert 'deleted_at IS NULL' in mock_cur.execute.call_args.args[0]
         mock_conn.commit.assert_called_once()
 
     @patch('backend.infrastructure.repositories.maintenance.get_cursor')
@@ -451,6 +460,7 @@ class TestMaintenanceRepositoryDelete:
 
         repo.delete(1, requester='jan')
 
+        assert 'SET deleted_at = CURRENT_TIMESTAMP' in mock_cur.execute.call_args_list[1].args[0]
         mock_conn.commit.assert_called_once()
         mock_cur.close.assert_called_once()
 

@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS trips (
     added_by TEXT NOT NULL DEFAULT '',
     time_start TEXT,
     time_end TEXT,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_trips_odo_start_non_negative CHECK (odo_start IS NULL OR odo_start >= 0),
     CONSTRAINT chk_trips_odo_end_non_negative CHECK (odo_end IS NULL OR odo_end >= 0),
@@ -52,6 +53,7 @@ CREATE TABLE IF NOT EXISTS fuel (
     cost REAL,
     notes TEXT NOT NULL DEFAULT '',
     added_by TEXT NOT NULL DEFAULT '',
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_fuel_odometer_non_negative CHECK (odometer IS NULL OR odometer >= 0),
     CONSTRAINT chk_fuel_liters_positive CHECK (liters > 0),
@@ -67,6 +69,7 @@ CREATE TABLE IF NOT EXISTS maintenance (
     cost REAL,
     notes TEXT NOT NULL DEFAULT '',
     added_by TEXT NOT NULL DEFAULT '',
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status TEXT NOT NULL DEFAULT 'pending',
     priority TEXT NOT NULL DEFAULT 'medium',
@@ -133,9 +136,12 @@ CREATE INDEX IF NOT EXISTS idx_fuel_date_created_desc ON fuel (date DESC, create
 CREATE INDEX IF NOT EXISTS idx_maintenance_due_date_pending ON maintenance (due_date) WHERE status = 'pending';
 CREATE INDEX IF NOT EXISTS idx_trips_purpose_trgm ON trips USING gin(purpose gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_trips_driver_trgm ON trips USING gin(driver gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_trips_active_date_created_desc ON trips (date DESC, created_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_fuel_active_date_created_desc ON fuel (date DESC, created_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_maintenance_active_date_created_desc ON maintenance (date DESC, created_at DESC) WHERE deleted_at IS NULL;
 
-INSERT INTO schema_version (version) VALUES (11);
--- version 11 = CHECK constraints for odometer/fuel/maintenance numeric integrity
+INSERT INTO schema_version (version) VALUES (12);
+-- version 12 = soft delete columns for trips/fuel/maintenance
 
 INSERT INTO users (username, password, display_name, role, is_admin)
 VALUES ('admin', 'CHANGE_ME_RUN_FLASK_INIT', 'Administrator', 'admin', TRUE)
