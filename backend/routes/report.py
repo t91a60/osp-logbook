@@ -145,8 +145,13 @@ def register_routes(app):
                 '''
                 SELECT v.id, v.name, v.plate,
                        COUNT(t.id) AS trip_count,
-                       SUM(CASE WHEN t.odo_end IS NOT NULL AND t.odo_start IS NOT NULL
-                                 THEN t.odo_end - t.odo_start ELSE 0 END) AS total_km
+                       SUM(
+                           CASE
+                               WHEN t.odo_end IS NOT NULL AND t.odo_start IS NOT NULL
+                                   THEN t.odo_end - t.odo_start
+                               ELSE 0
+                           END
+                       ) AS total_km
                 FROM vehicles v
                 LEFT JOIN trips t ON
                 '''
