@@ -95,6 +95,7 @@ class TestVehicleRepositoryMetrics:
         assert dt == '2024-01-15'
         sql = mock_cur.execute.call_args.args[0]
         assert 'MAX(' not in sql
+        assert 'deleted_at IS NULL' in sql
         assert 'ORDER BY dt DESC NULLS LAST, created_at DESC NULLS LAST' in sql
         mock_cur.close.assert_called_once()
 
@@ -123,6 +124,7 @@ class TestVehicleRepositoryMetrics:
         drivers = repo.get_recent_drivers(days=30)
 
         assert drivers == ['Jan', 'Anna']
+        assert 'deleted_at IS NULL' in mock_cur.execute.call_args.args[0]
         mock_cur.close.assert_called_once()
 
 
@@ -215,4 +217,5 @@ class TestVehicleRepositoryMutations:
 
         assert repo.has_linked_rows(1) is True
         assert repo.has_linked_rows(1) is False
+        assert 'deleted_at IS NULL' in mock_cur.execute.call_args_list[0].args[0]
         assert mock_cur.close.call_count == 2

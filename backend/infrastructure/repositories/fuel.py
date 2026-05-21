@@ -65,6 +65,7 @@ class FuelRepository:
                 FROM fuel f
                 JOIN vehicles v ON f.vehicle_id = v.id
                 WHERE f.id = %s
+                  AND f.deleted_at IS NULL
                 LIMIT 1
                 """,
                 (entry_id,),
@@ -104,6 +105,7 @@ class FuelRepository:
                         cost       = %s,
                         notes      = %s
                     WHERE id = %s
+                      AND deleted_at IS NULL
                     """,
                     (vehicle_id, date_val, driver, odometer, liters, cost, notes, entry_id),
                 )
@@ -136,7 +138,13 @@ class FuelRepository:
         cur = get_cursor(conn)
         try:
             cur.execute(
-                'SELECT id, added_by, vehicle_id FROM fuel WHERE id = %s LIMIT 1',
+                '''
+                SELECT id, added_by, vehicle_id
+                FROM fuel
+                WHERE id = %s
+                  AND deleted_at IS NULL
+                LIMIT 1
+                ''',
                 (entry_id,),
             )
             row = cur.fetchone()
@@ -146,7 +154,15 @@ class FuelRepository:
                 raise ForbiddenError('Brak uprawnień do usunięcia wpisu tankowania.')
 
             vid = row.get('vehicle_id')
-            cur.execute('DELETE FROM fuel WHERE id = %s', (entry_id,))
+            cur.execute(
+                '''
+                UPDATE fuel
+                SET deleted_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+                  AND deleted_at IS NULL
+                ''',
+                (entry_id,),
+            )
             conn.commit()
             try:
                 invalidate_prefix('dashboard:')
@@ -172,7 +188,7 @@ class FuelRepository:
         cur = get_cursor(conn)
         try:
             page = parse_positive_int(page, default=1)
-            where_parts = []
+            where_parts = ["f.deleted_at IS NULL"]
             params = []
 
             if vehicle_id:

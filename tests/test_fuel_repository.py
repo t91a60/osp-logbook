@@ -102,6 +102,10 @@ class TestFuelRepositoryGetPage:
         assert total == 1
         assert total_pages == 1
         assert page == 1
+        count_sql = mock_paginate.call_args.args[2]
+        base_sql = mock_paginate.call_args.args[4]
+        assert 'f.deleted_at IS NULL' in count_sql
+        assert 'f.deleted_at IS NULL' in base_sql
         mock_cur.close.assert_called_once()
 
     @patch('backend.infrastructure.repositories.fuel.paginate')
@@ -148,6 +152,7 @@ class TestFuelRepositoryGetById:
 
         assert result == {'id': 42, 'liters': 50.0, 'vname': 'GBA'}
         mock_cur.execute.assert_called_once()
+        assert 'f.deleted_at IS NULL' in mock_cur.execute.call_args.args[0]
         mock_cur.close.assert_called_once()
 
     @patch('backend.infrastructure.repositories.fuel.get_cursor')
@@ -204,6 +209,7 @@ class TestFuelRepositoryUpdate:
         )
 
         mock_cur.execute.assert_called_once()
+        assert 'deleted_at IS NULL' in mock_cur.execute.call_args.args[0]
         mock_conn.commit.assert_called_once()
 
     @patch('backend.infrastructure.repositories.fuel.get_cursor')
@@ -267,6 +273,7 @@ class TestFuelRepositoryDelete:
 
         repo.delete(1, requester='jan')
 
+        assert 'SET deleted_at = CURRENT_TIMESTAMP' in mock_cur.execute.call_args_list[1].args[0]
         mock_conn.commit.assert_called_once()
         mock_cur.close.assert_called_once()
 

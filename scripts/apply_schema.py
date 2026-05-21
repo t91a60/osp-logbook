@@ -6,7 +6,7 @@ from psycopg2 import errors
 import sqlparse
 
 
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 12
 
 
 def main() -> None:

@@ -38,6 +38,7 @@ class TestReportRoute:
         assert response.status_code == 200
         assert response.data == b'report-page'
         mock_render.assert_called_once()
+        assert 'deleted_at IS NULL' in mock_cur.execute.call_args_list[0].args[0]
         ctx = mock_render.call_args.kwargs
         assert 'vehicles' in ctx
         assert 'trip_entries' in ctx
@@ -168,6 +169,8 @@ class TestReportPrintRoute:
 
         assert response.status_code == 200
         assert response.data == b'print-page'
+        assert 'deleted_at IS NULL' in mock_cur.execute.call_args_list[1].args[0]
+        assert 'deleted_at IS NULL' in mock_cur.execute.call_args_list[2].args[0]
         ctx = mock_render.call_args.kwargs
         assert ctx['vehicle'] == vehicle_row
         assert ctx['folio_sum'] == 20   # 120 - 100

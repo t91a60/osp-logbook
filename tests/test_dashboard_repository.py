@@ -13,6 +13,7 @@ class TestDashboardRepository:
 
         assert result == [{'id': 1, 'name': 'GBA'}]
         cur.execute.assert_called_once()
+        assert 'deleted_at IS NULL' in cur.execute.call_args.args[0]
 
     @patch('backend.infrastructure.repositories.dashboard.get_cursor')
     @patch('backend.infrastructure.repositories.dashboard.get_db')
@@ -26,6 +27,7 @@ class TestDashboardRepository:
         result = repo.get_recent_trips.__wrapped__(repo, limit=2, cur=None)
 
         assert result == [{'id': 11}]
+        assert 't.deleted_at IS NULL' in cur.execute.call_args.args[0]
         assert cur.execute.call_args.args[1] == (2,)
         cur.close.assert_called_once()
 
@@ -37,6 +39,7 @@ class TestDashboardRepository:
         result = repo.get_recent_fuel.__wrapped__(repo, limit=4, cur=cur)
 
         assert result == [{'id': 21}]
+        assert 'f.deleted_at IS NULL' in cur.execute.call_args.args[0]
         assert cur.execute.call_args.args[1] == (4,)
 
     def test_get_aggregate_stats_maps_nulls_to_zero(self):
@@ -51,6 +54,7 @@ class TestDashboardRepository:
         result = repo.get_aggregate_stats.__wrapped__(repo, cur=cur)
 
         assert result == {'trips': 0, 'fuel': 3, 'maintenance': 0}
+        assert 'deleted_at IS NULL' in cur.execute.call_args.args[0]
 
     @patch('backend.infrastructure.repositories.dashboard.get_cursor')
     @patch('backend.infrastructure.repositories.dashboard.get_db')
