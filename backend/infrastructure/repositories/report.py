@@ -1,10 +1,12 @@
 from typing import Any, Optional
 
 from backend.db import get_cursor, get_db
+from backend.infrastructure.repositories.base import BaseRepository
+from backend.infrastructure.repositories.protocols import ReportRepositoryProtocol
 from backend.services.cache_service import cached
 
 
-class ReportRepository:
+class ReportRepository(BaseRepository, ReportRepositoryProtocol):
     """Repository odpowiedzialny za zapytania do raportów okresowych."""
 
     @cached(ttl=300, tags=['report', 'report:{vid}'])
@@ -152,12 +154,9 @@ class ReportRepository:
         return self._run_with_cursor(cur, _execute)
 
     def _run_with_cursor(self, provided_cur: Optional[Any], func: callable) -> Any:
-        if provided_cur is not None:
-            return func(provided_cur)
-        
-        conn = get_db()
-        cur = get_cursor(conn)
-        try:
-            return func(cur)
-        finally:
-            cur.close()
+        return super()._run_with_cursor(
+            provided_cur,
+            func,
+            get_db_fn=get_db,
+            get_cursor_fn=get_cursor,
+        )

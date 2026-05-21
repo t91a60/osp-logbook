@@ -3,11 +3,13 @@ from __future__ import annotations
 from backend.db import get_cursor, get_db
 from backend.services.cache_service import invalidate_prefix
 from backend.helpers import build_date_where, paginate, parse_positive_int
+from backend.infrastructure.repositories.base import BaseRepository
 from backend.infrastructure.repositories import _to_int, _to_float
+from backend.infrastructure.repositories.protocols import FuelRepositoryProtocol
 from backend.domain.exceptions import ForbiddenError, NotFoundError
 
 
-class FuelRepository:
+class FuelRepository(BaseRepository, FuelRepositoryProtocol):
     def add(
         self,
         vehicle_id: int | str | None,

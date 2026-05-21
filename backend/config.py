@@ -7,6 +7,7 @@ class Config:
     DATABASE_URL: str | None = os.environ.get('DATABASE_URL')
 
     USE_HTTPS: bool = os.environ.get('OSP_USE_HTTPS', '0') == '1'
+    SESSION_COOKIE_NAME: str = os.environ.get('SESSION_COOKIE_NAME', 'osp_logbook_session')
     SESSION_COOKIE_HTTPONLY: bool = True
     SESSION_COOKIE_SAMESITE: str = 'Lax'
     SESSION_COOKIE_SECURE: bool = USE_HTTPS

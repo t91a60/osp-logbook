@@ -6,13 +6,15 @@ from threading import Lock
 from backend.db import get_db, get_cursor
 from backend.domain.exceptions import ForbiddenError, NotFoundError
 from backend.helpers import normalize_iso_date
+from backend.infrastructure.repositories.base import BaseRepository
 from backend.infrastructure.repositories import _to_int
+from backend.infrastructure.repositories.protocols import VehicleRepositoryProtocol
 
 _vehicles_has_active_column: bool | None = None
 _vehicle_schema_lock = Lock()
 
 
-class VehicleRepository:
+class VehicleRepository(BaseRepository, VehicleRepositoryProtocol):
     def get_all(self) -> list[dict]:
         """All vehicles ordered by name."""
         conn = get_db()

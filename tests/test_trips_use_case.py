@@ -92,9 +92,8 @@ class TestAddTripUseCaseValidation:
 
 
 class TestAddTripUseCaseSuccess:
-    @patch('backend.application.trips.invalidate_prefix')
     @patch('backend.application.trips.AuditService')
-    def test_returns_trip_id(self, mock_audit, mock_inv):
+    def test_returns_trip_id(self, mock_audit):
         mock_vehicle_repo = MagicMock()
         mock_trip_repo = MagicMock()
         uc = AddTripUseCase(trip_repo=mock_trip_repo, vehicle_repo=mock_vehicle_repo)
@@ -106,9 +105,8 @@ class TestAddTripUseCaseSuccess:
 
         assert trip_id == 42
 
-    @patch('backend.application.trips.invalidate_prefix')
     @patch('backend.application.trips.AuditService')
-    def test_calls_trip_repository_add(self, mock_audit, mock_inv):
+    def test_calls_trip_repository_add(self, mock_audit):
         mock_vehicle_repo = MagicMock()
         mock_trip_repo = MagicMock()
         uc = AddTripUseCase(trip_repo=mock_trip_repo, vehicle_repo=mock_vehicle_repo)
@@ -124,9 +122,8 @@ class TestAddTripUseCaseSuccess:
         assert call_kwargs['odo_start'] == 10000
         assert call_kwargs['odo_end'] == 10120
 
-    @patch('backend.application.trips.invalidate_prefix')
     @patch('backend.application.trips.AuditService')
-    def test_emits_audit_log(self, mock_audit, mock_inv):
+    def test_emits_audit_log(self, mock_audit):
         mock_vehicle_repo = MagicMock()
         mock_trip_repo = MagicMock()
         uc = AddTripUseCase(trip_repo=mock_trip_repo, vehicle_repo=mock_vehicle_repo)
@@ -140,9 +137,8 @@ class TestAddTripUseCaseSuccess:
         assert args[0] == 'Dodanie'
         assert args[1] == 'Wyjazd'
 
-    @patch('backend.application.trips.invalidate_prefix')
     @patch('backend.application.trips.AuditService')
-    def test_none_odo_accepted(self, mock_audit, mock_inv):
+    def test_none_odo_accepted(self, mock_audit):
         mock_vehicle_repo = MagicMock()
         mock_trip_repo = MagicMock()
         uc = AddTripUseCase(trip_repo=mock_trip_repo, vehicle_repo=mock_vehicle_repo)
@@ -157,9 +153,8 @@ class TestAddTripUseCaseSuccess:
         assert call_kwargs['odo_start'] is None
         assert call_kwargs['odo_end'] is None
 
-    @patch('backend.application.trips.invalidate_prefix')
     @patch('backend.application.trips.AuditService')
-    def test_cache_invalidation_called(self, mock_audit, mock_inv):
+    def test_use_case_no_longer_invalidates_report_cache_directly(self, mock_audit):
         mock_vehicle_repo = MagicMock()
         mock_trip_repo = MagicMock()
         uc = AddTripUseCase(trip_repo=mock_trip_repo, vehicle_repo=mock_vehicle_repo)
@@ -168,7 +163,7 @@ class TestAddTripUseCaseSuccess:
 
         uc.execute_instance(_valid_cmd(vehicle_id='5'))
 
-        mock_inv.assert_called_once_with('report:5:')
+        mock_trip_repo.add.assert_called_once()
 
 
 # ---------------------------------------------------------------------------

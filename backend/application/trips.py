@@ -30,7 +30,6 @@ from backend.infrastructure.repositories.protocols import (
     VehicleRepositoryProtocol,
 )
 from backend.services.audit_service import AuditService
-from backend.services.cache_service import invalidate_prefix
 
 
 # ---------------------------------------------------------------------------
@@ -141,12 +140,6 @@ class AddTripUseCase:
             f'Pojazd ID: {vehicle["id"]}, Kierowca: {driver}, Data: {trip_date}',
             username=cmd.added_by,
         )
-        try:
-            invalidate_prefix(f'report:{vehicle["id"]}:')
-            # dashboard and last_km cache are invalidated inside TripRepository.add
-        except Exception:
-            pass
-
         return trip_id
 
     @classmethod

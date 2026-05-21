@@ -5,11 +5,13 @@ from datetime import date, timedelta
 from backend.db import get_db, get_cursor
 from backend.services.cache_service import invalidate_prefix
 from backend.helpers import build_date_where, normalize_iso_date, paginate, parse_positive_int
+from backend.infrastructure.repositories.base import BaseRepository
 from backend.infrastructure.repositories import _to_int, _to_float
+from backend.infrastructure.repositories.protocols import MaintenanceRepositoryProtocol
 from backend.domain.exceptions import ForbiddenError, NotFoundError
 
 
-class MaintenanceRepository:
+class MaintenanceRepository(BaseRepository, MaintenanceRepositoryProtocol):
     def add(
         self,
         vehicle_id: int | str | None,
