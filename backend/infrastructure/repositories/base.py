@@ -13,7 +13,7 @@ class BaseRepository:
 
     @staticmethod
     def _assert_sql_identifier(name: str) -> str:
-        if not isinstance(name, str) or not re.fullmatch(r'[a-z_][a-z0-9_]*', name):
+        if not isinstance(name, str) or not re.fullmatch(r'[a-zA-Z_][a-zA-Z0-9_]*', name):
             raise ValueError('Invalid SQL identifier.')
         return name
 
