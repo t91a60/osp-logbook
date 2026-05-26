@@ -53,7 +53,7 @@ class MaintenanceRepository(BaseRepository, MaintenanceRepositoryProtocol):
         cur = get_cursor(conn)
         try:
             cur.execute(
-                """
+                f"""
                 SELECT m.*,
                        v.name AS vname,
                        CASE
@@ -64,7 +64,7 @@ class MaintenanceRepository(BaseRepository, MaintenanceRepositoryProtocol):
                 FROM maintenance m
                 JOIN vehicles v ON m.vehicle_id = v.id
                 WHERE m.id = %s
-                  AND m.deleted_at IS NULL
+                  AND {self.active_where_clause("m")}
                 LIMIT 1
                 """,
                 (entry_id,),
@@ -95,7 +95,7 @@ class MaintenanceRepository(BaseRepository, MaintenanceRepositoryProtocol):
         try:
             with get_cursor(conn) as cur:
                 cur.execute(
-                    """
+                    f"""
                     UPDATE maintenance
                     SET vehicle_id  = %s,
                         date        = %s,
@@ -107,7 +107,7 @@ class MaintenanceRepository(BaseRepository, MaintenanceRepositoryProtocol):
                         priority    = %s,
                         due_date    = %s
                     WHERE id = %s
-                      AND deleted_at IS NULL
+                      AND {self.active_where_clause()}
                     """,
                     (
                         vehicle_id, date_val, odometer, description,
@@ -143,11 +143,11 @@ class MaintenanceRepository(BaseRepository, MaintenanceRepositoryProtocol):
         cur = get_cursor(conn)
         try:
             cur.execute(
-                '''
+                f'''
                 SELECT id, added_by, vehicle_id
                 FROM maintenance
                 WHERE id = %s
-                  AND deleted_at IS NULL
+                  AND {self.active_where_clause()}
                 LIMIT 1
                 ''',
                 (entry_id,),
@@ -159,15 +159,7 @@ class MaintenanceRepository(BaseRepository, MaintenanceRepositoryProtocol):
                 raise ForbiddenError('Brak uprawnień do usunięcia wpisu serwisowego.')
 
             vid = row.get('vehicle_id')
-            cur.execute(
-                '''
-                UPDATE maintenance
-                SET deleted_at = CURRENT_TIMESTAMP
-                WHERE id = %s
-                  AND deleted_at IS NULL
-                ''',
-                (entry_id,),
-            )
+            self.soft_delete('maintenance', entry_id, cur=cur)
             conn.commit()
             try:
                 invalidate_prefix('dashboard:')
@@ -194,7 +186,7 @@ class MaintenanceRepository(BaseRepository, MaintenanceRepositoryProtocol):
         cur = get_cursor(conn)
         try:
             page = parse_positive_int(page, default=1)
-            where_parts = ['m.deleted_at IS NULL']
+            where_parts = [self.active_where_clause('m')]
             params = []
 
             if vehicle_id and vehicle_id != 'all':
@@ -238,11 +230,11 @@ class MaintenanceRepository(BaseRepository, MaintenanceRepositoryProtocol):
         cur = get_cursor(conn)
         try:
             cur.execute(
-                '''
+                f'''
                 SELECT id, added_by
                 FROM maintenance
                 WHERE id = %s
-                  AND deleted_at IS NULL
+                  AND {self.active_where_clause()}
                 ''',
                 (entry_id,),
             )
@@ -250,11 +242,11 @@ class MaintenanceRepository(BaseRepository, MaintenanceRepositoryProtocol):
             if not row:
                 return None
             cur.execute(
-                """
+                f"""
                 UPDATE maintenance
                 SET status = 'completed'
                 WHERE id = %s
-                  AND deleted_at IS NULL
+                  AND {self.active_where_clause()}
                 """,
                 (entry_id,),
             )
@@ -276,11 +268,11 @@ class MaintenanceRepository(BaseRepository, MaintenanceRepositoryProtocol):
         conn = get_db()
         cur = get_cursor(conn)
         try:
-            cur.execute('''
+            cur.execute(f'''
                 SELECT vehicle_id, odometer, description, notes, priority, due_date, added_by
                 FROM maintenance
                 WHERE id = %s
-                  AND deleted_at IS NULL
+                  AND {self.active_where_clause()}
             ''', (entry_id,))
             row = cur.fetchone()
             if not row:

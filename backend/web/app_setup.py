@@ -61,13 +61,16 @@ def register_request_guards(app: Flask) -> None:
 
         if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'}:
             token = session.get('_csrf_token')
-            req_token = (
-                request.form.get('_csrf_token')
-                or request.form.get('csrf_token')
-                or request.headers.get('X-CSRFToken')
-                or request.headers.get('X-CSRF-Token')
-                or request.headers.get('X-XSRF-TOKEN')
-            )
+            if request.is_json:
+                req_token = request.headers.get('X-CSRFToken')
+            else:
+                req_token = (
+                    request.form.get('_csrf_token')
+                    or request.form.get('csrf_token')
+                    or request.headers.get('X-CSRFToken')
+                    or request.headers.get('X-CSRF-Token')
+                    or request.headers.get('X-XSRF-TOKEN')
+                )
 
             if not token or not req_token:
                 return _csrf_failure_response()

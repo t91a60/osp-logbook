@@ -3,6 +3,7 @@ from backend.db import get_db, get_cursor
 from backend.helpers import login_required, admin_required
 from backend.services.audit_service import AuditService
 from backend.services.cache_service import get_vehicles_cached
+from app import limiter
 
 equipment_bp = Blueprint('equipment', __name__)
 
@@ -276,6 +277,7 @@ def equipment_preload(eid):
 # API endpoint — używany przez formularz wyjazdu
 @equipment_bp.route('/api/vehicle/<int:vid>/equipment')
 @login_required
+@limiter.limit('30 per minute')
 def api_vehicle_equipment(vid):
     conn = get_db()
     cur = get_cursor(conn)

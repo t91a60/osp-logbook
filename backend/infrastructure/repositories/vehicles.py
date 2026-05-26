@@ -78,16 +78,16 @@ class VehicleRepository(BaseRepository, VehicleRepositoryProtocol):
         conn = get_db()
         cur = get_cursor(conn)
         try:
-            cur.execute('''
+            cur.execute(f'''
                 SELECT km, dt
                 FROM (
                     SELECT odo_end AS km, date AS dt, created_at
                     FROM trips
-                    WHERE vehicle_id = %s AND odo_end IS NOT NULL AND deleted_at IS NULL
+                    WHERE vehicle_id = %s AND odo_end IS NOT NULL AND {self.active_where_clause()}
                     UNION ALL
                     SELECT odometer AS km, date AS dt, created_at
                     FROM fuel
-                    WHERE vehicle_id = %s AND odometer IS NOT NULL AND deleted_at IS NULL
+                    WHERE vehicle_id = %s AND odometer IS NOT NULL AND {self.active_where_clause()}
                 ) readings
                 ORDER BY dt DESC NULLS LAST, created_at DESC NULLS LAST
                 LIMIT 1
@@ -106,11 +106,11 @@ class VehicleRepository(BaseRepository, VehicleRepositoryProtocol):
         conn = get_db()
         cur = get_cursor(conn)
         try:
-            cur.execute('''
+            cur.execute(f'''
                 SELECT DISTINCT driver FROM (
-                    SELECT driver FROM trips WHERE date >= %s AND deleted_at IS NULL
+                    SELECT driver FROM trips WHERE date >= %s AND {self.active_where_clause()}
                     UNION
-                    SELECT driver FROM fuel WHERE date >= %s AND deleted_at IS NULL
+                    SELECT driver FROM fuel WHERE date >= %s AND {self.active_where_clause()}
                 ) ORDER BY driver ASC
             ''', (cutoff, cutoff))
             rows = cur.fetchall()
@@ -175,9 +175,12 @@ class VehicleRepository(BaseRepository, VehicleRepositoryProtocol):
         cur = get_cursor(conn)
         try:
             cur.execute(
-                'SELECT (SELECT COUNT(*) FROM trips WHERE vehicle_id = %s AND deleted_at IS NULL) + '
-                '       (SELECT COUNT(*) FROM fuel WHERE vehicle_id = %s AND deleted_at IS NULL) + '
-                '       (SELECT COUNT(*) FROM maintenance WHERE vehicle_id = %s AND deleted_at IS NULL) AS count',
+                'SELECT (SELECT COUNT(*) FROM trips WHERE vehicle_id = %s AND '
+                + self.active_where_clause() + ') + '
+                '       (SELECT COUNT(*) FROM fuel WHERE vehicle_id = %s AND '
+                + self.active_where_clause() + ') + '
+                '       (SELECT COUNT(*) FROM maintenance WHERE vehicle_id = %s AND '
+                + self.active_where_clause() + ') AS count',
                 (vid, vid, vid),
             )
             return cur.fetchone()['count'] > 0

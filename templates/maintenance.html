@@ -236,7 +236,9 @@
 .priority-medium  { color:#f1c40f; background:rgba(241,196,15,.12); }
 .priority-high    { color:#ff8a80; background:rgba(231,76,60,.12); }
 </style>
+{% endblock %}
 
+{% block extra_js %}
 <script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(function() {
@@ -259,4 +261,3 @@ function submitMaintenance() {
 }
 </script>
 {% endblock %}
-

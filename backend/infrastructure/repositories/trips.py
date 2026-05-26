@@ -106,7 +106,7 @@ class TripRepository(BaseRepository, TripRepositoryProtocol):
         cur = get_cursor(conn)
         try:
             page = parse_positive_int(page, default=1)
-            where_parts = ["t.deleted_at IS NULL"]
+            where_parts = [self.active_where_clause("t")]
             params = []
 
             if vehicle_id:
@@ -136,12 +136,12 @@ class TripRepository(BaseRepository, TripRepositoryProtocol):
         cur = get_cursor(conn)
         try:
             cur.execute(
-                """
+                f"""
                 SELECT t.*, v.name AS vname
                 FROM trips t
                 JOIN vehicles v ON t.vehicle_id = v.id
                 WHERE t.id = %s
-                  AND t.deleted_at IS NULL
+                  AND {self.active_where_clause("t")}
                 LIMIT 1
             """,
                 (trip_id,),
@@ -161,11 +161,11 @@ class TripRepository(BaseRepository, TripRepositoryProtocol):
         cur = get_cursor(conn)
         try:
             cur.execute(
-                """
+                f"""
                 SELECT id, vehicle_id, added_by
                 FROM trips
                 WHERE id = %s
-                  AND deleted_at IS NULL
+                  AND {self.active_where_clause()}
                 LIMIT 1
                 """,
                 (trip_id,),
@@ -176,15 +176,7 @@ class TripRepository(BaseRepository, TripRepositoryProtocol):
             if not is_admin and row.get("added_by") != requester:
                 raise ForbiddenError("Brak uprawnień do usunięcia wyjazdu.")
 
-            cur.execute(
-                """
-                UPDATE trips
-                SET deleted_at = CURRENT_TIMESTAMP
-                WHERE id = %s
-                  AND deleted_at IS NULL
-                """,
-                (trip_id,),
-            )
+            self.soft_delete('trips', trip_id, cur=cur)
             conn.commit()
             try:
                 invalidate_prefix('dashboard:')
