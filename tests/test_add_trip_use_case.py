@@ -42,8 +42,7 @@ class TestAddTripUseCaseValidation:
         mock_vehicle_repo.get_active.return_value = {'id': 1, 'name': 'Fiat'}
         mock_trip_repo.add.return_value = 42
         uc = AddTripUseCase(trip_repo=mock_trip_repo, vehicle_repo=mock_vehicle_repo)
-        with patch('backend.application.trips.AuditService'), \
-             patch('backend.application.trips.invalidate_prefix'):
+        with patch('backend.application.trips.AuditService'):
             result = uc.execute_instance(_valid_cmd())
         assert result == 42
 
@@ -96,19 +95,17 @@ class TestAddTripUseCaseSideEffects:
         mock_vehicle_repo.get_active.return_value = {'id': 1, 'name': 'GBA', 'plate': 'SBI 001'}
         mock_trip_repo.add.return_value = 1
         uc = AddTripUseCase(trip_repo=mock_trip_repo, vehicle_repo=mock_vehicle_repo)
-        with patch('backend.application.trips.AuditService') as mock_audit, \
-             patch('backend.application.trips.invalidate_prefix'):
+        with patch('backend.application.trips.AuditService') as mock_audit:
             uc.execute_instance(_valid_cmd())
         mock_audit.log.assert_called_once()
         args = mock_audit.log.call_args.args
         assert args[0] == 'Dodanie'
         assert args[1] == 'Wyjazd'
 
-    def test_cache_invalidated_on_success(self, mock_trip_repo, mock_vehicle_repo):
+    def test_use_case_does_not_invalidate_report_cache_directly(self, mock_trip_repo, mock_vehicle_repo):
         mock_vehicle_repo.get_active.return_value = {'id': 5, 'name': 'GBA', 'plate': 'SBI 005'}
         mock_trip_repo.add.return_value = 10
         uc = AddTripUseCase(trip_repo=mock_trip_repo, vehicle_repo=mock_vehicle_repo)
-        with patch('backend.application.trips.AuditService'), \
-             patch('backend.application.trips.invalidate_prefix') as mock_inv:
+        with patch('backend.application.trips.AuditService'):
             uc.execute_instance(_valid_cmd(vehicle_id='5'))
-        mock_inv.assert_called_once_with('report:5:')
+        mock_trip_repo.add.assert_called_once()

@@ -8,10 +8,12 @@ from backend.helpers import (
     paginate,
     parse_positive_int,
 )
+from backend.infrastructure.repositories.base import BaseRepository
 from backend.infrastructure.repositories import _to_int
+from backend.infrastructure.repositories.protocols import TripRepositoryProtocol
 
 
-class TripRepository:
+class TripRepository(BaseRepository, TripRepositoryProtocol):
     def add(
         self,
         vehicle_id: int | str | None,
@@ -82,6 +84,7 @@ class TripRepository:
             try:
                 invalidate_prefix('dashboard:')
                 invalidate_prefix(f'api:last_km:{vehicle_id}')
+                invalidate_prefix(f'report:{vehicle_id}:')
             except Exception:
                 # Don't fail the DB write if cache invalidation has issues
                 pass
@@ -186,6 +189,7 @@ class TripRepository:
             try:
                 invalidate_prefix('dashboard:')
                 invalidate_prefix(f'api:last_km:{row["vehicle_id"]}')
+                invalidate_prefix(f'report:{row["vehicle_id"]}:')
             except Exception:
                 pass
         except Exception:

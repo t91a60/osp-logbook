@@ -21,6 +21,10 @@ class TestConfig:
         from backend.config import Config
         assert Config.SESSION_COOKIE_HTTPONLY is True
 
+    def test_base_config_cookie_name(self):
+        from backend.config import Config
+        assert Config.SESSION_COOKIE_NAME == 'osp_logbook_session'
+
     def test_base_config_samesite_lax(self):
         from backend.config import Config
         assert Config.SESSION_COOKIE_SAMESITE == 'Lax'

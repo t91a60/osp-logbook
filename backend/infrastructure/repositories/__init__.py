@@ -14,6 +14,7 @@ def _to_float(value: str | float | None) -> float | None:
 
 from .fuel import FuelRepository
 from .maintenance import MaintenanceRepository
+from .base import BaseRepository
 from .trips import TripRepository
 from .vehicles import VehicleRepository
 
@@ -21,6 +22,7 @@ from .vehicles import VehicleRepository
 __all__ = [
     "FuelRepository",
     "MaintenanceRepository",
+    "BaseRepository",
     "TripRepository",
     "VehicleRepository",
     "_to_int",
