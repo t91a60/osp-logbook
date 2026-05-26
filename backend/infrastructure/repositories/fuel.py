@@ -62,12 +62,12 @@ class FuelRepository(BaseRepository, FuelRepositoryProtocol):
         cur = get_cursor(conn)
         try:
             cur.execute(
-                f"""
+                """
                 SELECT f.*, v.name AS vname
                 FROM fuel f
                 JOIN vehicles v ON f.vehicle_id = v.id
                 WHERE f.id = %s
-                  AND {self.active_where_clause("f")}
+                  AND f.deleted_at IS NULL
                 LIMIT 1
                 """,
                 (entry_id,),
@@ -97,7 +97,7 @@ class FuelRepository(BaseRepository, FuelRepositoryProtocol):
         try:
             with get_cursor(conn) as cur:
                 cur.execute(
-                    f"""
+                    """
                     UPDATE fuel
                     SET vehicle_id = %s,
                         date       = %s,
@@ -107,7 +107,7 @@ class FuelRepository(BaseRepository, FuelRepositoryProtocol):
                         cost       = %s,
                         notes      = %s
                     WHERE id = %s
-                      AND {self.active_where_clause()}
+                      AND deleted_at IS NULL
                     """,
                     (vehicle_id, date_val, driver, odometer, liters, cost, notes, entry_id),
                 )
@@ -140,11 +140,11 @@ class FuelRepository(BaseRepository, FuelRepositoryProtocol):
         cur = get_cursor(conn)
         try:
             cur.execute(
-                f'''
+                '''
                 SELECT id, added_by, vehicle_id
                 FROM fuel
                 WHERE id = %s
-                  AND {self.active_where_clause()}
+                  AND deleted_at IS NULL
                 LIMIT 1
                 ''',
                 (entry_id,),
@@ -182,7 +182,7 @@ class FuelRepository(BaseRepository, FuelRepositoryProtocol):
         cur = get_cursor(conn)
         try:
             page = parse_positive_int(page, default=1)
-            where_parts = [self.active_where_clause("f")]
+            where_parts = ["f.deleted_at IS NULL"]
             params = []
 
             if vehicle_id:
