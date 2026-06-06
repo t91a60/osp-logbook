@@ -7,12 +7,13 @@ from backend.infrastructure.cache.redis_cache import RedisCache
 
 # Singleton instancja cache'a na całą aplikację
 cache = RedisCache()
+_NONE_SENTINEL = "__none__"
 
 
 def get_or_set[T](key: str, ttl_seconds: int, loader: Callable[[], T], tags: Optional[list[str]] = None) -> T:
-    val = cache.get(key)
-    if val is not None:
-        return val
+    cached = cache.get(key)
+    if cached is not None or cache.has(key):
+        return cached  # type: ignore[return-value]
 
     val = loader()
     cache.set(key, val, ttl_seconds, tags)
@@ -43,25 +44,21 @@ def cached(ttl: int, tags: Optional[list[str]] = None, key_prefix: Optional[str]
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            # Mapowanie przekazanych argumentów do definicji funkcji
             bound_args = sig.bind(*args, **kwargs)
             bound_args.apply_defaults()
             call_args = bound_args.arguments
 
-            # Jeśli użytkownik podał key_prefix - formatujemy. Inaczej auto.
             if key_prefix:
                 formatted_prefix = key_prefix.format(**call_args)
             else:
                 formatted_prefix = f"{func.__module__}.{func.__qualname__}"
 
-            # Budowanie pełnego klucza z wartości argumentów
             key_parts = [formatted_prefix]
             for k, v in call_args.items():
                 if k not in ('self', 'cls', 'cur'):
                     key_parts.append(f"{k}={v}")
             cache_key = ":".join(key_parts)
 
-            # Formatowanie tagów z wartości argumentów (np. report:{vid} -> report:1)
             formatted_tags = []
             if tags:
                 for tag in tags:

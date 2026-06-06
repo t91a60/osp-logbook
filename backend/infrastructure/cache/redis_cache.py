@@ -33,6 +33,14 @@ class RedisCache:
         self._in_memory: OrderedDict[str, dict[str, Any]] = OrderedDict()
         self._MAX_SIZE = 1024
 
+    @property
+    def _cache(self) -> OrderedDict[str, dict[str, Any]]:
+        return self._in_memory
+
+    @_cache.setter
+    def _cache(self, value: OrderedDict[str, dict[str, Any]]) -> None:
+        self._in_memory = value
+
         if self.url:
             try:
                 self.redis = redis.from_url(self.url, decode_responses=True)
@@ -41,6 +49,14 @@ class RedisCache:
             except redis.ConnectionError:
                 logger.warning("Brak połączenia z Redis, używam in-memory cache.")
                 self.redis = None
+
+    def has(self, key: str) -> bool:
+        if self.redis is not None:
+            try:
+                return bool(self.redis.exists(key))
+            except redis.ConnectionError:
+                pass
+        return key in self._in_memory
 
     def get(self, key: str) -> Optional[Any]:
         if self.redis:
@@ -53,9 +69,9 @@ class RedisCache:
         # In-memory fallback
         now = time.monotonic()
         entry = self._in_memory.get(key)
-        if entry and entry['expires_at'] > now:
+        if entry and entry.get('expires_at', 0) > now:
             self._in_memory.move_to_end(key)
-            return entry['value']
+            return entry.get('value')
         
         # Cleanup expired
         if entry:
@@ -79,8 +95,6 @@ class RedisCache:
                 pass
 
         # In-memory fallback
-        # Wymuszamy serializację/deserializację, żeby unikać problemów ze zmianami obiektów mutowalnych
-        # i naśladować zachowanie Redis (gdzie daty stają się stringami).
         try:
             val_to_store = json.loads(json.dumps(value, cls=CustomJSONEncoder))
         except TypeError:
@@ -143,6 +157,9 @@ class RedisCache:
                 pass
 
         # In-memory fallback
-        keys_to_delete = [k for k in self._in_memory.keys() if k.startswith(prefix)]
+        keys_to_delete = [k for k in list(self._in_memory.keys()) if k.startswith(prefix)]
         for k in keys_to_delete:
             self._in_memory.pop(k, None)
+
+    def clear(self) -> None:
+        self._in_memory.clear()
