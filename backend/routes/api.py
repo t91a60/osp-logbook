@@ -33,7 +33,7 @@ def register_routes(app):
 
     @app.route('/api/vehicle/<int:vid>/last_km', endpoint='api_vehicle_last_km')
     @login_required
-    @limiter.limit('120 per minute')
+    @limiter.limit('30 per minute')
     def api_vehicle_last_km(vid):
         cache_key = f'api:last_km:{vid}'
         vehicle_repo = UseCaseFactory.get_vehicle_repo()
@@ -56,7 +56,7 @@ def register_routes(app):
 
     @app.route('/api/drivers', endpoint='api_drivers')
     @login_required
-    @limiter.limit('120 per minute')
+    @limiter.limit('30 per minute')
     def api_drivers():
         vehicle_repo = UseCaseFactory.get_vehicle_repo()
         drivers = get_or_set(
@@ -70,7 +70,7 @@ def register_routes(app):
 
     @app.route('/api/trips', methods=['POST'], endpoint='api_add_trip')
     @login_required
-    @limiter.limit('60 per minute')
+    @limiter.limit('30 per minute')
     def api_add_trip():
         f = request.form
 
@@ -113,7 +113,7 @@ def register_routes(app):
 
     @app.route('/api/fuel', methods=['POST'], endpoint='api_add_fuel')
     @login_required
-    @limiter.limit('60 per minute')
+    @limiter.limit('30 per minute')
     def api_add_fuel():
         f = request.form
 
@@ -141,7 +141,7 @@ def register_routes(app):
 
     @app.route('/api/maintenance', methods=['POST'], endpoint='api_add_maintenance')
     @login_required
-    @limiter.limit('60 per minute')
+    @limiter.limit('30 per minute')
     def api_add_maintenance():
         f = request.form
 

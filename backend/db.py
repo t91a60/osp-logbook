@@ -264,11 +264,16 @@ def register_db(app: Flask) -> None:
         apply_pending_migrations()
         logger.info('Database migrations checked at startup')
     except (psycopg2.Error, RuntimeError, SQLAlchemyError) as exc:
-        logger.warning(
-            'apply_pending_migrations() failed during register_db(); app will continue without applying pending migrations: %s',
-            exc,
-        )
-        return
+        app_env = (os.environ.get('APP_ENV') or os.environ.get('FLASK_ENV') or '').strip().lower()
+        is_production = app_env == 'production'
+        if app.testing or not is_production:
+            logger.warning(
+                'apply_pending_migrations() failed during register_db() in non-production mode; continuing startup: %s',
+                exc,
+            )
+            return
+        logger.exception('apply_pending_migrations() failed during register_db()')
+        raise RuntimeError('Failed to apply pending Alembic migrations during startup.') from exc
     try:
         init_db()
     except (psycopg2.Error, RuntimeError) as exc:

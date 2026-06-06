@@ -5,9 +5,8 @@ services:
     region: frankfurt
     plan: free
     # Render przekazuje PORT do kontenera; Gunicorn binduje się do tego portu.
-    # Pre-deploy bootstrapuje bazę pełnym schema.sql dla nowych środowisk.
-    # Dalsze zmiany schematu aplikacja wykonuje inkrementalnie przy starcie
-    # na podstawie plików SQL w migrations/ oraz tabeli schema_version.
+    # Dla uruchomień aplikacji migracje schematu są wykonywane przez Alembic
+    # podczas startu serwisu.
     healthCheckPath: /health
     envVars:
       - key: APP_ENV

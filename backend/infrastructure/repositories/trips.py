@@ -176,15 +176,7 @@ class TripRepository(BaseRepository, TripRepositoryProtocol):
             if not is_admin and row.get("added_by") != requester:
                 raise ForbiddenError("Brak uprawnień do usunięcia wyjazdu.")
 
-            cur.execute(
-                """
-                UPDATE trips
-                SET deleted_at = CURRENT_TIMESTAMP
-                WHERE id = %s
-                  AND deleted_at IS NULL
-                """,
-                (trip_id,),
-            )
+            self.soft_delete('trips', trip_id, cur=cur)
             conn.commit()
             try:
                 invalidate_prefix('dashboard:')
