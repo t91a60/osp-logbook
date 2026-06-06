@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+
+# OS/editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.orig
+
+# Project artifacts
+/logs/
+/tmp/
+/.pytest_cache/
+/migrations/
+/alembic/versions/
+/backend/__pycache__/
+/backend/**/__pycache__/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Data files
+*.db
+*.sqlite
+*.sqlite3
+logbook.db
+
+# Docs/reporting artifacts
+coverage.json
+coverage.xml
