@@ -11,6 +11,9 @@ class Config:
     SESSION_COOKIE_HTTPONLY: bool = True
     SESSION_COOKIE_SAMESITE: str = 'Lax'
     SESSION_COOKIE_SECURE: bool = USE_HTTPS
+    SESSION_COOKIE_PATH: str = '/'
+    SESSION_REFRESH_EACH_REQUEST: bool = False
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
     TEMPLATES_AUTO_RELOAD: bool = True
     # Default cache age for static files: 1 year (in seconds)
     SEND_FILE_MAX_AGE_DEFAULT: int = 31536000
@@ -28,7 +31,6 @@ class ProductionConfig(Config):
     SESSION_COOKIE_SECURE: bool = True
     SESSION_COOKIE_HTTPONLY: bool = True
     SESSION_COOKIE_SAMESITE: str = 'Lax'
-    PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
 
     # Future SQLAlchemy reference for Neon idle/stale-connection behavior.
     # The active runtime uses psycopg2 pool handling in backend/db.py.

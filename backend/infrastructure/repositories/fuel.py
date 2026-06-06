@@ -156,15 +156,7 @@ class FuelRepository(BaseRepository, FuelRepositoryProtocol):
                 raise ForbiddenError('Brak uprawnień do usunięcia wpisu tankowania.')
 
             vid = row.get('vehicle_id')
-            cur.execute(
-                '''
-                UPDATE fuel
-                SET deleted_at = CURRENT_TIMESTAMP
-                WHERE id = %s
-                  AND deleted_at IS NULL
-                ''',
-                (entry_id,),
-            )
+            self.soft_delete('fuel', entry_id, cur=cur)
             conn.commit()
             try:
                 invalidate_prefix('dashboard:')
