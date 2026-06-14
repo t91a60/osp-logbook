@@ -23,7 +23,7 @@
   <div id="activeTripCard" class="active-trip-card hidden" aria-live="polite">
     <div class="active-trip-pulse"></div>
     <div class="active-trip-content">
-      <div class="active-trip-label">🚒 WYJAZD W TOKU</div>
+      <div class="active-trip-label">WYJAZD W TOKU</div>
       <div class="active-trip-vehicle" id="activeTripVehicle">—</div>
       <div class="active-trip-driver" id="activeTripDriver">—</div>
       <div class="active-trip-purpose" id="activeTripPurpose">—</div>
@@ -42,18 +42,18 @@
   <!-- Quick Stats -->
   <div class="card" style="margin-top: 16px;">
     <div class="card-title">{{ today }}</div>
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-      <div style="text-align:center; padding:12px 8px; background:var(--bg-lightest); border-radius:6px;">
-        <div style="font-size:1.8rem; font-weight:800; color:var(--accent); line-height:1; font-variant-numeric:tabular-nums;">{{ stats.trips }}</div>
-        <div style="font-size:0.7rem; color:var(--text-dimmer); text-transform:uppercase; margin-top:4px; letter-spacing:.05em;">Wyjazdy</div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value">{{ stats.trips }}</div>
+        <div class="stat-label">Wyjazdy</div>
       </div>
-      <div style="text-align:center; padding:12px 8px; background:var(--bg-lightest); border-radius:6px;">
-        <div style="font-size:1.8rem; font-weight:800; color:var(--accent); line-height:1; font-variant-numeric:tabular-nums;">{{ stats.fuel }}</div>
-        <div style="font-size:0.7rem; color:var(--text-dimmer); text-transform:uppercase; margin-top:4px; letter-spacing:.05em;">Tankowania</div>
+      <div class="stat-card">
+        <div class="stat-value">{{ stats.fuel }}</div>
+        <div class="stat-label">Tankowania</div>
       </div>
-      <div style="text-align:center; padding:12px 8px; background:var(--bg-lightest); border-radius:6px;">
-        <div style="font-size:1.8rem; font-weight:800; color:var(--accent); line-height:1; font-variant-numeric:tabular-nums;">{{ stats.maintenance }}</div>
-        <div style="font-size:0.7rem; color:var(--text-dimmer); text-transform:uppercase; margin-top:4px; letter-spacing:.05em;">Serwis</div>
+      <div class="stat-card">
+        <div class="stat-value">{{ stats.maintenance }}</div>
+        <div class="stat-label">Serwis</div>
       </div>
     </div>
   </div>
@@ -209,8 +209,8 @@
   <div id="quickTripSheet" class="bottom-sheet hidden" role="dialog" aria-modal="true" aria-label="Szybki Wyjazd">
     <div class="bottom-sheet-handle"></div>
     <div class="bottom-sheet-header">
-      <span>🚒 Szybki Wyjazd</span>
-      <button id="quickTripCloseBtn" class="btn-icon" aria-label="Zamknij" type="button">✕</button>
+      <span>Szybki Wyjazd</span>
+      <button id="quickTripCloseBtn" class="btn-close-sheet" aria-label="Zamknij" type="button">&times;</button>
     </div>
     <div class="bottom-sheet-body">
       <div class="form-field" style="margin-top:8px;">
@@ -247,7 +247,7 @@
     </div>
     <div class="bottom-sheet-footer">
       <button class="btn btn-primary btn-xl" id="quickTripConfirmBtn" type="button">
-        🚒 START — Wyjeżdżam!
+        START — Wyjezdzam!
       </button>
     </div>
   </div>

@@ -1,13 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Sprzęt – OSP Logbook{% endblock %}
+{% block title %}Sprzet – OSP Logbook{% endblock %}
 {% block content %}
 <div class="page">
   <div class="section-header">
-    <span class="section-title">Sprzęt pojazdów</span>
+    <span class="section-title">Sprzet pojazdow</span>
   </div>
 
-  <!-- Filtr pojazdu -->
-  <div class="filter-chips" style="margin-bottom:16px;">
+  <div class="filter-chips">
     <a href="{{ url_for('equipment.equipment_list') }}"
        class="chip {% if not selected_vehicle %}active{% endif %}">Wszystkie</a>
     {% for v in vehicles %}
@@ -17,9 +16,8 @@
   </div>
 
   {% if session.get('is_admin') and selected_vehicle %}
-  <!-- Formularz dodawania -->
-  <div class="form-section" style="margin-bottom:20px;">
-    <div class="form-section-title">Dodaj sprzęt</div>
+  <div class="form-section">
+    <div class="form-section-title">Dodaj sprzet</div>
     <form method="POST" action="{{ url_for('equipment.equipment_add') }}">
       <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="vehicle_id" value="{{ selected_vehicle }}">
@@ -37,7 +35,7 @@
           </select>
         </div>
         <div class="form-field">
-          <label class="form-label">Ilość</label>
+          <label class="form-label">Ilosc</label>
           <input type="number" name="quantity" class="form-input" value="1" min="1">
         </div>
         <div class="form-field">
@@ -49,23 +47,21 @@
           <input type="text" name="notes" class="form-input" placeholder="opcjonalnie">
         </div>
       </div>
-      <button type="submit" class="btn btn-primary" style="margin-top:10px;">Dodaj sprzęt</button>
+      <button type="submit" class="btn btn-primary">Dodaj sprzet</button>
     </form>
   </div>
 
-  <!-- Preload Ducato -->
   {% for v in vehicles %}{% if v.id|string == selected_vehicle|string %}
-  <form method="POST" action="{{ url_for('equipment.equipment_preload', eid=v.id) }}" style="margin-bottom:16px;">
+  <form method="POST" action="{{ url_for('equipment.equipment_preload', eid=v.id) }}">
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-    <button type="submit" class="btn btn-secondary" style="margin-top:0;"
-      onclick="return confirm('Załadować domyślny inwentarz Ducato? Istniejące pozycje nie zostaną zduplikowane.')">
-      Załaduj inwentarz Fiat Ducato
+    <button type="submit" class="btn btn-secondary"
+      onclick="return confirm('Zaladowac domyslny inwentarz Ducato? Istniejace pozycje nie zostana zduplikowane.')">
+      Zaladuj inwentarz Fiat Ducato
     </button>
   </form>
   {% endif %}{% endfor %}
   {% endif %}
 
-  <!-- Lista sprzętu pogrupowana wg kategorii -->
   {% if items %}
     {% set current_cat = namespace(val='') %}
     {% set current_vname = namespace(val='') %}
@@ -79,23 +75,23 @@
       {% if item.category != current_cat.val %}
         {% if not loop.first and item.vname == current_vname.val %}</div>{% endif %}
         {% set current_cat.val = item.category %}
-        <p style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);margin:12px 0 6px;">{{ item.category }}</p>
+        <p class="category-label">{{ item.category }}</p>
         <div class="list-section">
       {% endif %}
 
-      <div class="list-row" style="justify-content:space-between;">
-        <div style="flex:1;">
-          <div style="font-size:0.92rem;font-weight:600;">{{ item.name }}</div>
-          <div style="font-size:0.78rem;color:var(--text-dimmer);">{{ item.quantity }} {{ item.unit }}{% if item.notes %} · {{ item.notes }}{% endif %}</div>
+      <div class="list-row">
+        <div class="list-row-body">
+          <div class="list-row-name">{{ item.name }}</div>
+          <div class="list-row-detail">{{ item.quantity }} {{ item.unit }}{% if item.notes %} · {{ item.notes }}{% endif %}</div>
         </div>
         {% if session.get('is_admin') %}
-        <div style="display:flex;gap:8px;flex-shrink:0;margin-left:12px;">
+        <div class="list-row-actions">
           <a href="{{ url_for('equipment.equipment_edit', eid=item.id) }}"
-             class="btn btn-sm btn-secondary" style="min-height:36px;padding:6px 12px;margin-top:0;">Edytuj</a>
+             class="btn btn-sm btn-secondary">Edytuj</a>
           <form method="POST" action="{{ url_for('equipment.equipment_delete', eid=item.id) }}"
-                onsubmit="return confirm('Usunąć ten sprzęt?')">
+                onsubmit="return confirm('Usunac ten sprzet?')">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-sm btn-danger" style="min-height:36px;padding:6px 12px;">Usuń</button>
+            <button type="submit" class="btn btn-sm btn-danger">Usun</button>
           </form>
         </div>
         {% endif %}
@@ -104,12 +100,12 @@
     </div>
   {% else %}
   <div class="empty-state">
-    <div class="empty-state-icon">📦</div>
-    <p>Brak sprzętu{% if selected_vehicle %} dla wybranego pojazdu{% endif %}.</p>
+    <div class="empty-state-emoji">KIN</div>
+    <p>Brak sprzetu{% if selected_vehicle %} dla wybranego pojazdu{% endif %}.</p>
     {% if session.get('is_admin') and selected_vehicle %}
-    <p style="font-size:0.85rem;color:var(--text-dimmer);margin-top:8px;">Dodaj sprzęt powyżej lub załaduj gotowy inwentarz Ducato.</p>
+    <p class="empty-state-text">Dodaj sprzet powyzej lub zaladuj gotowy inwentarz Ducato.</p>
     {% elif not selected_vehicle %}
-    <p style="font-size:0.85rem;color:var(--text-dimmer);margin-top:8px;">Wybierz pojazd aby zobaczyć jego sprzęt.</p>
+    <p class="empty-state-text">Wybierz pojazd aby zobaczyc jego sprzet.</p>
     {% endif %}
   </div>
   {% endif %}

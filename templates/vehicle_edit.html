@@ -3,9 +3,8 @@
 {% block content %}
 <div class="page">
   <div class="section-header">
-    <a href="{{ url_for('vehicles') }}"
-       style="font-size:0.85rem;color:var(--accent);text-decoration:none;">← Powrót do pojazdów</a>
-    <span class="section-title" style="margin-top:8px;">Edytuj pojazd</span>
+    <a href="{{ url_for('vehicles') }}" class="back-link">← Powrót do pojazdów</a>
+    <span class="section-title">Edytuj pojazd</span>
   </div>
 
   <div class="form-section">
@@ -38,10 +37,10 @@
     </form>
   </div>
 
-  <div class="form-section" style="margin-top:16px;">
-    <div class="form-section-title">Sprzęt pojazdu</div>
+  <div class="form-section">
+    <div class="form-section-title">Sprzet pojazdu</div>
     <a href="{{ url_for('equipment.equipment_list', vehicle_id=vehicle.id) }}"
-       class="btn btn-secondary" style="margin-top:0;">Zarządzaj sprzętem</a>
+       class="btn btn-secondary">Zarzadzaj sprzetem</a>
   </div>
 </div>
 {% endblock %}

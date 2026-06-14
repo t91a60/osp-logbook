@@ -12,7 +12,7 @@ class Config:
     SESSION_COOKIE_SAMESITE: str = 'Lax'
     SESSION_COOKIE_SECURE: bool = USE_HTTPS
     SESSION_COOKIE_PATH: str = '/'
-    SESSION_REFRESH_EACH_REQUEST: bool = False
+    SESSION_REFRESH_EACH_REQUEST: bool = True
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
     TEMPLATES_AUTO_RELOAD: bool = True
     # Default cache age for static files: 1 year (in seconds)

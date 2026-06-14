@@ -3,7 +3,9 @@ from backend.db import get_db, get_cursor
 from backend.helpers import login_required, admin_required
 from backend.services.audit_service import AuditService
 from backend.services.cache_service import get_vehicles_cached
-from app import limiter
+from app import get_limiter
+
+limiter = get_limiter()
 
 equipment_bp = Blueprint('equipment', __name__)
 
@@ -121,42 +123,38 @@ def equipment_list():
 @equipment_bp.route('/sprzet/dodaj', methods=['POST'])
 @admin_required
 def equipment_add():
-    f = request.form
-    vehicle_id = f.get('vehicle_id', '').strip()
-    name = f.get('name', '').strip()
-    if not vehicle_id or not name:
-        flash('Pojazd i nazwa sprzętu są wymagane.', 'error')
+    from backend.schemas import EquipmentForm
+    form = EquipmentForm.from_form(request.form)
+    errors = form.validate()
+    if errors:
+        for e in errors:
+            flash(e, 'error')
         return redirect(url_for('equipment.equipment_list'))
 
-    category = f.get('category', 'Pozostałe').strip()
+    category = form.category
     if category not in CATEGORIES:
-        category = 'Pozostałe'
-
-    try:
-        quantity = max(1, int(f.get('quantity', 1)))
-    except (ValueError, TypeError):
-        quantity = 1
+        category = 'Pozostale'
 
     conn = get_db()
     cur = get_cursor(conn)
     try:
         cur.execute(
             'INSERT INTO equipment (vehicle_id, name, quantity, unit, category, notes) VALUES (%s,%s,%s,%s,%s,%s)',
-            (vehicle_id, name, quantity, f.get('unit', 'szt').strip() or 'szt',
-             category, f.get('notes', '').strip())
+            (form.vehicle_id, form.name, form.quantity, form.unit,
+             category, form.notes)
         )
         conn.commit()
         AuditService.log(
             'Dodanie',
-            'Sprzęt',
-            f'Pojazd ID: {vehicle_id}, Nazwa: {name}',
+            'Sprzet',
+            f'Pojazd ID: {form.vehicle_id}, Nazwa: {form.name}',
             user_id=session.get('user_id'),
             username=session.get('username'),
         )
-        flash('Sprzęt dodany.', 'success')
+        flash('Sprzet dodany.', 'success')
     finally:
         cur.close()
-    return redirect(url_for('equipment.equipment_list', vehicle_id=vehicle_id))
+    return redirect(url_for('equipment.equipment_list', vehicle_id=form.vehicle_id))
 
 
 @equipment_bp.route('/sprzet/<int:eid>/edytuj', methods=['GET', 'POST'])

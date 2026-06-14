@@ -99,27 +99,27 @@
       <a href="{{ url_for('fuel', vehicle_id=selected_vehicle) }}"
          class="chip {% if not okres and not od and not do_ %}active{% endif %}" id="chip-all">Wszystkie</a>
     </div>
-    <form method="GET" action="{{ url_for('fuel') }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;">
+    <form method="GET" action="{{ url_for('fuel') }}" class="filter-bar">
       <input type="hidden" name="vehicle_id" value="{{ selected_vehicle }}">
-      <div style="flex:1; min-width:130px;">
+      <div class="filter-field">
         <label class="form-label" for="fuel_od">Od</label>
-        <input type="date" name="od" id="fuel_od" class="form-input" value="{{ od }}" style="min-height:44px;">
+        <input type="date" name="od" id="fuel_od" class="form-input" value="{{ od }}">
       </div>
-      <div style="flex:1; min-width:130px;">
+      <div class="filter-field">
         <label class="form-label" for="fuel_do">Do</label>
-        <input type="date" name="do" id="fuel_do" class="form-input" value="{{ do_ }}" style="min-height:44px;">
+        <input type="date" name="do" id="fuel_do" class="form-input" value="{{ do_ }}">
       </div>
-      <button type="submit" class="btn btn-secondary" style="margin-top:0; min-height:44px; padding:0 16px; width:auto;">Szukaj</button>
+      <button type="submit" class="btn btn-secondary filter-btn">Szukaj</button>
     </form>
   </div>
 
   <!-- Vehicle Filter -->
   <div style="margin-bottom:12px;">
-    <form method="GET" action="{{ url_for('fuel') }}" style="display:flex;gap:8px;align-items:center;">
+    <form method="GET" action="{{ url_for('fuel') }}" class="vehicle-filter-form">
       <input type="hidden" name="okres" value="{{ okres }}">
       <input type="hidden" name="od" value="{{ od }}">
       <input type="hidden" name="do" value="{{ do_ }}">
-      <select name="vehicle_id" class="form-select" onchange="this.form.submit()" style="min-height:44px;">
+      <select name="vehicle_id" class="form-select" onchange="this.form.submit()">
         <option value="">Wszystkie pojazdy</option>
         {% for v in vehicles %}
         <option value="{{ v.id }}" {% if selected_vehicle == v.id|string %}selected{% endif %}>{{ v.name }}</option>
@@ -152,7 +152,7 @@
       <div class="entry-meta">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         {{ f.driver }}
-        <span class="badge">⛽ {{ f.liters }} L</span>
+        <span class="badge">{{ f.liters }} L</span>
         {% if f.cost %}<span class="badge">{{ "%.2f"|format(f.cost) }} zł</span>{% endif %}
         {% if f.odometer %}<span>{{ f.odometer }} km</span>{% endif %}
         <form method="POST" action="{{ url_for('delete_entry', kind='tankowanie', eid=f.id) }}"
@@ -163,7 +163,7 @@
         </form>
       </div>
       {% if f.notes %}
-      <div class="text-mute" style="font-size:.85rem;">{{ f.notes }}</div>
+      <div class="text-mute entry-note">{{ f.notes }}</div>
       {% endif %}
     </div>
     {% endfor %}

@@ -115,10 +115,10 @@
       </div>
 
       <!-- Użycie sprzętu -->
-      <div id="equipmentSection" style="display:none;margin-top:16px;">
+      <div id="equipmentSection" class="hidden" style="margin-top:16px;">
         <div class="form-section-title" style="margin-bottom:10px;">Użycie sprzętu</div>
-        <button type="button" class="btn btn-secondary" id="equipmentAddBtn"
-                style="margin-top:0;margin-bottom:10px;display:none;">
+        <button type="button" class="btn btn-secondary hidden" id="equipmentAddBtn"
+                style="margin-top:0;margin-bottom:10px;">
           + Dodaj pozycję
         </button>
         <div id="equipmentList" style="margin-bottom:10px;"></div>
@@ -148,27 +148,27 @@
       <a href="{{ url_for('trips', vehicle_id=selected_vehicle) }}"
          class="chip {% if not okres and not od and not do_ %}active{% endif %}" id="chip-all">Wszystkie</a>
     </div>
-    <form method="GET" action="{{ url_for('trips') }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;" id="dateFilterForm">
+    <form method="GET" action="{{ url_for('trips') }}" class="filter-bar" id="dateFilterForm">
       <input type="hidden" name="vehicle_id" value="{{ selected_vehicle }}">
-      <div style="flex:1; min-width:130px;">
+      <div class="filter-field">
         <label class="form-label" for="od_date">Od</label>
-        <input type="date" name="od" id="od_date" class="form-input" value="{{ od }}" style="min-height:44px;">
+        <input type="date" name="od" id="od_date" class="form-input" value="{{ od }}">
       </div>
-      <div style="flex:1; min-width:130px;">
+      <div class="filter-field">
         <label class="form-label" for="do_date">Do</label>
-        <input type="date" name="do" id="do_date" class="form-input" value="{{ do_ }}" style="min-height:44px;">
+        <input type="date" name="do" id="do_date" class="form-input" value="{{ do_ }}">
       </div>
-      <button type="submit" class="btn btn-secondary" style="margin-top:0; min-height:44px; padding:0 16px; width:auto;">Szukaj</button>
+      <button type="submit" class="btn btn-secondary filter-btn">Szukaj</button>
     </form>
   </div>
 
   <!-- Vehicle filter -->
   <div style="margin-bottom:12px;">
-    <form method="GET" action="{{ url_for('trips') }}" style="display:flex;gap:8px;align-items:center;" id="vehicleFilterForm">
+    <form method="GET" action="{{ url_for('trips') }}" class="vehicle-filter-form" id="vehicleFilterForm">
       <input type="hidden" name="okres" value="{{ okres }}">
       <input type="hidden" name="od" value="{{ od }}">
       <input type="hidden" name="do" value="{{ do_ }}">
-      <select name="vehicle_id" class="form-select" onchange="this.form.submit()" style="min-height:44px;">
+      <select name="vehicle_id" class="form-select" onchange="this.form.submit()">
         <option value="">Wszystkie pojazdy</option>
         {% for v in vehicles %}
         <option value="{{ v.id }}" {% if selected_vehicle == v.id|string %}selected{% endif %}>{{ v.name }}</option>
@@ -213,7 +213,7 @@
         </form>
       </div>
       {% if t.notes %}
-      <div class="text-mute" style="font-size:.85rem;">{{ t.notes }}</div>
+      <div class="text-mute entry-note">{{ t.notes }}</div>
       {% endif %}
     </div>
     {% endfor %}

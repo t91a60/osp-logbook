@@ -37,7 +37,10 @@
   {% if session.user_id %}
   <div class="topbar-user">
     <span>{{ session.display_name }}</span>
-    <a href="{{ url_for('logout') }}" class="topbar-logout">Wyloguj</a>
+    <form method="POST" action="{{ url_for('logout') }}" style="display:inline;">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="topbar-logout" style="border:none;cursor:pointer;">Wyloguj</button>
+    </form>
   </div>
   {% endif %}
 </header>

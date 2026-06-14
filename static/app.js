@@ -164,6 +164,9 @@ function submitForm(formId, endpoint, onSuccess) {
     return false;
   }
 
+  var controller = new AbortController();
+  var timeoutId = setTimeout(function () { controller.abort(); }, 15000);
+
   fetch(endpoint, {
     method: "POST",
     body: new FormData(form),
@@ -171,8 +174,10 @@ function submitForm(formId, endpoint, onSuccess) {
       Accept: "application/json",
       "X-CSRFToken": csrfToken,
     },
+    signal: controller.signal,
   })
     .then(function (r) {
+      clearTimeout(timeoutId);
       return r
         .json()
         .catch(function () {

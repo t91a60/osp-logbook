@@ -16,7 +16,8 @@ MIN_PASSWORD_LEN = 8
 
 
 def register_routes(app):
-    from app import limiter
+    from app import get_limiter
+    limiter = get_limiter()
 
     # ── Vehicle CRUD (admin only) ─────────────────────────────────────────
 
@@ -26,26 +27,28 @@ def register_routes(app):
         vehicle_repo = UseCaseFactory.get_vehicle_repo()
 
         if request.method == 'POST':
-            f = request.form
-            name = f.get('name', '').strip()
-            if not name:
-                flash('Nazwa pojazdu jest wymagana.', 'error')
+            from backend.schemas import VehicleForm
+            form = VehicleForm.from_form(request.form)
+            errors = form.validate()
+            if errors:
+                for e in errors:
+                    flash(e, 'error')
                 return redirect(url_for('vehicles'))
             try:
                 vehicle_repo.add(
-                    name=name,
-                    plate=f.get('plate', '').strip(),
-                    type_=f.get('type', '').strip(),
+                    name=form.name,
+                    plate=form.plate,
+                    type_=form.type_,
                 )
                 invalidate_prefix('vehicles:')
                 invalidate_prefix('dashboard:')
-                AuditService.log(
-                    'Dodanie',
-                    'Pojazd',
-                    f'Nazwa: {name}',
-                    user_id=session.get('user_id'),
-                    username=session.get('username'),
-                )
+                    AuditService.log(
+                        'Dodanie',
+                        'Pojazd',
+                        f'Nazwa: {form.name}',
+                        user_id=session.get('user_id'),
+                        username=session.get('username'),
+                    )
                 flash('Pojazd dodany.', 'success')
             except IntegrityError:
                 flash('Nie udało się dodać pojazdu. Sprawdź dane.', 'error')
@@ -109,24 +112,26 @@ def register_routes(app):
             return redirect(url_for('vehicles'))
 
         if request.method == 'POST':
-            f = request.form
-            name = f.get('name', '').strip()
-            if not name:
-                flash('Nazwa pojazdu jest wymagana.', 'error')
+            from backend.schemas import VehicleForm
+            form = VehicleForm.from_form(request.form)
+            errors = form.validate()
+            if errors:
+                for e in errors:
+                    flash(e, 'error')
             else:
                 try:
                     vehicle_repo.update(
                         vid=vid,
-                        name=name,
-                        plate=f.get('plate', '').strip(),
-                        type_=f.get('type', '').strip(),
+                        name=form.name,
+                        plate=form.plate,
+                        type_=form.type_,
                     )
                     invalidate_prefix('vehicles:')
                     invalidate_prefix('dashboard:')
                     AuditService.log(
                         'Edycja',
                         'Pojazd',
-                        f'ID: {vid}, Nazwa: {name}',
+                        f'ID: {vid}, Nazwa: {form.name}',
                         user_id=session.get('user_id'),
                         username=session.get('username'),
                     )
@@ -148,34 +153,35 @@ def register_routes(app):
             if request.method == 'POST':
                 action = request.form.get('action')
                 if action == 'add':
-                    pw = request.form.get('password', '')
-                    if len(pw) < MIN_PASSWORD_LEN:
-                        flash(f'Hasło musi mieć co najmniej {MIN_PASSWORD_LEN} znaków.', 'error')
+                    from backend.schemas import UserAddForm
+                    form = UserAddForm.from_form(request.form)
+                    errors = form.validate()
+                    if errors:
+                        for e in errors:
+                            flash(e, 'error')
                     else:
                         try:
-                            is_admin = request.form.get('is_admin') == '1'
                             cur.execute(
                                 'INSERT INTO users (username, password, display_name, is_admin) VALUES (%s, %s, %s, %s)',
-                                (request.form['username'].strip(),
-                                 generate_password_hash(pw),
-                                 request.form['display_name'].strip(),
-                                 is_admin)
+                                (form.username, generate_password_hash(form.password), form.display_name, form.is_admin)
                             )
                             conn.commit()
-                            flash('Użytkownik dodany.', 'success')
+                            flash('Uzytkownik dodany.', 'success')
                         except IntegrityError:
                             conn.rollback()
-                            flash('Login już istnieje.', 'error')
+                            flash('Login juz istnieje.', 'error')
                 elif action == 'change_pw':
-                    uid = request.form.get('uid')
-                    new_pw = request.form.get('new_password', '')
-                    if uid and len(new_pw) >= MIN_PASSWORD_LEN:
-                        cur.execute('UPDATE users SET password = %s WHERE id = %s',
-                                    (generate_password_hash(new_pw), uid))
-                        conn.commit()
-                        flash('Hasło zmienione.', 'success')
+                    from backend.schemas import UserChangePasswordForm
+                    form = UserChangePasswordForm.from_form(request.form)
+                    errors = form.validate()
+                    if errors:
+                        for e in errors:
+                            flash(e, 'error')
                     else:
-                        flash(f'Hasło musi mieć co najmniej {MIN_PASSWORD_LEN} znaków.', 'error')
+                        cur.execute('UPDATE users SET password = %s WHERE id = %s',
+                                    (generate_password_hash(form.new_password), form.uid))
+                        conn.commit()
+                        flash('Haslo zmienione.', 'success')
                 elif action == 'delete':
                     uid = request.form.get('uid')
                     if not uid:

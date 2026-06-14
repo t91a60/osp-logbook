@@ -132,18 +132,18 @@
     <a href="{{ url_for('maintenance', vehicle_id=selected_vehicle, status=selected_status) }}"
        class="chip {% if not okres and not od and not do_ %}active{% endif %}">Wszystkie</a>
   </div>
-  <form method="GET" action="{{ url_for('maintenance') }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
+  <form method="GET" action="{{ url_for('maintenance') }}" class="filter-bar">
     <input type="hidden" name="vehicle_id" value="{{ selected_vehicle }}">
     <input type="hidden" name="status" value="{{ selected_status }}">
-    <div style="flex:1; min-width:130px;">
+    <div class="filter-field">
       <label class="form-label" for="maint_od">Od</label>
-      <input type="date" name="od" id="maint_od" class="form-input" value="{{ od }}" style="min-height:44px;">
+      <input type="date" name="od" id="maint_od" class="form-input" value="{{ od }}">
     </div>
-    <div style="flex:1; min-width:130px;">
+    <div class="filter-field">
       <label class="form-label" for="maint_do">Do</label>
-      <input type="date" name="do" id="maint_do" class="form-input" value="{{ do_ }}" style="min-height:44px;">
+      <input type="date" name="do" id="maint_do" class="form-input" value="{{ do_ }}">
     </div>
-    <button type="submit" class="btn btn-secondary" style="margin-top:0; min-height:44px; padding:0 16px; width:auto;">Szukaj</button>
+    <button type="submit" class="btn btn-secondary filter-btn">Szukaj</button>
   </form>
 
   <!-- History -->
@@ -182,7 +182,7 @@
         {% if m.due_date %}<span>Termin: {{ m.due_date }}</span>{% endif %}
       </div>
       {% if m.notes %}
-      <div class="text-mute" style="font-size:.85rem;">{{ m.notes }}</div>
+      <div class="text-mute entry-note">{{ m.notes }}</div>
       {% endif %}
       <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" class="no-print">
         {% if m.status != 'completed' %}
@@ -226,16 +226,6 @@
   </section>
 
 </div>
-
-<style>
-.entry-overdue { border-color: rgba(231,76,60,.7); box-shadow: 0 0 0 1px rgba(231,76,60,.2); }
-.status-pending   { color:#f1c40f; background:rgba(241,196,15,.12); }
-.status-completed { color:var(--success); background:rgba(46,204,113,.12); }
-.status-overdue   { color:#ff8a80; background:rgba(231,76,60,.12); }
-.priority-low     { color:#7cb4ff; background:rgba(74,144,226,.12); }
-.priority-medium  { color:#f1c40f; background:rgba(241,196,15,.12); }
-.priority-high    { color:#ff8a80; background:rgba(231,76,60,.12); }
-</style>
 {% endblock %}
 
 {% block extra_js %}

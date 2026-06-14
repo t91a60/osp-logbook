@@ -1,6 +1,8 @@
-import os
-import time
 import logging
+import os
+import threading
+import time
+from contextlib import suppress
 from pathlib import Path
 
 import psycopg2
@@ -15,6 +17,7 @@ from sqlalchemy.exc import SQLAlchemyError
 logger = logging.getLogger(__name__)
 
 _db_pool: ThreadedConnectionPool | None = None
+_db_pool_lock: threading.Lock = threading.Lock()
 ADMIN_PLACEHOLDER_PASSWORD = 'CHANGE_ME_RUN_FLASK_INIT'
 ALEMBIC_INI_PATH = Path(__file__).resolve().parents[1] / 'alembic.ini'
 ALEMBIC_SCRIPT_PATH = Path(__file__).resolve().parents[1] / 'alembic'
@@ -29,10 +32,6 @@ def _create_pool() -> ThreadedConnectionPool:
         sslmode='require',
         connect_timeout=10,
         application_name='osp-logbook',
-        # Enable TCP keepalives to avoid Neon "freeze" cold-start latency.
-        # Neon suspends connections after brief idle periods; setting
-        # keepalives_idle and keepalives_interval reduces the chance of
-        # catching the first request while the DB is thawing (300-500ms spikes).
         keepalives_idle=60,
         keepalives_interval=10,
     )
@@ -41,19 +40,20 @@ def _create_pool() -> ThreadedConnectionPool:
 def get_pool() -> ThreadedConnectionPool:
     global _db_pool
     if _db_pool is None:
-        _db_pool = _create_pool()
+        with _db_pool_lock:
+            if _db_pool is None:
+                _db_pool = _create_pool()
     return _db_pool
 
 
 def reset_pool() -> ThreadedConnectionPool:
     """Close all connections and create a fresh pool."""
     global _db_pool
-    if _db_pool is not None:
-        try:
-            _db_pool.closeall()
-        except Exception:
-            pass
-    _db_pool = _create_pool()
+    with _db_pool_lock:
+        if _db_pool is not None:
+            with suppress(Exception):
+                _db_pool.closeall()
+        _db_pool = _create_pool()
     return _db_pool
 
 
@@ -89,28 +89,21 @@ def close_db(e: BaseException | None = None) -> None:
         pool = _db_pool
         try:
             if not db.closed:
-                try:
+                with suppress(Exception):
                     db.rollback()
-                except Exception:
-                    pass
             if pool is not None:
-                try:
+                with suppress(Exception):
                     pool.putconn(db, close=bool(db.closed))
-                except Exception:
-                    try:
-                        pool.putconn(db, close=True)
-                    except Exception:
-                        pass
+                with suppress(Exception):
+                    pool.putconn(db, close=True)
             else:
-                try:
+                with suppress(Exception):
                     db.close()
-                except Exception:
-                    pass
         except Exception:
-            try:
+            with suppress(Exception):
                 db.close()
-            except Exception:
-                pass
+
+
 def check_db_health() -> bool:
     """Check if the database connection is healthy."""
     try:
@@ -205,21 +198,17 @@ def init_db() -> None:
             admin_row = cur.fetchone()
             admin_password = os.environ.get('BOOTSTRAP_ADMIN_PASSWORD')
 
-            if admin_row is None:
-                if not admin_password:
-                    conn.rollback()
-                    raise RuntimeError('Set BOOTSTRAP_ADMIN_PASSWORD before running init_db()')
-                generated_password = generate_password_hash(admin_password)
-            elif admin_row['password'] == ADMIN_PLACEHOLDER_PASSWORD:
-                if not admin_password:
-                    conn.rollback()
-                    raise RuntimeError('Set BOOTSTRAP_ADMIN_PASSWORD before running init_db()')
-                generated_password = generate_password_hash(admin_password)
-            else:
-                # Admin already has a real (bcrypt/scrypt) hash — nothing to do.
-                generated_password = None
+            admin_missing = admin_row is None
+            needs_password_update = admin_missing or admin_row['password'] == ADMIN_PLACEHOLDER_PASSWORD
+            generated_password = None
 
-            if admin_row is None:
+            if needs_password_update:
+                if not admin_password:
+                    conn.rollback()
+                    raise RuntimeError('Set BOOTSTRAP_ADMIN_PASSWORD before running init_db()')
+                generated_password = generate_password_hash(admin_password)
+
+            if admin_missing:
                 cur.execute(
                     '''
                     INSERT INTO users (username, password, display_name, role, is_admin)
@@ -268,18 +257,26 @@ def register_db(app: Flask) -> None:
         is_production = app_env == 'production'
         if app.testing or not is_production:
             logger.warning(
-                'apply_pending_migrations() failed during register_db() in non-production mode; continuing startup: %s',
+                'apply_pending_migrations() failed in non-production mode; continuing startup: %s',
                 exc,
             )
             return
         logger.exception('apply_pending_migrations() failed during register_db()')
-        raise RuntimeError('Failed to apply pending Alembic migrations during startup.') from exc
+        raise RuntimeError(
+            'Failed to apply pending Alembic migrations during startup.'
+        ) from exc
     try:
         init_db()
     except (psycopg2.Error, RuntimeError) as exc:
-        logger.warning('init_db() failed during register_db(); app will continue without startup DB initialization: %s', exc)
+        logger.warning(
+            'init_db() failed during register_db(); app will continue without startup DB init: %s',
+            exc,
+        )
         return
     try:
         log_schema_version()
     except (psycopg2.Error, RuntimeError) as exc:
-        logger.warning('Failed to log schema_version after init_db(); continuing startup: %s', exc)
+        logger.warning(
+            'Failed to log schema_version after init_db(); continuing startup: %s',
+            exc,
+        )

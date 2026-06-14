@@ -1,104 +1,29 @@
-{% extends "base.html" %} {% block title %}Historia Zmian – OSP Logbook{%
-endblock %} {% block content %}
+{% extends "base.html" %} {% block title %}Historia Zmian – OSP Logbook{% endblock %} {% block content %}
 <div class="page">
-  <!-- Page Header -->
   <div class="section-header">
-    <span class="section-title">Logi Zdarzeń{% if total is defined %} ({{ total }}){% endif %}</span>
+    <span class="section-title">Logi Zdarzen{% if total is defined %} ({{ total }}){% endif %}</span>
   </div>
 
-  <!-- Logs List -->
   {% if logs %}
-  <div style="overflow-x: auto; margin-bottom: 24px">
-    <table
-      id="logsTable"
-      style="width: 100%; border-collapse: collapse; font-size: 0.85rem"
-    >
+  <div style="overflow-x:auto;margin-bottom:24px">
+    <table class="data-table">
       <thead>
-        <tr style="border-bottom: 2px solid var(--border)">
-          <th
-            style="
-              text-align: left;
-              padding: 8px;
-              color: var(--text-dimmer);
-              font-size: 0.7rem;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-              white-space: nowrap;
-            "
-          >
-            Data i godzina
-          </th>
-          <th
-            style="
-              text-align: left;
-              padding: 8px;
-              color: var(--text-dimmer);
-              font-size: 0.7rem;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-            "
-          >
-            Użytkownik
-          </th>
-          <th
-            style="
-              text-align: left;
-              padding: 8px;
-              color: var(--text-dimmer);
-              font-size: 0.7rem;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-            "
-          >
-            Akcja
-          </th>
-          <th
-            style="
-              text-align: left;
-              padding: 8px;
-              color: var(--text-dimmer);
-              font-size: 0.7rem;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-            "
-          >
-            Obiekt
-          </th>
-          <th
-            style="
-              text-align: left;
-              padding: 8px;
-              color: var(--text-dimmer);
-              font-size: 0.7rem;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-            "
-          >
-            Szczegóły
-          </th>
+        <tr>
+          <th>Data i godzina</th>
+          <th>Uzytkownik</th>
+          <th>Akcja</th>
+          <th>Obiekt</th>
+          <th>Szczególy</th>
         </tr>
       </thead>
       <tbody>
         {% for log in logs %}
-        <tr style="border-bottom: 1px solid var(--border)">
-          <td
-            style="
-              padding: 8px;
-              font-family: var(--mono);
-              white-space: nowrap;
-              color: var(--text-dimmer);
-            "
-          >
-            {{ (log.created_at|string)[:16] }}
-          </td>
-          <td style="padding: 8px; font-weight: 600; color: var(--accent)">
-            {{ log.username or 'Nieznany' }}
-          </td>
-          <td style="padding: 8px">{{ log.action }}</td>
-          <td style="padding: 8px; color: var(--text-dim)">{{ log.object }}</td>
-          <td style="padding: 8px; color: var(--text-dimmer)">
-            {{ log.details }}
-          </td>
+        <tr>
+          <td class="mono">{{ (log.created_at|string)[:16] }}</td>
+          <td class="accent">{{ log.username or 'Nieznany' }}</td>
+          <td>{{ log.action }}</td>
+          <td style="color:var(--text-dim)">{{ log.object }}</td>
+          <td style="color:var(--text-dimmer)">{{ log.details }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -106,28 +31,24 @@ endblock %} {% block content %}
   </div>
 
   {% if total_pages is defined and total_pages > 1 %}
-  <div class="pagination no-print">
+  <div class="pagination">
     {% if page > 1 %}
-    <a href="{{ url_for('logs.logs_list', page=page-1) }}">← Wcześniejsze</a>
+    <a href="{{ url_for('logs.logs_list', page=page-1) }}">← Wczesniejsze</a>
     {% else %}
-    <span>← Wcześniejsze</span>
+    <span>← Wczesniejsze</span>
     {% endif %}
     <span>{{ page }} / {{ total_pages }}</span>
     {% if page < total_pages %}
-    <a href="{{ url_for('logs.logs_list', page=page+1) }}">Następne →</a>
+    <a href="{{ url_for('logs.logs_list', page=page+1) }}">Nastepne →</a>
     {% else %}
-    <span>Następne →</span>
+    <span>Nastepne →</span>
     {% endif %}
   </div>
   {% endif %}
   {% else %}
-  <div class="empty-state" style="margin: 24px 0; text-align: center">
+  <div class="empty-state">
     <p>Brak historii zmian.</p>
   </div>
   {% endif %}
 </div>
-
 {% endblock %}
-
-
-

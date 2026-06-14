@@ -1,11 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Edytuj sprzęt – OSP Logbook{% endblock %}
+{% block title %}Edytuj sprzet – OSP Logbook{% endblock %}
 {% block content %}
 <div class="page">
   <div class="section-header">
-    <a href="{{ url_for('equipment.equipment_list', vehicle_id=item.vehicle_id) }}"
-       style="font-size:0.85rem;color:var(--accent);text-decoration:none;">← Powrót do sprzętu</a>
-    <span class="section-title" style="margin-top:8px;">Edytuj sprzęt</span>
+    <a href="{{ url_for('equipment.equipment_list', vehicle_id=item.vehicle_id) }}" class="back-link">← Powrót do sprzetu</a>
+    <span class="section-title">Edytuj sprzet</span>
   </div>
 
   <div class="form-section">
@@ -29,7 +28,7 @@
           </select>
         </div>
         <div class="form-field">
-          <label class="form-label">Ilość</label>
+          <label class="form-label">Ilosc</label>
           <input type="number" name="quantity" class="form-input" value="{{ item.quantity }}" min="1">
         </div>
         <div class="form-field">

@@ -27,7 +27,8 @@ def _json_error(message: str, status_code: int) -> tuple[Response, int]:
 
 
 def register_routes(app):
-    from app import limiter
+    from app import get_limiter
+    limiter = get_limiter()
 
     # ── Read-only API: last odometer reading ──────────────────────────────
 

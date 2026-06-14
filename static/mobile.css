@@ -38,6 +38,9 @@ summary,
   --mono:         "SF Mono", "Courier New", Courier, monospace;
   --radius:       12px;
   --transition:   200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --bottom-nav-height: 66px;
   --bottom-nav-total-height: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
@@ -182,7 +185,7 @@ textarea {
 .nav-link.active span   { color: var(--accent); font-weight: 600; }
 .nav-link:not(.active) span { color: var(--text-dimmer); }
 
-.nav-link:active { transform: scale(0.88); }
+.nav-link:active { transform: scale(0.92); }
 
 .nav-link.active::before {
   content: "";
@@ -197,13 +200,13 @@ textarea {
 }
 
 @keyframes iconBounce {
-  from { transform: scale(0.7) translateY(4px); }
-  to   { transform: scale(1) translateY(0); }
+  from { transform: scale(0.92) translateY(4px); opacity: 0.5; }
+  to   { transform: scale(1) translateY(0);      opacity: 1; }
 }
 
 @keyframes dotPop {
-  from { transform: translateX(-50%) scale(0); }
-  to   { transform: translateX(-50%) scale(1); }
+  from { transform: translateX(-50%) scale(0.5); opacity: 0; }
+  to   { transform: translateX(-50%) scale(1);    opacity: 1; }
 }
 
 /* ── Toasts ───────────────────────────────────────────────────────── */
@@ -252,7 +255,7 @@ textarea {
   transform-origin: left center;
 }
 
-.toast.dismiss { animation: toastOut 0.24s ease-in forwards; }
+.toast.dismiss { animation: toastOut 0.2s var(--ease-out) forwards; }
 
 @keyframes toastIn {
   from { transform: translateY(100%) scale(0.9); opacity: 0; }
@@ -370,10 +373,13 @@ textarea {
 .btn-success-flash { background: var(--success) !important; color: #052417 !important; }
 
 .btn-primary  { width: 100%; background: var(--accent); color: #fff; margin-top: 8px; }
-.btn-primary:hover  { background: var(--accent-dim); }
 
 .btn-secondary { width: 100%; background: var(--bg-lighter); color: var(--text); border: 1px solid var(--border); margin-top: 8px; }
-.btn-secondary:hover { background: var(--bg-lightest); }
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover  { background: var(--accent-dim); }
+  .btn-secondary:hover { background: var(--bg-lightest); }
+}
 
 .btn-danger { background: transparent; color: var(--error); border: 1px solid var(--error); padding: 10px 14px; min-height: 44px; font-size: 0.85rem; }
 
@@ -397,7 +403,7 @@ textarea {
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color var(--transition);
   text-decoration: none;
 }
-.fab:active { transform: scale(0.88); background: var(--accent-dim); }
+.fab:active { transform: scale(0.92); background: var(--accent-dim); }
 .fab svg { width: 26px; height: 26px; stroke-width: 2.2; }
 
 @keyframes pulse { to { opacity: 0.7; } }
@@ -530,7 +536,7 @@ textarea {
   border: 1.5px solid var(--border);
   color: var(--text-dim);
   background: var(--bg-lighter);
-  transition: all var(--transition);
+  transition: background-color var(--transition), border-color var(--transition), color var(--transition), transform 80ms ease;
   min-height: 44px;
 }
 
@@ -578,7 +584,7 @@ textarea {
   color: var(--text-dim);
   padding: 14px 8px;
   border-bottom: 2px solid transparent;
-  transition: all var(--transition);
+  transition: color var(--transition), border-color var(--transition), background-color var(--transition);
   text-decoration: none;
   display: flex;
   align-items: center;
@@ -686,6 +692,52 @@ textarea {
 .text-error   { color: var(--error); }
 .hidden       { display: none !important; }
 
+/* List-row enhancements */
+a.list-row:link, a.list-row:visited {
+  text-decoration: none;
+  color: inherit;
+}
+.list-row-body { flex: 1; min-width: 0; }
+.list-row-title { font-weight: 600; font-size: 0.95rem; }
+.list-row-subtitle { font-size: 0.78rem; color: var(--text-dimmer); }
+.list-row-icon { margin-right: 14px; flex-shrink: 0; }
+.list-row-actions { display: flex; gap: 8px; flex-shrink: 0; margin-left: 12px; align-items: center; }
+.list-row-name { font-size: 0.92rem; font-weight: 600; }
+.list-row-detail { font-size: 0.78rem; color: var(--text-dimmer); }
+
+/* Data tables */
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.data-table thead th {
+  text-align: left; padding: 8px; color: var(--text-dimmer);
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--border); white-space: nowrap;
+}
+.data-table thead th.right { text-align: right; }
+.data-table tbody td { padding: 8px; border-bottom: 1px solid var(--border); }
+.data-table tbody td.right { text-align: right; font-variant-numeric: tabular-nums; }
+.data-table tbody td.mono { font-family: var(--mono); white-space: nowrap; color: var(--text-dimmer); }
+.data-table tbody td.accent { font-weight: 600; color: var(--accent); }
+
+/* Entry utilities */
+.entry-actions { display: flex; gap: 8px; align-items: center; }
+.entry-plate { font-size: 0.85rem; font-family: var(--mono); color: var(--text-dim); margin-top: 4px; }
+.entry-username { font-size: 0.85rem; color: var(--text-dim); }
+.entry-type { color: var(--text-dim); font-weight: 400; font-size: 0.85rem; }
+
+/* Category label */
+.category-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dimmer); margin: 12px 0 6px; }
+
+/* Back link */
+.back-link { font-size: 0.85rem; color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+
+/* Info card */
+.info-card { background: var(--bg-lighter); border: 1px solid #333; border-radius: 8px; padding: 16px; margin-top: 32px; margin-bottom: 20px; }
+.info-card-title { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+.info-card-body { font-size: 0.9rem; line-height: 1.5; color: var(--text-dim); }
+
+/* Empty state inner elements */
+.empty-state-emoji { font-size: 2rem; margin-bottom: 12px; opacity: 0.5; }
+
 /* ── Print ────────────────────────────────────────────────────────── */
 
 @media print {
@@ -721,5 +773,11 @@ textarea {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .toast,
+  .entry,
+  .btn,
+  .badge {
+    transition: opacity 0.15s ease, color 0.15s ease;
   }
 }

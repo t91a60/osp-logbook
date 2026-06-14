@@ -277,14 +277,23 @@
     });
     form.append('_csrf_token', csrf);
 
-    var response = await fetch(getApiEndpoint(), {
-      method: 'POST',
-      body: form,
-      headers: {
-        Accept: 'application/json',
-        'X-CSRFToken': csrf
-      }
-    });
+    var controller = new AbortController();
+    var timeoutId = setTimeout(function () { controller.abort(); }, 15000);
+
+    var response;
+    try {
+      response = await fetch(getApiEndpoint(), {
+        method: 'POST',
+        body: form,
+        headers: {
+          Accept: 'application/json',
+          'X-CSRFToken': csrf
+        },
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     var data = {};
     try {

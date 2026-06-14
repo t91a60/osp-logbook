@@ -6,7 +6,7 @@ import os
 import secrets
 from datetime import datetime, timezone
 
-from flask import Flask, abort, flash, g, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, flash, g, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.exceptions import HTTPException
 
 from backend.domain.exceptions import ForbiddenError, NotFoundError, ValidationError
@@ -50,7 +50,7 @@ def register_request_guards(app: Flask) -> None:
                     started_at = datetime.fromisoformat(last_seen)
                     lifetime = app.config.get('PERMANENT_SESSION_LIFETIME')
                     ttl_seconds = lifetime.total_seconds() if lifetime else 8 * 3600
-                    age_seconds = (datetime.now(timezone.utc) - started_at).total_seconds()
+                    age_seconds = (datetime.now(UTC) - started_at).total_seconds()
                     if age_seconds > ttl_seconds:
                         session.clear()
                         flash('Sesja wygasła. Zaloguj się ponownie.', 'error')
@@ -126,7 +126,7 @@ def register_security_headers(app: Flask) -> None:
     @app.after_request
     def add_security_headers(response):
         nonce = getattr(g, 'csp_nonce', '')
-        script_src = "script-src 'self' 'unsafe-inline'"
+        script_src = "script-src 'self'"
         if nonce:
             script_src = f"{script_src} 'nonce-{nonce}'"
 

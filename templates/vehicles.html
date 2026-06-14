@@ -1,175 +1,72 @@
 {% extends "base.html" %} {% block title %}Pojazdy – OSP Logbook{% endblock %}
 {% block content %}
 <div class="page">
-  <!-- Page Header -->
   <div class="section-header">
-    <span class="section-title">Zarządzanie pojazdami</span>
+    <span class="section-title">Zarzadzanie pojazdami</span>
   </div>
 
-  <!-- Add Vehicle Form -->
   <div class="form-section">
     <div class="form-section-title">Dodaj nowy pojazd</div>
-
     <form method="POST" action="{{ url_for('vehicles') }}">
       <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
       <div class="form-grid full">
-        <!-- Name -->
         <div class="form-field">
           <label class="form-label">Nazwa pojazdu *</label>
-          <input
-            type="text"
-            name="name"
-            class="form-input"
-            placeholder="np. GCBA 5/32 Mercedes"
-            required
-            autocomplete="off"
-          />
+          <input type="text" name="name" class="form-input" placeholder="np. GCBA 5/32 Mercedes" required autocomplete="off" />
         </div>
-
-        <!-- Registration Plate -->
         <div class="form-field">
           <label class="form-label">Nr rejestracyjny</label>
-          <input
-            type="text"
-            name="plate"
-            class="form-input"
-            placeholder="np. KCH 1234"
-            autocomplete="off"
-            style="text-transform: uppercase"
-          />
+          <input type="text" name="plate" class="form-input" placeholder="np. KCH 1234" autocomplete="off" style="text-transform: uppercase" />
         </div>
-
-        <!-- Type -->
         <div class="form-field">
           <label class="form-label">Typ pojazdu</label>
-          <input
-            type="text"
-            name="type"
-            class="form-input"
-            placeholder="np. GBA, GCBA, SLRt..."
-            autocomplete="off"
-          />
+          <input type="text" name="type" class="form-input" placeholder="np. GBA, GCBA, SLRt..." autocomplete="off" />
         </div>
       </div>
-
-      <button
-        type="submit"
-        class="btn btn-primary"
-        style="width: 100%; margin-top: 12px"
-      >
-        ✓ Dodaj pojazd
-      </button>
+      <button type="submit" class="btn btn-primary">Dodaj pojazd</button>
     </form>
   </div>
 
-  <!-- Vehicle List Section -->
-  <div style="margin-top: 32px">
-    <h2
-      style="
-        font-size: 0.8rem;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--text-dim);
-        margin-bottom: 16px;
-      "
-    >
-      Pojazdy ({{ vehicles|length }})
-    </h2>
+  <h2 class="section-title">Pojazdy ({{ vehicles|length }})</h2>
 
-    {% if vehicles %}
-    <div style="display: flex; flex-direction: column; gap: 12px">
-      {% for v in vehicles %}
-      <div class="entry">
-        <div class="entry-header">
-          <div class="entry-vehicle">
-            {% if v.type %}<span
-              style="
-                color: var(--text-dim);
-                font-weight: 400;
-                font-size: 0.85rem;
-              "
-              >{{ v.type }}</span
-            >
-            {% endif %}{{ v.name }}
-          </div>
-        </div>
-
-        <div
-          class="entry-main"
-          style="
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 12px;
-            margin-top: 8px;
-          "
-        >
-          <div class="entry-meta">
-            {% if v.plate %}
-            <div
-              style="
-                font-size: 0.85rem;
-                color: var(--text-dim);
-                margin-top: 4px;
-              "
-            >
-              {{ v.plate }}
-            </div>
-            {% endif %}
-          </div>
-
-          <div style="display: flex; gap: 8px; align-items: center">
-            <a href="{{ url_for('edit_vehicle', vid=v.id) }}"
-               class="btn btn-secondary"
-               style="min-height:44px;padding:8px 16px;font-size:0.9rem;white-space:nowrap;margin-top:0;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              Edytuj
-            </a>
-            <form
-              method="POST"
-              action="{{ url_for('delete_vehicle', vid=v.id) }}"
-            >
-              <input
-                type="hidden"
-                name="_csrf_token"
-                value="{{ csrf_token() }}"
-              />
-              <button
-                type="submit"
-                class="btn btn-secondary"
-                onclick="return confirm('Czy na pewno chcesz trwale usunąć ten pojazd? Tej operacji nie można cofnąć.')"
-                style="
-                  min-height: 44px;
-                  padding: 8px 16px;
-                  font-size: 0.9rem;
-                  white-space: nowrap;
-                  color: var(--error);
-                  border-color: var(--error);
-                "
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-                Usuń
-              </button>
-            </form>
-          </div>
-        </div>
+  {% if vehicles %}
+  {% for v in vehicles %}
+  <div class="entry">
+    <div class="entry-header">
+      <div class="entry-vehicle">
+        {% if v.type %}<span class="entry-type">{{ v.type }}</span>{% endif %}{{ v.name }}
       </div>
-      {% endfor %}
     </div>
-    {% else %}
-    <div style="text-align: center; padding: 32px 20px; color: var(--text-dim)">
-      <div style="font-size: 2rem; margin-bottom: 12px">🚒</div>
-      <p>Brak pojazdów.</p>
-      <p style="font-size: 0.9rem; margin-top: 8px">
-        Dodaj pierwszy pojazd w formularzu powyżej.
-      </p>
+    <div class="entry-main">
+      <div class="entry-meta">
+        {% if v.plate %}
+        <div class="entry-plate">{{ v.plate }}</div>
+        {% endif %}
+      </div>
+      <div class="entry-actions">
+        <a href="{{ url_for('edit_vehicle', vid=v.id) }}" class="btn btn-secondary" style="margin-top:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edytuj
+        </a>
+        <form method="POST" action="{{ url_for('delete_vehicle', vid=v.id) }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit" class="btn btn-secondary"
+            onclick="return confirm('Czy na pewno chcesz trwale usunac ten pojazd? Tej operacji nie mozna cofnac.')"
+            style="color:var(--error);border-color:var(--error);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+            Usun
+          </button>
+        </form>
+      </div>
     </div>
-    {% endif %}
   </div>
+  {% endfor %}
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-emoji">BOOT</div>
+    <p>Brak pojazdow.</p>
+    <p class="empty-state-text">Dodaj pierwszy pojazd w formularzu powyzej.</p>
+  </div>
+  {% endif %}
 </div>
-
 {% endblock %}
-
-
-

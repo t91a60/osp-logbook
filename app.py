@@ -17,22 +17,31 @@ from backend.web import (
     register_security_headers,
 )
 
-# Globalna instancja limitera — trasy importują ją przez `from app import limiter`
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=[],
-    storage_uri='memory://',
-)
+_limiter: Limiter | None = None
+
+
+def get_limiter() -> Limiter:
+    """Return the application-wide Limiter instance.
+
+    Routes call ``get_limiter()`` instead of importing ``limiter`` directly,
+    avoiding circular imports and the fragile module-level overwrite pattern.
+    """
+    global _limiter
+    if _limiter is None:
+        _limiter = Limiter(
+            key_func=get_remote_address,
+            default_limits=[],
+            storage_uri='memory://',
+        )
+    return _limiter
 
 
 def create_app(config_class=None):
-    global limiter
     if config_class is None:
         config_class = get_config()
 
     app = Flask(__name__, template_folder='templates')
     app.config.from_object(config_class)
-    # Enable gzip/deflate compression for responses (static assets, JSON, etc.)
     Compress(app)
     if not app.config.get('SECRET_KEY'):
         raise RuntimeError('SECRET_KEY environment variable is not set.')
@@ -51,12 +60,13 @@ def create_app(config_class=None):
 
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
-    limiter = Limiter(
+    global _limiter
+    _limiter = Limiter(
         key_func=get_remote_address,
         default_limits=[],
         storage_uri=ratelimit_storage_uri,
     )
-    limiter.init_app(app)
+    _limiter.init_app(app)
     configure_session_security(app)
     register_request_guards(app)
     register_context_processors(app)
@@ -103,11 +113,11 @@ if __name__ == '__main__':
         cert_path = os.environ.get('OSP_SSL_CERT', 'cert.pem')
         key_path = os.environ.get('OSP_SSL_KEY', 'key.pem')
         if os.path.exists(cert_path) and os.path.exists(key_path):
-            print(f'\n  OSP Logbook działa na https://0.0.0.0:{port}')
+            print(f'\n  OSP Logbook dziala na https://0.0.0.0:{port}')
             app.run(host='0.0.0.0', port=port, debug=False, ssl_context=(cert_path, key_path))
         else:
-            print('\n  HTTPS włączone, ale brak plików cert.pem/key.pem – uruchamiam certyfikat ad-hoc.')
+            print('\n  HTTPS wlaczone, ale brak plikow cert.pem/key.pem – uruchamiam certyfikat ad-hoc.')
             app.run(host='0.0.0.0', port=port, debug=False, ssl_context='adhoc')
     else:
-        print(f'\n  OSP Logbook działa na http://0.0.0.0:{port} (DEBUG={debug})')
+        print(f'\n  OSP Logbook dziala na http://0.0.0.0:{port} (DEBUG={debug})')
         app.run(host='0.0.0.0', port=port, debug=debug)
