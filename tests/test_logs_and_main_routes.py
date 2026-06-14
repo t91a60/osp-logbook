@@ -1,14 +1,16 @@
 """Tests for low-coverage route modules: logs and main dashboard/sw endpoints."""
 
 from datetime import date
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 
 class TestLogsRoute:
     @patch('backend.routes.logs.render_template')
     @patch('backend.routes.logs.get_cursor')
     @patch('backend.routes.logs.get_db')
-    def test_logs_list_clamps_page_and_applies_offset(self, mock_get_db, mock_get_cursor, mock_render, admin_client, monkeypatch):
+    def test_logs_list_clamps_page_and_applies_offset(
+        self, mock_get_db, mock_get_cursor, mock_render, admin_client, monkeypatch,
+    ):
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn
         mock_cur = MagicMock()
@@ -31,7 +33,9 @@ class TestLogsRoute:
     @patch('backend.routes.logs.render_template')
     @patch('backend.routes.logs.get_cursor')
     @patch('backend.routes.logs.get_db')
-    def test_logs_list_invalid_page_size_falls_back_to_default(self, mock_get_db, mock_get_cursor, mock_render, admin_client, monkeypatch):
+    def test_logs_list_invalid_page_size_falls_back_to_default(
+        self, mock_get_db, mock_get_cursor, mock_render, admin_client, monkeypatch,
+    ):
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn
         mock_cur = MagicMock()

@@ -1,6 +1,8 @@
 """Shared test fixtures for the OSP Logbook test suite."""
 
 import os
+from unittest.mock import MagicMock
+
 import pytest
 
 # NOTE: These tests mock get_db() and get_cursor() — they verify routing
@@ -84,8 +86,6 @@ def admin_client(client):
 # ---------------------------------------------------------------------------
 # Mock repository fixtures for application-layer unit tests
 # ---------------------------------------------------------------------------
-
-from unittest.mock import MagicMock
 
 
 @pytest.fixture

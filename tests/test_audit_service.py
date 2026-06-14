@@ -1,8 +1,8 @@
 """Tests for backend/services/audit_service.py — AuditService.log()."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import psycopg2
-import pytest
 
 
 class TestAuditServiceLog:

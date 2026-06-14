@@ -16,21 +16,20 @@ No Flask imports anywhere in this module.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from backend.domain.exceptions import ValidationError
 from backend.helpers import (
     ensure_non_empty_text,
+    parse_positive_int_field,
     validate_iso_date,
     validate_odometer_range,
-    parse_positive_int_field,
 )
 from backend.infrastructure.repositories.protocols import (
     TripRepositoryProtocol,
     VehicleRepositoryProtocol,
 )
 from backend.services.audit_service import AuditService
-
 
 # ---------------------------------------------------------------------------
 # AddTripUseCase

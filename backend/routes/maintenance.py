@@ -54,7 +54,7 @@ def register_routes(app):
             except IntegrityError:
                 raise ValidationError(
                     'Nie udało się zapisać wpisu serwisowego. Sprawdź dane i spróbuj ponownie.'
-                )
+                ) from None
 
             flash('Wpis serwisowy zapisany.', 'success')
             return redirect(url_for(
@@ -134,7 +134,7 @@ def register_routes(app):
             try:
                 EditMaintenanceUseCase.execute(cmd)
             except (NotFoundError, IntegrityError) as exc:
-                raise ValidationError(str(exc))
+                raise ValidationError(str(exc)) from exc
 
             flash('Wpis serwisowy zaktualizowany.', 'success')
             return redirect(url_for('maintenance', vehicle_id=vehicle_id))

@@ -1,7 +1,5 @@
 """Tests for backend/config.py — configuration classes and get_config()."""
 
-import os
-import pytest
 
 
 class TestConfig:

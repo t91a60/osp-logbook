@@ -1,6 +1,6 @@
 """Comprehensive tests for backend/routes/report.py route behavior."""
 
-from datetime import date, timedelta
+from datetime import date
 from unittest.mock import MagicMock, patch
 
 
@@ -58,7 +58,10 @@ class TestReportRoute:
                 [{'id': 1, 'date': date.today(), 'driver': 'Jan', 'purpose': 'Pożar',
                   'odo_start': 1000, 'odo_end': 1120, 'time_start': None,
                   'time_end': None, 'notes': '', 'created_at': None, 'vname': 'GBA'}],
-                [{'vehicle_id': 1, 'trip_count': 1, 'total_km': 120, 'name': 'GBA', 'plate': 'KR1'}],
+                [{
+                    'vehicle_id': 1, 'trip_count': 1, 'total_km': 120,
+                    'name': 'GBA', 'plate': 'KR1',
+                }],
                 [{'vehicle_id': 1, 'total_liters': 30.0, 'total_cost': 180.0}],
                 [{'vehicle_id': 1, 'total_cost': 50.0}],
             ],
@@ -109,7 +112,10 @@ class TestReportRoute:
             fetchone_result={'total_km': 50},
             side_effects=[
                 [],  # trip_entries
-                [{'vehicle_id': 2, 'trip_count': 2, 'total_km': 50, 'name': 'GBA', 'plate': 'KR1', 'id': 2}],
+                [{
+                    'vehicle_id': 2, 'trip_count': 2, 'total_km': 50,
+                    'name': 'GBA', 'plate': 'KR1', 'id': 2,
+                }],
                 [{'vehicle_id': 2, 'total_liters': 60.0, 'total_cost': 360.0}],
                 [{'vehicle_id': 2, 'total_cost': 100.0}],
             ],
@@ -156,8 +162,14 @@ class TestReportPrintRoute:
         mock_db.return_value = MagicMock()
         vehicle_row = {'id': 1, 'name': 'GBA', 'plate': 'KR001', 'type': 'gaśniczy'}
         trip_rows = [
-            {'date': date(2024, 5, 10), 'driver': 'Jan K.', 'purpose': 'Pożar', 'odo_start': 100, 'odo_end': 120, 'notes': ''},
-            {'date': date(2024, 5, 15), 'driver': 'Ewa N.', 'purpose': 'Ćwiczenia', 'odo_start': None, 'odo_end': None, 'notes': 'brak km'},
+            {
+                'date': date(2024, 5, 10), 'driver': 'Jan K.', 'purpose': 'Pożar',
+                'odo_start': 100, 'odo_end': 120, 'notes': '',
+            },
+            {
+                'date': date(2024, 5, 15), 'driver': 'Ewa N.', 'purpose': 'Ćwiczenia',
+                'odo_start': None, 'odo_end': None, 'notes': 'brak km',
+            },
         ]
         mock_cur = MagicMock()
         mock_cur.fetchone.side_effect = [vehicle_row, {'km': 50}]
@@ -222,7 +234,10 @@ class TestReportPrintRoute:
         mock_db.return_value = MagicMock()
         vehicle_row = {'id': 1, 'name': 'GBA', 'plate': 'KR001', 'type': ''}
         trip_rows = [
-            {'date': date(2024, 3, 5), 'driver': 'Marek', 'purpose': 'Alarm', 'odo_start': None, 'odo_end': None, 'notes': ''},
+            {
+                'date': date(2024, 3, 5), 'driver': 'Marek', 'purpose': 'Alarm',
+                'odo_start': None, 'odo_end': None, 'notes': '',
+            },
         ]
         mock_cur = MagicMock()
         mock_cur.fetchone.side_effect = [vehicle_row, {'km': 0}]

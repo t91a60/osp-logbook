@@ -1,6 +1,7 @@
 """Extended tests for parse_trip_equipment_form edge cases."""
 
 import pytest
+
 from backend.helpers import parse_trip_equipment_form
 
 

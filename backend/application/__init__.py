@@ -14,33 +14,43 @@ Rules:
 from __future__ import annotations
 
 # -- Dashboard ---------------------------------------------------------------
-from .dashboard import GetDashboardUseCase, DashboardResult
+from .dashboard import DashboardResult, GetDashboardUseCase
+
+# -- Fuel --------------------------------------------------------------------
+from .fuel import (
+    AddFuelCommand,
+    AddFuelUseCase,
+    DeleteFuelCommand,
+    DeleteFuelUseCase,
+    EditFuelCommand,
+    EditFuelUseCase,
+    GetFuelByIdUseCase,
+    GetFuelQuery,
+    GetFuelUseCase,
+)
+
+# -- Maintenance -------------------------------------------------------------
+from .maintenance import (
+    AddMaintenanceCommand,
+    AddMaintenanceUseCase,
+    CompleteMaintenanceCommand,
+    CompleteMaintenanceUseCase,
+    CreateNextMaintenanceCommand,
+    CreateNextMaintenanceUseCase,
+    DeleteMaintenanceCommand,
+    DeleteMaintenanceUseCase,
+    EditMaintenanceCommand,
+    EditMaintenanceUseCase,
+    GetMaintenanceByIdUseCase,
+    GetMaintenanceQuery,
+    GetMaintenanceUseCase,
+)
 
 # -- Report ------------------------------------------------------------------
 from .report import GenerateReportUseCase, ReportQuery, ReportResult
 
 # -- Trips -------------------------------------------------------------------
-from .trips import AddTripUseCase, AddTripCommand, GetTripsUseCase, GetTripsQuery
-
-# -- Fuel --------------------------------------------------------------------
-from .fuel import (
-    AddFuelUseCase, AddFuelCommand,
-    EditFuelUseCase, EditFuelCommand,
-    DeleteFuelUseCase, DeleteFuelCommand,
-    GetFuelUseCase, GetFuelQuery,
-    GetFuelByIdUseCase,
-)
-
-# -- Maintenance -------------------------------------------------------------
-from .maintenance import (
-    AddMaintenanceUseCase, AddMaintenanceCommand,
-    EditMaintenanceUseCase, EditMaintenanceCommand,
-    DeleteMaintenanceUseCase, DeleteMaintenanceCommand,
-    GetMaintenanceUseCase, GetMaintenanceQuery,
-    GetMaintenanceByIdUseCase,
-    CompleteMaintenanceUseCase, CompleteMaintenanceCommand,
-    CreateNextMaintenanceUseCase, CreateNextMaintenanceCommand,
-)
+from .trips import AddTripCommand, AddTripUseCase, GetTripsQuery, GetTripsUseCase
 
 
 class UseCaseFactory:

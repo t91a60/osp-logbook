@@ -1,9 +1,10 @@
-from flask import render_template, request, abort
 from datetime import date, timedelta
-from backend.db import get_db, get_cursor
+
+from flask import abort, render_template, request
+
+from backend.db import get_cursor, get_db
 from backend.helpers import login_required, parse_positive_int
 from backend.services.cache_service import get_vehicles_cached
-
 
 _POLISH_MONTHS = [
     'styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec',

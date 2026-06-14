@@ -6,7 +6,7 @@ CompleteMaintenanceUseCase, CreateNextMaintenanceUseCase.
 
 All tests use injected mock repositories — no Flask test client, no DB.
 """
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -70,7 +70,9 @@ class TestAddMaintenanceUseCase:
             uc.execute_instance(_valid_add_cmd())
         mock_maintenance_repo.add.assert_called_once()
 
-    def test_add_maintenance_missing_description_raises(self, mock_maintenance_repo, mock_vehicle_repo):
+    def test_add_maintenance_missing_description_raises(
+        self, mock_maintenance_repo, mock_vehicle_repo
+    ):
         uc = AddMaintenanceUseCase(
             maintenance_repo=mock_maintenance_repo, vehicle_repo=mock_vehicle_repo
         )
@@ -84,21 +86,27 @@ class TestAddMaintenanceUseCase:
         with pytest.raises(ValidationError):
             uc.execute_instance(_valid_add_cmd(date_val='not-a-date'))
 
-    def test_add_maintenance_invalid_odometer_raises(self, mock_maintenance_repo, mock_vehicle_repo):
+    def test_add_maintenance_invalid_odometer_raises(
+        self, mock_maintenance_repo, mock_vehicle_repo
+    ):
         uc = AddMaintenanceUseCase(
             maintenance_repo=mock_maintenance_repo, vehicle_repo=mock_vehicle_repo
         )
         with pytest.raises(ValidationError):
             uc.execute_instance(_valid_add_cmd(odometer='bad'))
 
-    def test_add_maintenance_non_numeric_cost_raises(self, mock_maintenance_repo, mock_vehicle_repo):
+    def test_add_maintenance_non_numeric_cost_raises(
+        self, mock_maintenance_repo, mock_vehicle_repo
+    ):
         uc = AddMaintenanceUseCase(
             maintenance_repo=mock_maintenance_repo, vehicle_repo=mock_vehicle_repo
         )
         with pytest.raises(ValidationError):
             uc.execute_instance(_valid_add_cmd(cost='bad'))
 
-    def test_add_maintenance_invalid_priority_uses_default(self, mock_maintenance_repo, mock_vehicle_repo):
+    def test_add_maintenance_invalid_priority_uses_default(
+        self, mock_maintenance_repo, mock_vehicle_repo
+    ):
         """Invalid priority falls back to 'medium' (no exception raised)."""
         uc = AddMaintenanceUseCase(
             maintenance_repo=mock_maintenance_repo, vehicle_repo=mock_vehicle_repo
@@ -110,7 +118,9 @@ class TestAddMaintenanceUseCase:
         call_kwargs = mock_maintenance_repo.add.call_args.kwargs
         assert call_kwargs['priority'] == 'medium'
 
-    def test_add_maintenance_invalid_status_uses_default(self, mock_maintenance_repo, mock_vehicle_repo):
+    def test_add_maintenance_invalid_status_uses_default(
+        self, mock_maintenance_repo, mock_vehicle_repo
+    ):
         """Invalid status falls back to 'pending' (no exception raised)."""
         uc = AddMaintenanceUseCase(
             maintenance_repo=mock_maintenance_repo, vehicle_repo=mock_vehicle_repo
@@ -132,7 +142,9 @@ class TestAddMaintenanceUseCase:
 
 class TestCompleteMaintenanceUseCase:
     def test_complete_maintenance_marks_completed(self, mock_maintenance_repo):
-        mock_maintenance_repo.complete.return_value = {'id': 1, 'status': 'completed', 'added_by': 'jan'}
+        mock_maintenance_repo.complete.return_value = {
+            'id': 1, 'status': 'completed', 'added_by': 'jan'
+        }
         uc = CompleteMaintenanceUseCase(maintenance_repo=mock_maintenance_repo)
         with patch('backend.application.maintenance.AuditService'):
             result = uc.execute_instance(
@@ -149,7 +161,9 @@ class TestCompleteMaintenanceUseCase:
             )
 
     def test_complete_by_non_owner_raises_forbidden(self, mock_maintenance_repo):
-        mock_maintenance_repo.complete.return_value = {'id': 1, 'status': 'completed', 'added_by': 'jan'}
+        mock_maintenance_repo.complete.return_value = {
+            'id': 1, 'status': 'completed', 'added_by': 'jan'
+        }
         uc = CompleteMaintenanceUseCase(maintenance_repo=mock_maintenance_repo)
         with pytest.raises(ForbiddenError):
             uc.execute_instance(
@@ -157,7 +171,9 @@ class TestCompleteMaintenanceUseCase:
             )
 
     def test_complete_by_admin_succeeds_regardless_of_owner(self, mock_maintenance_repo):
-        mock_maintenance_repo.complete.return_value = {'id': 1, 'status': 'completed', 'added_by': 'jan'}
+        mock_maintenance_repo.complete.return_value = {
+            'id': 1, 'status': 'completed', 'added_by': 'jan'
+        }
         uc = CompleteMaintenanceUseCase(maintenance_repo=mock_maintenance_repo)
         with patch('backend.application.maintenance.AuditService'):
             result = uc.execute_instance(
@@ -168,11 +184,15 @@ class TestCompleteMaintenanceUseCase:
 
 class TestCreateNextMaintenanceUseCase:
     def test_create_next_duplicates_entry_with_new_date(self, mock_maintenance_repo):
-        mock_maintenance_repo.create_next.return_value = {'id': 2, 'status': 'pending', 'added_by': 'jan'}
+        mock_maintenance_repo.create_next.return_value = {
+            'id': 2, 'status': 'pending', 'added_by': 'jan'
+        }
         uc = CreateNextMaintenanceUseCase(maintenance_repo=mock_maintenance_repo)
         with patch('backend.application.maintenance.AuditService'):
             result = uc.execute_instance(
-                CreateNextMaintenanceCommand(entry_id=1, added_by='jan', requester='jan', is_admin=False)
+                CreateNextMaintenanceCommand(
+                    entry_id=1, added_by='jan', requester='jan', is_admin=False
+                )
             )
         assert result['id'] == 2
         assert result['status'] == 'pending'
@@ -182,15 +202,21 @@ class TestCreateNextMaintenanceUseCase:
         uc = CreateNextMaintenanceUseCase(maintenance_repo=mock_maintenance_repo)
         with pytest.raises(NotFoundError):
             uc.execute_instance(
-                CreateNextMaintenanceCommand(entry_id=999, added_by='jan', requester='jan', is_admin=False)
+                CreateNextMaintenanceCommand(
+                    entry_id=999, added_by='jan', requester='jan', is_admin=False
+                )
             )
 
     def test_create_next_by_non_owner_raises_forbidden(self, mock_maintenance_repo):
-        mock_maintenance_repo.create_next.return_value = {'id': 2, 'status': 'pending', 'added_by': 'jan'}
+        mock_maintenance_repo.create_next.return_value = {
+            'id': 2, 'status': 'pending', 'added_by': 'jan'
+        }
         uc = CreateNextMaintenanceUseCase(maintenance_repo=mock_maintenance_repo)
         with pytest.raises(ForbiddenError):
             uc.execute_instance(
-                CreateNextMaintenanceCommand(entry_id=1, added_by='jan', requester='other', is_admin=False)
+                CreateNextMaintenanceCommand(
+                    entry_id=1, added_by='jan', requester='other', is_admin=False
+                )
             )
 
 
@@ -217,7 +243,9 @@ class TestEditMaintenanceUseCase:
         mock_maintenance_repo.get_by_id.return_value = {
             'id': 1, 'description': 'Stary opis', 'added_by': 'jan', 'status': 'pending',
         }
-        mock_vehicle_repo.get_active.return_value = {'id': 1, 'name': 'Fiat Ducato', 'plate': 'SBI 001'}
+        mock_vehicle_repo.get_active.return_value = {
+            'id': 1, 'name': 'Fiat Ducato', 'plate': 'SBI 001'
+        }
         uc = EditMaintenanceUseCase(
             maintenance_repo=mock_maintenance_repo, vehicle_repo=mock_vehicle_repo
         )
@@ -225,7 +253,9 @@ class TestEditMaintenanceUseCase:
             uc.execute_instance(_valid_edit_cmd())
         mock_maintenance_repo.update.assert_called_once()
 
-    def test_edit_nonexistent_maintenance_raises_not_found(self, mock_maintenance_repo, mock_vehicle_repo):
+    def test_edit_nonexistent_maintenance_raises_not_found(
+        self, mock_maintenance_repo, mock_vehicle_repo
+    ):
         mock_maintenance_repo.get_by_id.return_value = None
         uc = EditMaintenanceUseCase(
             maintenance_repo=mock_maintenance_repo, vehicle_repo=mock_vehicle_repo
@@ -243,7 +273,9 @@ class TestEditMaintenanceUseCase:
         with pytest.raises(ForbiddenError):
             uc.execute_instance(_valid_edit_cmd(requester='other', is_admin=False))
 
-    def test_edit_invalid_date_raises_validation_error(self, mock_maintenance_repo, mock_vehicle_repo):
+    def test_edit_invalid_date_raises_validation_error(
+        self, mock_maintenance_repo, mock_vehicle_repo
+    ):
         mock_maintenance_repo.get_by_id.return_value = {
             'id': 1, 'description': 'Opis', 'added_by': 'jan', 'status': 'pending',
         }
@@ -253,7 +285,9 @@ class TestEditMaintenanceUseCase:
         with pytest.raises(ValidationError):
             uc.execute_instance(_valid_edit_cmd(date_val='not-a-date'))
 
-    def test_edit_invalid_odometer_raises_validation_error(self, mock_maintenance_repo, mock_vehicle_repo):
+    def test_edit_invalid_odometer_raises_validation_error(
+        self, mock_maintenance_repo, mock_vehicle_repo
+    ):
         mock_maintenance_repo.get_by_id.return_value = {
             'id': 1, 'description': 'Opis', 'added_by': 'jan', 'status': 'pending',
         }
@@ -263,7 +297,9 @@ class TestEditMaintenanceUseCase:
         with pytest.raises(ValidationError):
             uc.execute_instance(_valid_edit_cmd(odometer='bad'))
 
-    def test_edit_invalid_vehicle_raises_validation_error(self, mock_maintenance_repo, mock_vehicle_repo):
+    def test_edit_invalid_vehicle_raises_validation_error(
+        self, mock_maintenance_repo, mock_vehicle_repo
+    ):
         mock_maintenance_repo.get_by_id.return_value = {
             'id': 1, 'description': 'Opis', 'added_by': 'jan', 'status': 'pending',
         }

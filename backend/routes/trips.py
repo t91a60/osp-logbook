@@ -62,7 +62,7 @@ def register_routes(app):
             except IntegrityError:
                 raise ValidationError(
                     'Nie udało się zapisać wyjazdu. Sprawdź dane i spróbuj ponownie.'
-                )
+                ) from None
 
             flash('Wyjazd zapisany.', 'success')
             return redirect(url_for(

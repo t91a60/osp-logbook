@@ -2,7 +2,6 @@
 """Apply schema and migrations to the database."""
 
 import os
-import sys
 from pathlib import Path
 
 

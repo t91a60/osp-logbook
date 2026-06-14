@@ -1,3 +1,10 @@
+from .base import BaseRepository
+from .fuel import FuelRepository
+from .maintenance import MaintenanceRepository
+from .trips import TripRepository
+from .vehicles import VehicleRepository
+
+
 def _to_int(value: str | int | None) -> int | None:
     """Convert a value to int, treating None and empty string as None."""
     if value in (None, ''):
@@ -10,13 +17,6 @@ def _to_float(value: str | float | None) -> float | None:
     if value in (None, ''):
         return None
     return float(value)
-
-
-from .fuel import FuelRepository
-from .maintenance import MaintenanceRepository
-from .base import BaseRepository
-from .trips import TripRepository
-from .vehicles import VehicleRepository
 
 
 __all__ = [

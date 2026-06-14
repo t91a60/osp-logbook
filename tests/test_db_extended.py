@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import psycopg2
-from werkzeug.security import generate_password_hash
+import pytest
 
 from backend import db as db_module
 
@@ -25,7 +25,9 @@ class TestCheckDbHealth:
 
     @patch('backend.db.get_cursor')
     @patch('backend.db.get_db')
-    def test_check_db_health_returns_false_on_operational_error(self, mock_get_db, mock_get_cursor, app):
+    def test_check_db_health_returns_false_on_operational_error(
+        self, mock_get_db, mock_get_cursor, app
+    ):
         mock_get_db.return_value = MagicMock()
         mock_get_cursor.side_effect = psycopg2.OperationalError('boom')
 
@@ -37,7 +39,9 @@ class TestGetDb:
     @patch('backend.db.time.sleep')
     @patch('backend.db.reset_pool')
     @patch('backend.db.get_pool')
-    def test_get_db_retries_three_times_then_raises(self, mock_get_pool, mock_reset_pool, mock_sleep, app):
+    def test_get_db_retries_three_times_then_raises(
+        self, mock_get_pool, mock_reset_pool, mock_sleep, app
+    ):
         mock_pool = MagicMock()
         mock_pool.getconn.side_effect = psycopg2.OperationalError('db down')
         mock_get_pool.return_value = mock_pool
@@ -61,73 +65,13 @@ class TestCloseDb:
         mock_conn = MagicMock()
         mock_conn.closed = False
         mock_pool = MagicMock()
-        with patch('backend.db._db_pool', mock_pool):
-            with app.test_request_context():
-                from flask import g
+        with patch('backend.db._db_pool', mock_pool), app.test_request_context():
+            from flask import g
 
-                g.db = mock_conn
-                db_module.close_db(None)
+            g.db = mock_conn
+            db_module.close_db(None)
 
         mock_pool.putconn.assert_called_once_with(mock_conn, close=False)
-
-
-class TestInitDb:
-    @patch('backend.db.get_cursor')
-    @patch('backend.db.get_pool')
-    @patch('backend.db._fetch_schema_version')
-    def test_init_db_raises_when_users_table_missing(self, mock_schema_version, mock_get_pool, mock_get_cursor, monkeypatch):
-        mock_pool = MagicMock()
-        mock_conn = MagicMock()
-        mock_pool.getconn.return_value = mock_conn
-        mock_get_pool.return_value = mock_pool
-        mock_cur = MagicMock()
-        mock_cur.fetchone.side_effect = [{'exists': False}]
-        mock_get_cursor.return_value = mock_cur
-
-        monkeypatch.delenv('BOOTSTRAP_ADMIN_PASSWORD', raising=False)
-
-        try:
-            db_module.init_db()
-        except RuntimeError as exc:
-            assert 'schema.sql' in str(exc)
-        else:
-            raise AssertionError('RuntimeError not raised')
-
-        mock_conn.rollback.assert_called_once()
-        mock_schema_version.assert_not_called()
-
-    @patch('backend.db.get_cursor')
-    @patch('backend.db.get_pool')
-    @patch('backend.db._fetch_schema_version')
-    def test_init_db_skips_password_update_for_real_hash(self, mock_schema_version, mock_get_pool, mock_get_cursor, monkeypatch):
-        mock_pool = MagicMock()
-        mock_conn = MagicMock()
-        mock_pool.getconn.return_value = mock_conn
-        mock_get_pool.return_value = mock_pool
-        mock_cur = MagicMock()
-        mock_cur.fetchone.side_effect = [
-            {'exists': True},
-            {'id': 1, 'password': generate_password_hash('real-password')},
-        ]
-        mock_get_cursor.return_value = mock_cur
-        mock_schema_version.return_value = 1
-
-        monkeypatch.delenv('BOOTSTRAP_ADMIN_PASSWORD', raising=False)
-
-        db_module.init_db()
-
-        executed_sql = ' '.join(call.args[0] for call in mock_cur.execute.call_args_list)
-        assert 'UPDATE users' not in executed_sql
-        assert 'INSERT INTO users' not in executed_sql
-        mock_conn.commit.assert_called_once()
-"""Extended tests for backend/db.py — get_db retries, close_db pool return, init_db paths."""
-
-import os
-from unittest.mock import patch, MagicMock, PropertyMock
-import pytest
-import psycopg2
-
-from backend import db as db_module
 
 
 class TestGetDbRetries:
@@ -340,7 +284,9 @@ class TestCheckDbHealthExtended:
 class TestMigrations:
     @patch('backend.db.command.upgrade')
     @patch('backend.db.AlembicConfig')
-    def test_apply_pending_migrations_runs_alembic_upgrade(self, mock_alembic_config, mock_upgrade, monkeypatch):
+    def test_apply_pending_migrations_runs_alembic_upgrade(
+        self, mock_alembic_config, mock_upgrade, monkeypatch
+    ):
         monkeypatch.setenv('DATABASE_URL', 'postgresql://localhost/test')
         mock_cfg = MagicMock()
         mock_alembic_config.return_value = mock_cfg
@@ -348,14 +294,16 @@ class TestMigrations:
         db_module.apply_pending_migrations()
 
         mock_alembic_config.assert_called_once_with(str(db_module.ALEMBIC_INI_PATH))
-        mock_cfg.set_main_option.assert_any_call('script_location', str(db_module.ALEMBIC_SCRIPT_PATH))
+        mock_cfg.set_main_option.assert_any_call(
+            'script_location', str(db_module.ALEMBIC_SCRIPT_PATH)
+        )
         mock_cfg.set_main_option.assert_any_call('sqlalchemy.url', 'postgresql://localhost/test')
         mock_upgrade.assert_called_once_with(mock_cfg, 'head')
 
     def test_apply_pending_migrations_raises_without_database_url(self, monkeypatch):
         monkeypatch.delenv('DATABASE_URL', raising=False)
-        with patch.object(db_module, 'ALEMBIC_INI_PATH', db_module.Path('/tmp/alembic.ini')):
-            with patch.object(db_module, 'ALEMBIC_SCRIPT_PATH', db_module.Path('/tmp/alembic')):
+        with patch.object(db_module, 'ALEMBIC_INI_PATH', db_module.Path('/tmp/alembic.ini')), \
+                patch.object(db_module, 'ALEMBIC_SCRIPT_PATH', db_module.Path('/tmp/alembic')):
                 try:
                     db_module.apply_pending_migrations()
                 except RuntimeError as exc:

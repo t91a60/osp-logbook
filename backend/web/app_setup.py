@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import os
 import secrets
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.exceptions import HTTPException
@@ -119,7 +119,10 @@ def register_context_processors(app: Flask) -> None:
         def csp_nonce():
             return getattr(g, 'csp_nonce', '')
 
-        return dict(csrf_token=generate_csrf_token, asset_url=asset_url, sw_url=sw_url, csp_nonce=csp_nonce)
+        return dict(
+            csrf_token=generate_csrf_token, asset_url=asset_url,
+            sw_url=sw_url, csp_nonce=csp_nonce,
+        )
 
 
 def register_security_headers(app: Flask) -> None:

@@ -3,8 +3,8 @@ Unit tests for AddTripUseCase in backend/application/trips.py.
 
 All tests use injected mock repositories — no Flask test client, no DB.
 """
-from unittest.mock import MagicMock, patch
 from datetime import date, timedelta
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -61,13 +61,17 @@ class TestAddTripUseCaseValidation:
         with pytest.raises(ValidationError):
             uc.execute_instance(_valid_cmd(date_val='not-a-date'))
 
-    def test_date_more_than_one_day_in_future_raises_validation_error(self, mock_trip_repo, mock_vehicle_repo):
+    def test_date_more_than_one_day_in_future_raises_validation_error(
+        self, mock_trip_repo, mock_vehicle_repo,
+    ):
         uc = AddTripUseCase(trip_repo=mock_trip_repo, vehicle_repo=mock_vehicle_repo)
         too_future = (date.today() + timedelta(days=2)).isoformat()
         with pytest.raises(ValidationError, match='przyszłości'):
             uc.execute_instance(_valid_cmd(date_val=too_future))
 
-    def test_odo_end_less_than_start_raises_validation_error(self, mock_trip_repo, mock_vehicle_repo):
+    def test_odo_end_less_than_start_raises_validation_error(
+        self, mock_trip_repo, mock_vehicle_repo,
+    ):
         uc = AddTripUseCase(trip_repo=mock_trip_repo, vehicle_repo=mock_vehicle_repo)
         with pytest.raises(ValidationError):
             uc.execute_instance(_valid_cmd(odo_start='500', odo_end='100'))
@@ -102,7 +106,9 @@ class TestAddTripUseCaseSideEffects:
         assert args[0] == 'Dodanie'
         assert args[1] == 'Wyjazd'
 
-    def test_use_case_does_not_invalidate_report_cache_directly(self, mock_trip_repo, mock_vehicle_repo):
+    def test_use_case_does_not_invalidate_report_cache_directly(
+        self, mock_trip_repo, mock_vehicle_repo,
+    ):
         mock_vehicle_repo.get_active.return_value = {'id': 5, 'name': 'GBA', 'plate': 'SBI 005'}
         mock_trip_repo.add.return_value = 10
         uc = AddTripUseCase(trip_repo=mock_trip_repo, vehicle_repo=mock_vehicle_repo)

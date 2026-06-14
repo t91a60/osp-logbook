@@ -11,12 +11,11 @@ No Flask imports.  _parse_period is extracted from routes/report.py (DRY).
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Any
 
 from backend.infrastructure.repositories.protocols import ReportRepositoryProtocol
-
 
 # ---------------------------------------------------------------------------
 # Polish month names — pure data, no Flask dependency

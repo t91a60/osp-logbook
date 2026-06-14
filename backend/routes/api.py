@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import suppress
 from datetime import date
 
 from flask import Response, current_app, jsonify, request, session
@@ -46,10 +47,8 @@ def register_routes(app):
 
         days_ago = None
         if dt:
-            try:
+            with suppress(TypeError, ValueError):
                 days_ago = (date.today() - date.fromisoformat(normalize_iso_date(dt))).days
-            except (TypeError, ValueError):
-                pass
 
         return jsonify({'km': km, 'date': dt, 'days_ago': days_ago})
 

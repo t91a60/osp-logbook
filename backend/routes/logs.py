@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, current_app
+from flask import Blueprint, current_app, render_template, request
 
 from backend.db import get_cursor, get_db
 from backend.helpers import admin_required, parse_positive_int

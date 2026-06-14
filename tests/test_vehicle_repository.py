@@ -33,7 +33,9 @@ class TestVehicleRepositoryGetters:
 
     @patch('backend.infrastructure.repositories.vehicles.get_cursor')
     @patch('backend.infrastructure.repositories.vehicles.get_db')
-    def test_get_active_checks_schema_and_returns_vehicle(self, mock_get_db, mock_get_cursor, monkeypatch):
+    def test_get_active_checks_schema_and_returns_vehicle(
+        self, mock_get_db, mock_get_cursor, monkeypatch,
+    ):
         monkeypatch.setattr(vehicles, '_vehicles_has_active_column', None)
         repo = VehicleRepository()
         mock_get_db.return_value = MagicMock()
@@ -178,7 +180,9 @@ class TestVehicleRepositoryMutations:
     @patch('backend.infrastructure.repositories.vehicles.VehicleRepository.has_linked_rows')
     @patch('backend.infrastructure.repositories.vehicles.get_cursor')
     @patch('backend.infrastructure.repositories.vehicles.get_db')
-    def test_delete_raises_forbidden_when_linked(self, mock_get_db, mock_get_cursor, mock_has_linked):
+    def test_delete_raises_forbidden_when_linked(
+        self, mock_get_db, mock_get_cursor, mock_has_linked,
+    ):
         repo = VehicleRepository()
         mock_get_db.return_value = MagicMock()
         mock_cur = MagicMock()

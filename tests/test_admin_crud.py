@@ -1,7 +1,6 @@
 """Tests for admin user management and vehicle management CRUD operations."""
 
-from unittest.mock import patch, MagicMock
-import pytest
+from unittest.mock import MagicMock, patch
 
 
 class TestAdminUserManagement:
@@ -263,7 +262,9 @@ class TestAdminVehicleManagement:
     @patch('backend.routes.admin.invalidate_prefix')
     @patch('backend.routes.admin.UseCaseFactory.get_vehicle_repo')
     @patch('backend.routes.admin.AuditService.log')
-    def test_add_vehicle_success(self, mock_audit_log, mock_get_vehicle_repo, mock_invalidate, admin_client):
+    def test_add_vehicle_success(
+        self, mock_audit_log, mock_get_vehicle_repo, mock_invalidate, admin_client,
+    ):
         """Admin can add a new vehicle."""
         mock_repo = MagicMock()
         mock_get_vehicle_repo.return_value = mock_repo
@@ -319,7 +320,9 @@ class TestAdminVehicleManagement:
     @patch('backend.routes.admin.invalidate_prefix')
     @patch('backend.routes.admin.UseCaseFactory.get_vehicle_repo')
     @patch('backend.routes.admin.AuditService.log')
-    def test_edit_vehicle_post_success(self, mock_audit_log, mock_get_vehicle_repo, mock_invalidate, admin_client):
+    def test_edit_vehicle_post_success(
+        self, mock_audit_log, mock_get_vehicle_repo, mock_invalidate, admin_client,
+    ):
         """Admin can update a vehicle."""
         mock_repo = MagicMock()
         mock_get_vehicle_repo.return_value = mock_repo
@@ -354,7 +357,7 @@ class TestAdminVehicleManagement:
         with admin_client.session_transaction() as sess:
             csrf = sess['_csrf_token']
 
-        response = admin_client.post('/pojazdy/1/edytuj', data={
+        admin_client.post('/pojazdy/1/edytuj', data={
             '_csrf_token': csrf,
             'name': '',
             'plate': 'CD 456',

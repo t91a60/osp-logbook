@@ -1,12 +1,12 @@
 """Focused coverage tests for app-level behavior and error handlers."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 
 class TestSessionTimeout:
     def test_expired_session_redirects_to_login(self, client):
-        old_time = (datetime.now(timezone.utc) - timedelta(days=32)).isoformat()
+        old_time = (datetime.now(UTC) - timedelta(days=32)).isoformat()
         with client.session_transaction() as sess:
             sess['user_id'] = 1
             sess['username'] = 'tester'
@@ -37,7 +37,9 @@ class TestCsrfJsonResponse:
 
 class TestUnhandledErrorHandler:
     @patch('backend.routes.trips.GetTripsUseCase.execute')
-    def test_browser_route_unhandled_exception_returns_500(self, mock_get_page, authenticated_client):
+    def test_browser_route_unhandled_exception_returns_500(
+        self, mock_get_page, authenticated_client,
+    ):
         mock_get_page.side_effect = RuntimeError('unexpected boom')
 
         response = authenticated_client.get('/wyjazdy')

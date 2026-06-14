@@ -1,11 +1,10 @@
-from datetime import date
 import time
+from datetime import date
 
 import pytest
 import redis
 
 from backend.infrastructure.cache.redis_cache import RedisCache
-
 
 pytestmark = pytest.mark.integration
 

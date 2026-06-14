@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from backend.db import get_cursor, get_db
-from backend.services.cache_service import invalidate_prefix
-from backend.helpers import build_date_where, paginate, parse_positive_int
-from backend.infrastructure.repositories.base import BaseRepository
-from backend.infrastructure.repositories import _to_int, _to_float
-from backend.infrastructure.repositories.protocols import FuelRepositoryProtocol
 from backend.domain.exceptions import ForbiddenError, NotFoundError
+from backend.helpers import build_date_where, paginate, parse_positive_int
+from backend.infrastructure.repositories import _to_float, _to_int
+from backend.infrastructure.repositories.base import BaseRepository
+from backend.infrastructure.repositories.protocols import FuelRepositoryProtocol
+from backend.services.cache_service import invalidate_prefix
 
 
 class FuelRepository(BaseRepository, FuelRepositoryProtocol):
@@ -31,7 +31,8 @@ class FuelRepository(BaseRepository, FuelRepositoryProtocol):
             with get_cursor(conn) as cur:
                 cur.execute(
                     """
-                    INSERT INTO fuel (vehicle_id, date, driver, odometer, liters, cost, notes, added_by)
+                    INSERT INTO fuel
+                        (vehicle_id, date, driver, odometer, liters, cost, notes, added_by)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                     (
@@ -201,7 +202,10 @@ class FuelRepository(BaseRepository, FuelRepositoryProtocol):
                 {where_sql}
                 ORDER BY f.date DESC, f.created_at DESC
             """
-            count_sql = f"SELECT COUNT(*) AS count FROM fuel f JOIN vehicles v ON f.vehicle_id = v.id {where_sql}"
+            count_sql = (
+                f"SELECT COUNT(*) AS count FROM fuel f "
+                f"JOIN vehicles v ON f.vehicle_id = v.id {where_sql}"
+            )
 
             return paginate(conn, cur, count_sql, params, base_sql, params, page)
         finally:

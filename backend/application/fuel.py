@@ -16,15 +16,14 @@ from dataclasses import dataclass
 from backend.domain.exceptions import ForbiddenError, NotFoundError, ValidationError
 from backend.helpers import (
     ensure_non_empty_text,
-    validate_iso_date,
     parse_positive_int_field,
+    validate_iso_date,
 )
 from backend.infrastructure.repositories.protocols import (
     FuelRepositoryProtocol,
     VehicleRepositoryProtocol,
 )
 from backend.services.audit_service import AuditService
-
 
 # ---------------------------------------------------------------------------
 # AddFuelUseCase
@@ -313,4 +312,4 @@ def _to_float_field(value: str | None, field_name: str) -> float | None:
     try:
         return float(str(value).replace(',', '.'))
     except ValueError:
-        raise ValueError(f'{field_name}: nieprawidłowa wartość liczbowa.')
+        raise ValueError(f'{field_name}: nieprawidłowa wartość liczbowa.') from None

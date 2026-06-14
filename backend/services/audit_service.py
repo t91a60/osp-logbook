@@ -2,7 +2,7 @@ import logging
 
 import psycopg2
 
-from backend.db import get_pool, get_cursor
+from backend.db import get_cursor, get_pool
 
 logger = logging.getLogger(__name__)
 

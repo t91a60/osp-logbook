@@ -84,7 +84,9 @@ class TestApiFuelExtended:
 
 class TestApiMaintenanceExtended:
     @patch('backend.routes.api.AddMaintenanceUseCase.execute')
-    def test_add_maintenance_invalid_status_defaults_to_pending(self, mock_execute, authenticated_client):
+    def test_add_maintenance_invalid_status_defaults_to_pending(
+        self, mock_execute, authenticated_client,
+    ):
 
         with authenticated_client.session_transaction() as sess:
             csrf = sess['_csrf_token']

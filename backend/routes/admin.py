@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from flask import abort, flash, redirect, render_template, request, session, url_for
-from psycopg2 import IntegrityError
-from psycopg2 import sql
+from psycopg2 import IntegrityError, sql
 from werkzeug.security import generate_password_hash
 
 from backend.application import UseCaseFactory
@@ -42,13 +41,13 @@ def register_routes(app):
                 )
                 invalidate_prefix('vehicles:')
                 invalidate_prefix('dashboard:')
-                    AuditService.log(
-                        'Dodanie',
-                        'Pojazd',
-                        f'Nazwa: {form.name}',
-                        user_id=session.get('user_id'),
-                        username=session.get('username'),
-                    )
+                AuditService.log(
+                    'Dodanie',
+                    'Pojazd',
+                    f'Nazwa: {form.name}',
+                    user_id=session.get('user_id'),
+                    username=session.get('username'),
+                )
                 flash('Pojazd dodany.', 'success')
             except IntegrityError:
                 flash('Nie udało się dodać pojazdu. Sprawdź dane.', 'error')
@@ -162,8 +161,10 @@ def register_routes(app):
                     else:
                         try:
                             cur.execute(
-                                'INSERT INTO users (username, password, display_name, is_admin) VALUES (%s, %s, %s, %s)',
-                                (form.username, generate_password_hash(form.password), form.display_name, form.is_admin)
+                                'INSERT INTO users (username, password, display_name, is_admin) '
+                                'VALUES (%s, %s, %s, %s)',
+                                (form.username, generate_password_hash(form.password),
+                                 form.display_name, form.is_admin)
                             )
                             conn.commit()
                             flash('Uzytkownik dodany.', 'success')
@@ -198,7 +199,9 @@ def register_routes(app):
                         flash('Nie możesz usunąć własnego konta.', 'error')
                         return redirect(url_for('users'))
 
-                    cur.execute('SELECT id, username, is_admin FROM users WHERE id = %s', (uid_int,))
+                    cur.execute(
+                        'SELECT id, username, is_admin FROM users WHERE id = %s', (uid_int,)
+                    )
                     target = cur.fetchone()
                     if not target:
                         flash('Użytkownik nie istnieje.', 'error')
@@ -206,7 +209,8 @@ def register_routes(app):
 
                     if target.get('is_admin'):
                         cur.execute(
-                            'SELECT COUNT(*) AS count FROM users WHERE is_admin = TRUE AND id <> %s',
+                            'SELECT COUNT(*) AS count FROM users '
+                            'WHERE is_admin = TRUE AND id <> %s',
                             (uid_int,)
                         )
                         remaining_admins = cur.fetchone()['count']
@@ -219,7 +223,9 @@ def register_routes(app):
                     flash('Użytkownik usunięty.', 'success')
                 return redirect(url_for('users'))
 
-            cur.execute('SELECT id, username, display_name, is_admin FROM users ORDER BY display_name')
+            cur.execute(
+                'SELECT id, username, display_name, is_admin FROM users ORDER BY display_name'
+            )
             all_users = cur.fetchall()
         finally:
             cur.close()

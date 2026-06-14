@@ -1,7 +1,6 @@
 import inspect
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, Optional
 
 from backend.infrastructure.cache.redis_cache import RedisCache
 
@@ -9,7 +8,10 @@ from backend.infrastructure.cache.redis_cache import RedisCache
 cache = RedisCache()
 
 
-def get_or_set[T](key: str, ttl_seconds: int, loader: Callable[[], T], tags: Optional[list[str]] = None) -> T:
+def get_or_set[T](
+    key: str, ttl_seconds: int, loader: Callable[[], T],
+    tags: list[str] | None = None,
+) -> T:
     val = cache.get(key)
     if val is not None:
         return val
@@ -31,7 +33,7 @@ def invalidate_tags(tags: list[str] | str) -> None:
     cache.invalidate_tags(tags)
 
 
-def cached(ttl: int, tags: Optional[list[str]] = None, key_prefix: Optional[str] = None):
+def cached(ttl: int, tags: list[str] | None = None, key_prefix: str | None = None):
     """
     Dekorator buforowania.
     Tagi i klucz mogą zawierać nazwy argumentów funkcji,

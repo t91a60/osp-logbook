@@ -1,9 +1,9 @@
 """Tests for app.py — application factory, security headers, health, CSRF."""
 
-import os
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from flask import session, g
+from flask import session
 
 from app import create_app
 
@@ -260,12 +260,10 @@ class TestContextProcessors:
         """csrf_token() template helper generates and caches token in session."""
         with app.test_request_context():
             session.clear()
-            # Get context processors
-            ctx = app.jinja_env.globals
             # The context processors are injected per-request, so use test client
         with app.test_client() as c:
             # Make a GET request to trigger context processor
-            response = c.get('/login')
+            c.get('/login')
             with c.session_transaction() as sess:
                 assert '_csrf_token' in sess
                 assert len(sess['_csrf_token']) == 64  # token_hex(32) = 64 chars

@@ -5,7 +5,7 @@ Tests use an injected mock DashboardRepositoryProtocol — no Flask client, no D
 The _build_card static method is also tested directly.
 """
 from datetime import date
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -13,7 +13,6 @@ from backend.application.dashboard import (
     DashboardResult,
     DashboardStats,
     GetDashboardUseCase,
-    VehicleCard,
 )
 
 

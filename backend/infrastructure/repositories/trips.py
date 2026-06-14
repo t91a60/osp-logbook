@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 from backend.db import get_cursor, get_db
-from backend.services.cache_service import invalidate_prefix
 from backend.domain.exceptions import ForbiddenError, NotFoundError
 from backend.helpers import (
     build_date_where,
     paginate,
     parse_positive_int,
 )
-from backend.infrastructure.repositories.base import BaseRepository
 from backend.infrastructure.repositories import _to_int
+from backend.infrastructure.repositories.base import BaseRepository
 from backend.infrastructure.repositories.protocols import TripRepositoryProtocol
+from backend.services.cache_service import invalidate_prefix
 
 
 class TripRepository(BaseRepository, TripRepositoryProtocol):
@@ -38,7 +38,8 @@ class TripRepository(BaseRepository, TripRepositoryProtocol):
             with get_cursor(conn) as cur:
                 cur.execute(
                     """
-                    INSERT INTO trips (vehicle_id, date, driver, odo_start, odo_end, purpose, notes, added_by, time_start, time_end)
+                    INSERT INTO trips (vehicle_id, date, driver, odo_start, odo_end,
+                                       purpose, notes, added_by, time_start, time_end)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """,
@@ -69,13 +70,20 @@ class TripRepository(BaseRepository, TripRepositoryProtocol):
                         cur.executemany(
                             """
                             MERGE INTO trip_equipment AS target
-                            USING (VALUES (%s, %s, %s, %s)) AS source(trip_id, equipment_id, quantity_used, minutes_used)
-                            ON target.trip_id = source.trip_id AND target.equipment_id = source.equipment_id
+                            USING (VALUES (%s, %s, %s, %s))
+                            AS source(trip_id, equipment_id, quantity_used, minutes_used)
+                            ON target.trip_id = source.trip_id
+                            AND target.equipment_id = source.equipment_id
                             WHEN MATCHED THEN
-                              UPDATE SET quantity_used = source.quantity_used, minutes_used = source.minutes_used
+                              UPDATE SET
+                                quantity_used = source.quantity_used,
+                                minutes_used = source.minutes_used
                             WHEN NOT MATCHED THEN
                               INSERT (trip_id, equipment_id, quantity_used, minutes_used)
-                              VALUES (source.trip_id, source.equipment_id, source.quantity_used, source.minutes_used)
+                              VALUES (
+                                source.trip_id, source.equipment_id,
+                                source.quantity_used, source.minutes_used
+                              )
                         """,
                             eq_rows,
                         )
@@ -125,7 +133,10 @@ class TripRepository(BaseRepository, TripRepositoryProtocol):
                 {where_sql}
                 ORDER BY t.date DESC, t.created_at DESC
             """
-            count_sql = f"SELECT COUNT(*) AS count FROM trips t JOIN vehicles v ON t.vehicle_id = v.id {where_sql}"
+            count_sql = (
+                f"SELECT COUNT(*) AS count FROM trips t "
+                f"JOIN vehicles v ON t.vehicle_id = v.id {where_sql}"
+            )
 
             return paginate(conn, cur, count_sql, params, base_sql, params, page)
         finally:

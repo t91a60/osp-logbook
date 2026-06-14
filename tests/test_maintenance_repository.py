@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from backend.infrastructure.repositories.maintenance import MaintenanceRepository
 from backend.domain.exceptions import ForbiddenError, NotFoundError
+from backend.infrastructure.repositories.maintenance import MaintenanceRepository
 
 
 class TestMaintenanceRepositoryAdd:

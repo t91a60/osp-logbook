@@ -83,7 +83,9 @@ class TestEquipmentMutationRoutes:
     @patch('backend.routes.equipment.AuditService')
     @patch('backend.routes.equipment.get_cursor')
     @patch('backend.routes.equipment.get_db')
-    def test_equipment_add_redirects_on_success(self, mock_get_db, mock_get_cursor, mock_audit, admin_client):
+    def test_equipment_add_redirects_on_success(
+        self, mock_get_db, mock_get_cursor, mock_audit, admin_client
+    ):
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn
         mock_cursor = _make_cursor()
@@ -108,7 +110,8 @@ class TestEquipmentMutationRoutes:
         assert response.status_code == 302
         assert response.headers['Location'].endswith('/sprzet?vehicle_id=3')
         mock_cursor.execute.assert_called_once_with(
-            'INSERT INTO equipment (vehicle_id, name, quantity, unit, category, notes) VALUES (%s,%s,%s,%s,%s,%s)',
+            'INSERT INTO equipment (vehicle_id, name, quantity, unit, category, notes) '
+            'VALUES (%s,%s,%s,%s,%s,%s)',
             ('3', 'Defibrylator AED', 2, 'szt', 'Ratownictwo medyczne', 'Nowy sprzęt'),
         )
         mock_conn.commit.assert_called_once()
@@ -124,7 +127,9 @@ class TestEquipmentMutationRoutes:
     @patch('backend.routes.equipment.AuditService')
     @patch('backend.routes.equipment.get_cursor')
     @patch('backend.routes.equipment.get_db')
-    def test_equipment_delete_redirects_on_success(self, mock_get_db, mock_get_cursor, mock_audit, admin_client):
+    def test_equipment_delete_redirects_on_success(
+        self, mock_get_db, mock_get_cursor, mock_audit, admin_client
+    ):
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn
         mock_cursor = _make_cursor()
@@ -142,7 +147,9 @@ class TestEquipmentMutationRoutes:
             'SELECT vehicle_id, name FROM equipment WHERE id = %s',
             (9,),
         )
-        assert mock_cursor.execute.call_args_list[1].args == ('DELETE FROM equipment WHERE id = %s', (9,))
+        assert mock_cursor.execute.call_args_list[1].args == (
+            'DELETE FROM equipment WHERE id = %s', (9,),
+        )
         mock_conn.commit.assert_called_once()
         mock_audit.log.assert_called_once_with(
             'Usunięcie',

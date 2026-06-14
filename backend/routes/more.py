@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template
+
 from backend.helpers import login_required
 
 more_bp = Blueprint('more', __name__)

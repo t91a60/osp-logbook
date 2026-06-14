@@ -9,17 +9,16 @@ application layer (no Flask).  The route itself remains thin:
 """
 import hashlib
 import os
-
-from flask import render_template, make_response, current_app
 from datetime import date
 
-from backend.helpers import login_required, normalize_iso_date
-from backend.services.cache_service import get_or_set
+from flask import current_app, make_response, render_template
 
 # Application layer — imported lazily inside the view to support mocking in
 # tests that patch get_db / get_cursor directly on this module (legacy mocks
 # still pass because get_or_set is mocked to call the loader directly).
 from backend.application.dashboard import GetDashboardUseCase
+from backend.helpers import login_required
+from backend.services.cache_service import get_or_set
 
 
 def register_routes(app):

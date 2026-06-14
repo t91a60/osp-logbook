@@ -6,13 +6,14 @@ from contextlib import suppress
 from pathlib import Path
 
 import psycopg2
-from psycopg2.pool import ThreadedConnectionPool
-from psycopg2.extras import RealDictCursor
-from werkzeug.security import generate_password_hash
-from flask import g, Flask
-from alembic import command
 from alembic.config import Config as AlembicConfig
+from flask import Flask, g
+from psycopg2.extras import RealDictCursor
+from psycopg2.pool import ThreadedConnectionPool
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.security import generate_password_hash
+
+from alembic import command
 
 logger = logging.getLogger(__name__)
 
@@ -199,7 +200,9 @@ def init_db() -> None:
             admin_password = os.environ.get('BOOTSTRAP_ADMIN_PASSWORD')
 
             admin_missing = admin_row is None
-            needs_password_update = admin_missing or admin_row['password'] == ADMIN_PLACEHOLDER_PASSWORD
+            needs_password_update = (
+                admin_missing or admin_row['password'] == ADMIN_PLACEHOLDER_PASSWORD
+            )
             generated_password = None
 
             if needs_password_update:

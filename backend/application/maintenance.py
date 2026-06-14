@@ -13,13 +13,13 @@ No Flask imports anywhere in this module.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from backend.domain.exceptions import ForbiddenError, NotFoundError, ValidationError
 from backend.helpers import (
     ensure_non_empty_text,
-    validate_iso_date,
     parse_positive_int_field,
+    validate_iso_date,
 )
 from backend.infrastructure.repositories.protocols import (
     MaintenanceRepositoryProtocol,
@@ -380,7 +380,9 @@ class CreateNextMaintenanceUseCase:
             raise NotFoundError('Nie znaleziono wpisu serwisowego.')
         if not cmd.is_admin and row.get('added_by') != cmd.requester:
             raise ForbiddenError('Brak uprawnień.')
-        AuditService.log('Duplikacja', 'Serwis', f'Źródło ID: {cmd.entry_id}', username=cmd.requester)
+        AuditService.log(
+            'Duplikacja', 'Serwis', f'Źródło ID: {cmd.entry_id}', username=cmd.requester
+        )
         return row
 
     @classmethod
@@ -401,4 +403,4 @@ def _to_float_field(value: str | None, field_name: str) -> float | None:
     try:
         return float(str(value).replace(',', '.'))
     except ValueError:
-        raise ValueError(f'{field_name}: nieprawidłowa wartość liczbowa.')
+        raise ValueError(f'{field_name}: nieprawidłowa wartość liczbowa.') from None

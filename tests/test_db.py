@@ -1,7 +1,7 @@
 """Tests for backend/db.py — database utilities and health checks."""
 
-from unittest.mock import patch, MagicMock
-import pytest
+from unittest.mock import MagicMock, patch
+
 import psycopg2
 
 from backend import db as db_module

@@ -1,9 +1,9 @@
+import re
+from collections.abc import Callable
 from datetime import date, datetime, timedelta
 from functools import wraps
-from collections.abc import Callable
-import re
 
-from flask import session, redirect, url_for, abort
+from flask import abort, redirect, session, url_for
 
 
 def login_required[**P, R](f: Callable[P, R]) -> Callable[P, R]:
@@ -60,7 +60,7 @@ def parse_trip_equipment_form(form) -> list[dict]:
         try:
             eq_id = int(eq_id_raw)
         except (TypeError, ValueError):
-            raise ValueError('Wybierz poprawny sprzęt.')
+            raise ValueError('Wybierz poprawny sprzęt.') from None
         if eq_id <= 0:
             raise ValueError('Wybierz poprawny sprzęt.')
 
@@ -69,7 +69,7 @@ def parse_trip_equipment_form(form) -> list[dict]:
         try:
             eq_min = int(eq_min_raw)
         except (TypeError, ValueError):
-            raise ValueError('Czas użycia sprzętu musi być liczbą całkowitą.')
+            raise ValueError('Czas użycia sprzętu musi być liczbą całkowitą.') from None
         if eq_min <= 0:
             raise ValueError('Czas użycia sprzętu musi być większy od 0.')
 
@@ -78,7 +78,7 @@ def parse_trip_equipment_form(form) -> list[dict]:
             try:
                 eq_qty = int(eq_qty_raw)
             except (TypeError, ValueError):
-                raise ValueError('Ilość sprzętu musi być liczbą całkowitą.')
+                raise ValueError('Ilość sprzętu musi być liczbą całkowitą.') from None
             if eq_qty <= 0:
                 raise ValueError('Ilość sprzętu musi być większa od 0.')
 
@@ -117,7 +117,9 @@ def normalize_iso_date(value: str | date | datetime | None) -> str | None:
                 return None
 
 
-def days_since_iso_date(value: str | date | datetime | None, today: date | None = None) -> int | None:
+def days_since_iso_date(
+    value: str | date | datetime | None, today: date | None = None
+) -> int | None:
     """Return number of days since a date-like value, or None if invalid."""
     normalized = normalize_iso_date(value)
     if normalized is None:
@@ -230,7 +232,7 @@ def validate_iso_date(
     try:
         parsed = date.fromisoformat(text)
     except ValueError:
-        raise ValueError(f'{field_name} musi mieć format YYYY-MM-DD.')
+        raise ValueError(f'{field_name} musi mieć format YYYY-MM-DD.') from None
 
     if parsed > date.today() + timedelta(days=max_future_days):
         raise ValueError(f'{field_name} nie może być zbyt odległa w przyszłości.')
@@ -243,7 +245,7 @@ def parse_positive_int_field(value: str | int | None, field_name: str) -> int | 
     try:
         parsed = int(value)
     except (TypeError, ValueError):
-        raise ValueError(f'{field_name} musi być liczbą całkowitą.')
+        raise ValueError(f'{field_name} musi być liczbą całkowitą.') from None
     if parsed <= 0:
         raise ValueError(f'{field_name} musi być większy od 0.')
     return parsed
@@ -255,7 +257,7 @@ def parse_positive_float_field(value: str | float | None, field_name: str) -> fl
     try:
         parsed = float(value)
     except (TypeError, ValueError):
-        raise ValueError(f'{field_name} musi być liczbą.')
+        raise ValueError(f'{field_name} musi być liczbą.') from None
     if parsed <= 0:
         raise ValueError(f'{field_name} musi być większy od 0.')
     return parsed

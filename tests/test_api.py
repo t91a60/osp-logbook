@@ -2,8 +2,6 @@
 
 from unittest.mock import patch
 
-import pytest
-
 
 class TestValidationHelpers:
     def test_json_error_helper(self, app_context):

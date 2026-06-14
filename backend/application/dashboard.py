@@ -17,7 +17,6 @@ from typing import Any
 from backend.helpers import normalize_iso_date
 from backend.infrastructure.repositories.protocols import DashboardRepositoryProtocol
 
-
 # ---------------------------------------------------------------------------
 # Output DTO
 # ---------------------------------------------------------------------------
@@ -96,10 +95,9 @@ class GetDashboardUseCase:
         if raw_date:
             normalized = normalize_iso_date(raw_date)
             if normalized:
-                try:
+                from contextlib import suppress
+                with suppress(TypeError, ValueError):
                     days_ago = (today - date.fromisoformat(normalized)).days
-                except (TypeError, ValueError):
-                    pass
 
         return VehicleCard(
             id=row['id'],

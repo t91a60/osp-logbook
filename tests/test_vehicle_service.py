@@ -48,7 +48,9 @@ class TestVehicleRepositoryDelete:
     @patch('backend.infrastructure.repositories.vehicles.VehicleRepository.has_linked_rows')
     @patch('backend.infrastructure.repositories.vehicles.get_cursor')
     @patch('backend.infrastructure.repositories.vehicles.get_db')
-    def test_delete_forbidden_when_linked_rows_exist(self, mock_get_db, mock_get_cursor, mock_has_linked_rows, app):
+    def test_delete_forbidden_when_linked_rows_exist(
+        self, mock_get_db, mock_get_cursor, mock_has_linked_rows, app,
+    ):
         repo = VehicleRepository()
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn

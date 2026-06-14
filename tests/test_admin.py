@@ -1,7 +1,6 @@
 """Tests for backend/routes/admin.py — delete_entry and admin operations."""
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 
 class TestDeleteEntry:
@@ -28,7 +27,9 @@ class TestDeleteEntry:
 
     @patch('backend.routes.admin.get_cursor')
     @patch('backend.routes.admin.get_db')
-    def test_delete_others_entry_forbidden(self, mock_get_db, mock_get_cursor, authenticated_client):
+    def test_delete_others_entry_forbidden(
+        self, mock_get_db, mock_get_cursor, authenticated_client,
+    ):
         """Non-admin cannot delete another user's entry."""
         mock_conn = MagicMock()
         mock_get_db.return_value = mock_conn

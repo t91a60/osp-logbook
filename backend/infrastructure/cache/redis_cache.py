@@ -5,7 +5,7 @@ import os
 import time
 from collections import OrderedDict
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 
 import redis
 
@@ -27,9 +27,9 @@ class RedisCache:
     Zapewnia tag-based invalidation i bezpieczną serializację typów bazodanowych.
     """
 
-    def __init__(self, url: Optional[str] = None):
+    def __init__(self, url: str | None = None):
         self.url = url or os.environ.get('REDIS_URL')
-        self.redis: Optional[redis.Redis] = None
+        self.redis: redis.Redis | None = None
         self._in_memory: OrderedDict[str, dict[str, Any]] = OrderedDict()
         self._MAX_SIZE = 1024
 
@@ -42,7 +42,7 @@ class RedisCache:
                 logger.warning("Brak połączenia z Redis, używam in-memory cache.")
                 self.redis = None
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         if self.redis:
             try:
                 val = self.redis.get(key)
@@ -62,7 +62,7 @@ class RedisCache:
             self._in_memory.pop(key, None)
         return None
 
-    def set(self, key: str, value: Any, ttl_seconds: int, tags: Optional[list[str]] = None) -> None:
+    def set(self, key: str, value: Any, ttl_seconds: int, tags: list[str] | None = None) -> None:
         tags = tags or []
         if self.redis:
             try:
@@ -79,7 +79,8 @@ class RedisCache:
                 pass
 
         # In-memory fallback
-        # Wymuszamy serializację/deserializację, żeby unikać problemów ze zmianami obiektów mutowalnych
+        # Wymuszamy serializację/deserializację, żeby unikać problemów
+        # ze zmianami obiektów mutowalnych
         # i naśladować zachowanie Redis (gdzie daty stają się stringami).
         try:
             val_to_store = json.loads(json.dumps(value, cls=CustomJSONEncoder))
@@ -143,6 +144,6 @@ class RedisCache:
                 pass
 
         # In-memory fallback
-        keys_to_delete = [k for k in self._in_memory.keys() if k.startswith(prefix)]
+        keys_to_delete = [k for k in self._in_memory if k.startswith(prefix)]
         for k in keys_to_delete:
             self._in_memory.pop(k, None)

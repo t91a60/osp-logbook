@@ -46,8 +46,6 @@ class TripService:
             username=added_by,
         )
         # Invalidate report caches for this vehicle (keys: report:{vehicle_id}:<period>)
-        try:
+        from contextlib import suppress
+        with suppress(Exception):
             invalidate_prefix(f'report:{vehicle_id}:')
-        except Exception:
-            # Non-fatal: cache invalidation is best-effort
-            pass

@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-from backend.db import get_db, get_cursor
-from backend.services.cache_service import invalidate_prefix
-from backend.helpers import build_date_where, normalize_iso_date, paginate, parse_positive_int
-from backend.infrastructure.repositories.base import BaseRepository
-from backend.infrastructure.repositories import _to_int, _to_float
-from backend.infrastructure.repositories.protocols import MaintenanceRepositoryProtocol
+from backend.db import get_cursor, get_db
 from backend.domain.exceptions import ForbiddenError, NotFoundError
+from backend.helpers import build_date_where, normalize_iso_date, paginate, parse_positive_int
+from backend.infrastructure.repositories import _to_float, _to_int
+from backend.infrastructure.repositories.base import BaseRepository
+from backend.infrastructure.repositories.protocols import MaintenanceRepositoryProtocol
+from backend.services.cache_service import invalidate_prefix
 
 
 class MaintenanceRepository(BaseRepository, MaintenanceRepositoryProtocol):
@@ -33,9 +33,14 @@ class MaintenanceRepository(BaseRepository, MaintenanceRepositoryProtocol):
         try:
             with get_cursor(conn) as cur:
                 cur.execute('''
-                        INSERT INTO maintenance (vehicle_id, date, odometer, description, cost, notes, added_by, status, priority, due_date)
+                        INSERT INTO maintenance
+                            (vehicle_id, date, odometer, description, cost,
+                             notes, added_by, status, priority, due_date)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ''', (vehicle_id, date_val, odometer, description, cost, notes, added_by, status, priority, due_date))
+                    ''', (
+                        vehicle_id, date_val, odometer, description,
+                        cost, notes, added_by, status, priority, due_date,
+                    ))
                 conn.commit()
                 # Invalidate dashboard snapshot and last-km cache so UIs refresh immediately
                 try:
@@ -194,11 +199,17 @@ class MaintenanceRepository(BaseRepository, MaintenanceRepositoryProtocol):
                 params.append(vehicle_id)
 
             if status_filter == 'pending':
-                where_parts.append("(m.status = 'pending' AND (m.due_date IS NULL OR m.due_date >= CURRENT_DATE))")
+                where_parts.append(
+                    "(m.status = 'pending' AND "
+                    "(m.due_date IS NULL OR m.due_date >= CURRENT_DATE))"
+                )
             elif status_filter == 'completed':
                 where_parts.append("m.status = 'completed'")
             elif status_filter == 'overdue':
-                where_parts.append("(m.status = 'pending' AND m.due_date IS NOT NULL AND m.due_date < CURRENT_DATE)")
+                where_parts.append(
+                    "(m.status = 'pending' AND "
+                    "m.due_date IS NOT NULL AND m.due_date < CURRENT_DATE)"
+                )
 
             date_parts, date_params = build_date_where(okres, od, do_, alias='m')
             where_parts += date_parts
@@ -218,7 +229,10 @@ class MaintenanceRepository(BaseRepository, MaintenanceRepositoryProtocol):
                 {where_sql}
                 ORDER BY m.date DESC, m.created_at DESC
             '''
-            count_sql = f'SELECT COUNT(*) AS count FROM maintenance m JOIN vehicles v ON m.vehicle_id = v.id {where_sql}'
+            count_sql = (
+                f'SELECT COUNT(*) AS count FROM maintenance m '
+                f'JOIN vehicles v ON m.vehicle_id = v.id {where_sql}'
+            )
 
             return paginate(conn, cur, count_sql, params, base_sql, params, page)
         finally:
@@ -288,7 +302,9 @@ class MaintenanceRepository(BaseRepository, MaintenanceRepositoryProtocol):
                 next_due = (date.today() + timedelta(days=90)).isoformat()
 
             cur.execute('''
-                INSERT INTO maintenance (vehicle_id, date, odometer, description, cost, notes, added_by, status, priority, due_date)
+                INSERT INTO maintenance
+                    (vehicle_id, date, odometer, description, cost,
+                     notes, added_by, status, priority, due_date)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
                 row['vehicle_id'],

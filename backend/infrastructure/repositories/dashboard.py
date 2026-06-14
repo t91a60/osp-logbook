@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from backend.db import get_cursor, get_db
 from backend.infrastructure.repositories.base import BaseRepository
@@ -10,7 +10,7 @@ class DashboardRepository(BaseRepository, DashboardRepositoryProtocol):
     """Repository odpowiedzialny za wszystkie zapytania SQL widoku dashboardu."""
 
     @cached(ttl=300, tags=['dashboard'])
-    def get_vehicle_cards(self, cur: Optional[Any] = None) -> list[dict[str, Any]]:
+    def get_vehicle_cards(self, cur: Any | None = None) -> list[dict[str, Any]]:
         """Zwraca dane do kart pojazdów (ostatni przebieg + data)."""
 
         def _execute(cursor) -> list[dict[str, Any]]:
@@ -56,7 +56,7 @@ class DashboardRepository(BaseRepository, DashboardRepositoryProtocol):
 
     @cached(ttl=60, tags=['dashboard'])
     def get_recent_trips(
-        self, limit: int = 6, cur: Optional[Any] = None
+        self, limit: int = 6, cur: Any | None = None
     ) -> list[dict[str, Any]]:
         def _execute(cursor):
             cursor.execute(
@@ -76,7 +76,7 @@ class DashboardRepository(BaseRepository, DashboardRepositoryProtocol):
 
     @cached(ttl=60, tags=['dashboard'])
     def get_recent_fuel(
-        self, limit: int = 4, cur: Optional[Any] = None
+        self, limit: int = 4, cur: Any | None = None
     ) -> list[dict[str, Any]]:
         def _execute(cursor):
             cursor.execute(
@@ -95,7 +95,7 @@ class DashboardRepository(BaseRepository, DashboardRepositoryProtocol):
         return self._run_with_cursor(cur, _execute)
 
     @cached(ttl=300, tags=['dashboard'])
-    def get_aggregate_stats(self, cur: Optional[Any] = None) -> dict[str, int]:
+    def get_aggregate_stats(self, cur: Any | None = None) -> dict[str, int]:
         def _execute(cursor):
             cursor.execute("""
                 SELECT
@@ -112,7 +112,7 @@ class DashboardRepository(BaseRepository, DashboardRepositoryProtocol):
 
         return self._run_with_cursor(cur, _execute)
 
-    def _run_with_cursor(self, provided_cur: Optional[Any], func: callable) -> Any:
+    def _run_with_cursor(self, provided_cur: Any | None, func: callable) -> Any:
         return super()._run_with_cursor(
             provided_cur,
             func,

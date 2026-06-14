@@ -1,11 +1,10 @@
 """Route smoke tests for /wyjazdy and /tankowania."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
-
-from backend.domain.exceptions import NotFoundError, ForbiddenError
 from psycopg2 import IntegrityError
+
+from backend.domain.exceptions import ForbiddenError, NotFoundError
 
 
 class TestTripsRoute:
@@ -82,7 +81,9 @@ class TestTripsRoute:
     @patch('backend.routes.trips.AddTripUseCase.execute')
     @patch('backend.routes.trips.parse_trip_equipment_form')
     @patch('backend.routes.trips.get_vehicles_cached')
-    def test_post_invalid_equipment_form(self, mock_vehicles, mock_parse_equipment, mock_execute, authenticated_client):
+    def test_post_invalid_equipment_form(
+        self, mock_vehicles, mock_parse_equipment, mock_execute, authenticated_client,
+    ):
         mock_vehicles.return_value = [{'id': 1, 'name': 'GBA'}]
         mock_parse_equipment.side_effect = ValueError('bad equipment')
 
@@ -213,7 +214,9 @@ class TestFuelRoute:
     @patch('backend.routes.fuel.EditFuelUseCase.execute')
     @patch('backend.routes.fuel.GetFuelByIdUseCase.execute')
     @patch('backend.routes.fuel.get_vehicles_cached')
-    def test_edit_post_handles_not_found(self, mock_vehicles, mock_get_entry, mock_edit, authenticated_client):
+    def test_edit_post_handles_not_found(
+        self, mock_vehicles, mock_get_entry, mock_edit, authenticated_client,
+    ):
         mock_vehicles.return_value = [{'id': 1, 'name': 'GBA'}]
         mock_get_entry.return_value = {'id': 10, 'added_by': 'testuser'}
         mock_edit.side_effect = NotFoundError('missing')
@@ -233,7 +236,9 @@ class TestFuelRoute:
     @patch('backend.routes.fuel.EditFuelUseCase.execute')
     @patch('backend.routes.fuel.GetFuelByIdUseCase.execute')
     @patch('backend.routes.fuel.get_vehicles_cached')
-    def test_edit_post_success(self, mock_vehicles, mock_get_entry, mock_edit, authenticated_client):
+    def test_edit_post_success(
+        self, mock_vehicles, mock_get_entry, mock_edit, authenticated_client,
+    ):
         mock_vehicles.return_value = [{'id': 1, 'name': 'GBA'}]
         mock_get_entry.return_value = {'id': 10, 'added_by': 'testuser'}
 

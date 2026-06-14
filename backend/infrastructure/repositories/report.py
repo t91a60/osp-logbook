@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from backend.db import get_cursor, get_db
 from backend.infrastructure.repositories.base import BaseRepository
@@ -10,7 +10,13 @@ class ReportRepository(BaseRepository, ReportRepositoryProtocol):
     """Repository odpowiedzialny za zapytania do raportów okresowych."""
 
     @cached(ttl=300, tags=['report', 'report:{vid}'])
-    def get_trip_entries(self, first_day: str, last_day: str, vid: int = 0, cur: Optional[Any] = None) -> list[dict[str, Any]]:
+    def get_trip_entries(
+        self,
+        first_day: str,
+        last_day: str,
+        vid: int = 0,
+        cur: Any | None = None,
+    ) -> list[dict[str, Any]]:
         def _execute(cursor) -> list[dict[str, Any]]:
             trip_where_parts = ["t.deleted_at IS NULL", "t.date BETWEEN %s AND %s"]
             trip_params = [first_day, last_day]
@@ -40,7 +46,13 @@ class ReportRepository(BaseRepository, ReportRepositoryProtocol):
         return self._run_with_cursor(cur, _execute)
 
     @cached(ttl=300, tags=['report', 'report:{vid}'])
-    def get_total_km(self, first_day: str, last_day: str, vid: int = 0, cur: Optional[Any] = None) -> int:
+    def get_total_km(
+        self,
+        first_day: str,
+        last_day: str,
+        vid: int = 0,
+        cur: Any | None = None,
+    ) -> int:
         def _execute(cursor) -> int:
             total_km_where_parts = ["deleted_at IS NULL", "date BETWEEN %s AND %s"]
             total_km_params = [first_day, last_day]
@@ -68,7 +80,13 @@ class ReportRepository(BaseRepository, ReportRepositoryProtocol):
         return self._run_with_cursor(cur, _execute)
 
     @cached(ttl=300, tags=['report', 'report:{vid}'])
-    def get_trip_summary(self, first_day: str, last_day: str, vid: int = 0, cur: Optional[Any] = None) -> list[dict[str, Any]]:
+    def get_trip_summary(
+        self,
+        first_day: str,
+        last_day: str,
+        vid: int = 0,
+        cur: Any | None = None,
+    ) -> list[dict[str, Any]]:
         def _execute(cursor) -> list[dict[str, Any]]:
             join_conditions = [
                 "t.vehicle_id = v.id",
@@ -102,7 +120,13 @@ class ReportRepository(BaseRepository, ReportRepositoryProtocol):
         return self._run_with_cursor(cur, _execute)
 
     @cached(ttl=300, tags=['report', 'report:{vid}'])
-    def get_fuel_summary(self, first_day: str, last_day: str, vid: int = 0, cur: Optional[Any] = None) -> dict[int, dict[str, Any]]:
+    def get_fuel_summary(
+        self,
+        first_day: str,
+        last_day: str,
+        vid: int = 0,
+        cur: Any | None = None,
+    ) -> dict[int, dict[str, Any]]:
         def _execute(cursor) -> dict[int, dict[str, Any]]:
             fuel_where_parts = ["f.deleted_at IS NULL", "f.date BETWEEN %s AND %s"]
             fuel_params = [first_day, last_day]
@@ -129,7 +153,13 @@ class ReportRepository(BaseRepository, ReportRepositoryProtocol):
         return self._run_with_cursor(cur, _execute)
 
     @cached(ttl=300, tags=['report', 'report:{vid}'])
-    def get_maintenance_summary(self, first_day: str, last_day: str, vid: int = 0, cur: Optional[Any] = None) -> dict[int, dict[str, Any]]:
+    def get_maintenance_summary(
+        self,
+        first_day: str,
+        last_day: str,
+        vid: int = 0,
+        cur: Any | None = None,
+    ) -> dict[int, dict[str, Any]]:
         def _execute(cursor) -> dict[int, dict[str, Any]]:
             maint_where_parts = ["m.deleted_at IS NULL", "m.date BETWEEN %s AND %s"]
             maint_params = [first_day, last_day]
@@ -153,7 +183,7 @@ class ReportRepository(BaseRepository, ReportRepositoryProtocol):
 
         return self._run_with_cursor(cur, _execute)
 
-    def _run_with_cursor(self, provided_cur: Optional[Any], func: callable) -> Any:
+    def _run_with_cursor(self, provided_cur: Any | None, func: callable) -> Any:
         return super()._run_with_cursor(
             provided_cur,
             func,

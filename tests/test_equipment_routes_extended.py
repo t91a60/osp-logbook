@@ -26,7 +26,9 @@ class TestEquipmentEditRoute:
     @patch('backend.routes.equipment.get_vehicles_cached')
     @patch('backend.routes.equipment.get_cursor')
     @patch('backend.routes.equipment.get_db')
-    def test_edit_get_renders_form(self, mock_db, mock_cur_fn, mock_vehicles, mock_render, admin_client):
+    def test_edit_get_renders_form(
+        self, mock_db, mock_cur_fn, mock_vehicles, mock_render, admin_client
+    ):
         mock_db.return_value = MagicMock()
         item = {'id': 5, 'name': 'Torba R1', 'vehicle_id': 1, 'vname': 'GBA',
                 'quantity': 1, 'unit': 'szt', 'category': 'Ratownictwo medyczne', 'notes': ''}
@@ -181,7 +183,10 @@ class TestEquipmentApiEndpoint:
     def test_api_returns_json_list(self, mock_db, mock_cur_fn, authenticated_client):
         mock_db.return_value = MagicMock()
         items = [
-            {'id': 1, 'name': 'Torba R1', 'quantity': 1, 'unit': 'szt', 'category': 'Ratownictwo medyczne'},
+            {
+                'id': 1, 'name': 'Torba R1', 'quantity': 1, 'unit': 'szt',
+                'category': 'Ratownictwo medyczne',
+            },
             {'id': 2, 'name': 'Piła', 'quantity': 1, 'unit': 'szt', 'category': 'Pilarstwo'},
         ]
         mock_cur = _make_cursor(fetchall_result=items)
@@ -248,7 +253,9 @@ class TestEquipmentAddExtended:
     @patch('backend.routes.equipment.AuditService')
     @patch('backend.routes.equipment.get_cursor')
     @patch('backend.routes.equipment.get_db')
-    def test_add_invalid_category_defaults_to_pozostale(self, mock_db, mock_cur_fn, mock_audit, admin_client):
+    def test_add_invalid_category_defaults_to_pozostale(
+        self, mock_db, mock_cur_fn, mock_audit, admin_client
+    ):
         mock_conn = MagicMock()
         mock_db.return_value = mock_conn
         mock_cur = _make_cursor()
@@ -268,7 +275,9 @@ class TestEquipmentAddExtended:
     @patch('backend.routes.equipment.AuditService')
     @patch('backend.routes.equipment.get_cursor')
     @patch('backend.routes.equipment.get_db')
-    def test_add_invalid_quantity_defaults_to_1(self, mock_db, mock_cur_fn, mock_audit, admin_client):
+    def test_add_invalid_quantity_defaults_to_1(
+        self, mock_db, mock_cur_fn, mock_audit, admin_client
+    ):
         mock_conn = MagicMock()
         mock_db.return_value = mock_conn
         mock_cur = _make_cursor()

@@ -20,7 +20,6 @@ from backend.application.trips import (
 )
 from backend.domain.exceptions import ValidationError
 
-
 # ---------------------------------------------------------------------------
 # AddTripUseCase
 # ---------------------------------------------------------------------------

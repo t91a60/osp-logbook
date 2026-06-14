@@ -1,6 +1,7 @@
 """Tests for backend/bootstrap.py — ensure_bootstrap_admin()."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import psycopg2.errors
 import pytest
 
@@ -76,7 +77,9 @@ class TestEnsureBootstrapAdmin:
 
     @patch('backend.bootstrap.get_cursor')
     @patch('backend.bootstrap.get_pool')
-    def test_skips_existing_admin_without_force_reset(self, mock_get_pool, mock_get_cursor, app, monkeypatch):
+    def test_skips_existing_admin_without_force_reset(
+        self, mock_get_pool, mock_get_cursor, app, monkeypatch,
+    ):
         """Existing admin without force_reset should be skipped."""
         from backend.bootstrap import ensure_bootstrap_admin
 
@@ -103,7 +106,9 @@ class TestEnsureBootstrapAdmin:
 
     @patch('backend.bootstrap.get_cursor')
     @patch('backend.bootstrap.get_pool')
-    def test_updates_existing_admin_with_force_reset(self, mock_get_pool, mock_get_cursor, app, monkeypatch):
+    def test_updates_existing_admin_with_force_reset(
+        self, mock_get_pool, mock_get_cursor, app, monkeypatch,
+    ):
         """Existing admin with FORCE_RESET=1 should be updated."""
         from backend.bootstrap import ensure_bootstrap_admin
 
@@ -132,7 +137,9 @@ class TestEnsureBootstrapAdmin:
 
     @patch('backend.bootstrap.get_cursor')
     @patch('backend.bootstrap.get_pool')
-    def test_handles_undefined_table_gracefully(self, mock_get_pool, mock_get_cursor, app, monkeypatch):
+    def test_handles_undefined_table_gracefully(
+        self, mock_get_pool, mock_get_cursor, app, monkeypatch,
+    ):
         """UndefinedTable error should be caught silently."""
         from backend.bootstrap import ensure_bootstrap_admin
 

@@ -4,7 +4,7 @@ in backend/application/fuel.py.
 
 All tests use injected mock repositories — no Flask test client, no DB.
 """
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -115,7 +115,9 @@ class TestEditFuelUseCase:
             'id': 1, 'vehicle_id': 1, 'date': '2026-05-01',
             'driver': 'Jan', 'liters': 40.0, 'added_by': 'jan',
         }
-        mock_vehicle_repo.get_active.return_value = {'id': 1, 'name': 'Fiat Ducato', 'plate': 'SBI 001'}
+        mock_vehicle_repo.get_active.return_value = {
+            'id': 1, 'name': 'Fiat Ducato', 'plate': 'SBI 001',
+        }
         uc = EditFuelUseCase(fuel_repo=mock_fuel_repo, vehicle_repo=mock_vehicle_repo)
         with patch('backend.application.fuel.AuditService'):
             uc.execute_instance(_valid_edit_cmd())
@@ -174,7 +176,9 @@ class TestEditFuelUseCaseValidation:
         with pytest.raises(ValidationError):
             uc.execute_instance(_valid_edit_cmd(liters=None))
 
-    def test_edit_non_numeric_liters_raises_validation_error(self, mock_fuel_repo, mock_vehicle_repo):
+    def test_edit_non_numeric_liters_raises_validation_error(
+        self, mock_fuel_repo, mock_vehicle_repo,
+    ):
         mock_fuel_repo.get_by_id.return_value = self._existing_entry()
         uc = EditFuelUseCase(fuel_repo=mock_fuel_repo, vehicle_repo=mock_vehicle_repo)
         with pytest.raises(ValidationError):

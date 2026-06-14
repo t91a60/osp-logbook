@@ -5,7 +5,7 @@ Split into:
   - TestResolvePeriod   — pure function, no mocking needed
   - TestGenerateReportUseCase — DB mocked via get_db / get_cursor
 """
-from datetime import date, timedelta
+from datetime import date
 from unittest.mock import MagicMock
 
 import pytest
@@ -16,7 +16,6 @@ from backend.application.report import (
     ReportResult,
     _resolve_period,
 )
-
 
 # ---------------------------------------------------------------------------
 # _resolve_period — pure function tests (no mocks)
@@ -119,7 +118,9 @@ class TestGenerateReportUseCase:
     def test_fuel_and_maint_indexed_by_vehicle_id(self):
         repo = _make_repo()
         uc = GenerateReportUseCase(report_repo=repo)
-        repo.get_fuel_summary.return_value = {7: {'vehicle_id': 7, 'total_liters': 40.0, 'total_cost': 200.0}}
+        repo.get_fuel_summary.return_value = {
+            7: {'vehicle_id': 7, 'total_liters': 40.0, 'total_cost': 200.0},
+        }
         repo.get_maintenance_summary.return_value = {7: {'vehicle_id': 7, 'total_cost': 80.0}}
         result = uc.execute_instance(ReportQuery(), vehicles=[])
         assert 7 in result.fuel_by_vid

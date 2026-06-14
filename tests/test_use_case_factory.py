@@ -4,14 +4,13 @@ Unit tests for UseCaseFactory in backend/application/__init__.py.
 Verifies that each factory method returns a correctly typed instance and that
 each call produces a distinct (new) object — i.e. no singleton reuse.
 """
-import pytest
 
 from backend.application import (
     AddFuelUseCase,
     AddTripUseCase,
+    EditFuelUseCase,
     GenerateReportUseCase,
     GetDashboardUseCase,
-    EditFuelUseCase,
     UseCaseFactory,
 )
 

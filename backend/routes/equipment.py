@@ -1,9 +1,10 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, session, jsonify
-from backend.db import get_db, get_cursor
-from backend.helpers import login_required, admin_required
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
+
+from app import get_limiter
+from backend.db import get_cursor, get_db
+from backend.helpers import admin_required, login_required
 from backend.services.audit_service import AuditService
 from backend.services.cache_service import get_vehicles_cached
-from app import get_limiter
 
 limiter = get_limiter()
 
@@ -139,7 +140,8 @@ def equipment_add():
     cur = get_cursor(conn)
     try:
         cur.execute(
-            'INSERT INTO equipment (vehicle_id, name, quantity, unit, category, notes) VALUES (%s,%s,%s,%s,%s,%s)',
+            'INSERT INTO equipment (vehicle_id, name, quantity, unit, category, notes) '
+            'VALUES (%s,%s,%s,%s,%s,%s)',
             (form.vehicle_id, form.name, form.quantity, form.unit,
              category, form.notes)
         )
@@ -163,7 +165,11 @@ def equipment_edit(eid):
     conn = get_db()
     cur = get_cursor(conn)
     try:
-        cur.execute('SELECT e.*, v.name AS vname FROM equipment e JOIN vehicles v ON e.vehicle_id = v.id WHERE e.id = %s', (eid,))
+        cur.execute(
+            'SELECT e.*, v.name AS vname FROM equipment e '
+            'JOIN vehicles v ON e.vehicle_id = v.id WHERE e.id = %s',
+            (eid,)
+        )
         item = cur.fetchone()
         if not item:
             flash('Sprzęt nie istnieje.', 'error')
@@ -181,7 +187,8 @@ def equipment_edit(eid):
                 quantity = 1
 
             cur.execute(
-                'UPDATE equipment SET name=%s, quantity=%s, unit=%s, category=%s, notes=%s WHERE id=%s',
+                'UPDATE equipment SET name=%s, quantity=%s, unit=%s, '
+                'category=%s, notes=%s WHERE id=%s',
                 (name, quantity, f.get('unit', 'szt').strip() or 'szt',
                  category, f.get('notes', '').strip(), eid)
             )
@@ -200,7 +207,9 @@ def equipment_edit(eid):
     finally:
         cur.close()
 
-    return render_template('equipment_edit.html', item=item, vehicles=vehicles, categories=CATEGORIES)
+    return render_template(
+        'equipment_edit.html', item=item, vehicles=vehicles, categories=CATEGORIES
+    )
 
 
 @equipment_bp.route('/sprzet/<int:eid>/usun', methods=['POST'])
@@ -253,7 +262,8 @@ def equipment_preload(eid):
 
         if to_insert:
             cur.executemany(
-                'INSERT INTO equipment (vehicle_id, name, quantity, unit, category) VALUES (%s,%s,%s,%s,%s)',
+                'INSERT INTO equipment (vehicle_id, name, quantity, unit, category) '
+                'VALUES (%s,%s,%s,%s,%s)',
                 to_insert,
             )
         added = len(to_insert)
@@ -281,7 +291,8 @@ def api_vehicle_equipment(vid):
     cur = get_cursor(conn)
     try:
         cur.execute(
-            'SELECT id, name, quantity, unit, category FROM equipment WHERE vehicle_id = %s ORDER BY category, name',
+            'SELECT id, name, quantity, unit, category FROM equipment '
+            'WHERE vehicle_id = %s ORDER BY category, name',
             (vid,)
         )
         items = cur.fetchall()

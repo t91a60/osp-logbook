@@ -1,10 +1,9 @@
-import pytest
 import psycopg2
+import pytest
 from psycopg2.extras import RealDictCursor
 
 from backend.infrastructure.repositories.report import ReportRepository
 from backend.services import cache_service
-
 
 pytestmark = pytest.mark.integration
 
@@ -43,7 +42,8 @@ def seeded_db(pg_dsn):
             ]:
                 cur.execute(
                     """
-                    INSERT INTO trips (vehicle_id, date, driver, odo_start, odo_end, purpose, added_by)
+                    INSERT INTO trips
+                        (vehicle_id, date, driver, odo_start, odo_end, purpose, added_by)
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """,
                     (vehicle_id, day, driver, km_s, km_e, "Akcja", "test"),
@@ -73,11 +73,10 @@ def test_get_trip_summary_returns_correct_totals(seeded_db, pg_dsn):
     repository = ReportRepository()
     vehicle_id = seeded_db["vid"]
 
-    with psycopg2.connect(pg_dsn) as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            result = repository.get_trip_summary(
-                "2026-05-01", "2026-05-31", vehicle_id, cur=cur
-            )
+    with psycopg2.connect(pg_dsn) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+        result = repository.get_trip_summary(
+            "2026-05-01", "2026-05-31", vehicle_id, cur=cur
+        )
 
     assert len(result) == 1
     assert result[0]["trip_count"] == 3
@@ -88,11 +87,10 @@ def test_get_fuel_summary_returns_correct_totals(seeded_db, pg_dsn):
     repository = ReportRepository()
     vehicle_id = seeded_db["vid"]
 
-    with psycopg2.connect(pg_dsn) as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            result = repository.get_fuel_summary(
-                "2026-05-01", "2026-05-31", vehicle_id, cur=cur
-            )
+    with psycopg2.connect(pg_dsn) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+        result = repository.get_fuel_summary(
+            "2026-05-01", "2026-05-31", vehicle_id, cur=cur
+        )
 
     assert vehicle_id in result
     assert abs(result[vehicle_id]["total_liters"] - 45.0) < 0.01
@@ -103,11 +101,10 @@ def test_get_trip_entries_returns_ordered_rows(seeded_db, pg_dsn):
     repository = ReportRepository()
     vehicle_id = seeded_db["vid"]
 
-    with psycopg2.connect(pg_dsn) as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            rows = repository.get_trip_entries(
-                "2026-05-01", "2026-05-31", vehicle_id, cur=cur
-            )
+    with psycopg2.connect(pg_dsn) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+        rows = repository.get_trip_entries(
+            "2026-05-01", "2026-05-31", vehicle_id, cur=cur
+        )
 
     assert len(rows) == 3
     dates = [r["date"].isoformat() if hasattr(r["date"], "isoformat") else r["date"] for r in rows]
@@ -117,11 +114,10 @@ def test_get_trip_entries_returns_ordered_rows(seeded_db, pg_dsn):
 def test_empty_period_returns_zero_totals(pg_dsn):
     repository = ReportRepository()
 
-    with psycopg2.connect(pg_dsn) as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            result = repository.get_trip_summary(
-                "2025-01-01", "2025-01-31", 9999, cur=cur
-            )
+    with psycopg2.connect(pg_dsn) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+        result = repository.get_trip_summary(
+            "2025-01-01", "2025-01-31", 9999, cur=cur
+        )
 
     assert result == []
 
@@ -129,11 +125,10 @@ def test_empty_period_returns_zero_totals(pg_dsn):
 def test_get_total_km_returns_zero_for_empty_period(pg_dsn):
     repository = ReportRepository()
 
-    with psycopg2.connect(pg_dsn) as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            total_km = repository.get_total_km(
-                "2025-01-01", "2025-01-31", 9999, cur=cur
-            )
+    with psycopg2.connect(pg_dsn) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+        total_km = repository.get_total_km(
+            "2025-01-01", "2025-01-31", 9999, cur=cur
+        )
 
     assert total_km == 0
 
@@ -142,11 +137,10 @@ def test_get_maintenance_summary_returns_totals(seeded_db, pg_dsn):
     repository = ReportRepository()
     vehicle_id = seeded_db["vid"]
 
-    with psycopg2.connect(pg_dsn) as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            result = repository.get_maintenance_summary(
-                "2026-05-01", "2026-05-31", vehicle_id, cur=cur
-            )
+    with psycopg2.connect(pg_dsn) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+        result = repository.get_maintenance_summary(
+            "2026-05-01", "2026-05-31", vehicle_id, cur=cur
+        )
 
     assert vehicle_id in result
     assert abs(result[vehicle_id]["total_cost"] - 123.0) < 0.01

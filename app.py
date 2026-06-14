@@ -1,14 +1,14 @@
 import os
 
 from flask import Flask
-from werkzeug.middleware.proxy_fix import ProxyFix
+from flask_compress import Compress
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_compress import Compress
+from werkzeug.middleware.proxy_fix import ProxyFix
 
-from backend.config import get_config
-from backend.db import register_db, check_db_health
 from backend.bootstrap import ensure_bootstrap_admin
+from backend.config import get_config
+from backend.db import check_db_health, register_db
 from backend.web import (
     configure_session_security,
     register_context_processors,
@@ -52,7 +52,9 @@ def create_app(config_class=None):
     ratelimit_storage_uri = (os.environ.get('RATELIMIT_STORAGE_URI') or '').strip()
     if is_production:
         if not ratelimit_storage_uri:
-            raise RuntimeError('RATELIMIT_STORAGE_URI environment variable is required in production.')
+            raise RuntimeError(
+                'RATELIMIT_STORAGE_URI environment variable is required in production.'
+            )
         if ratelimit_storage_uri == 'memory://':
             raise RuntimeError('RATELIMIT_STORAGE_URI must use Redis backend in production.')
     if not ratelimit_storage_uri:
@@ -82,7 +84,7 @@ def create_app(config_class=None):
             return 'OK', 200
         return 'DB ERROR', 500
 
-    from backend.routes import auth, main, trips, fuel, maintenance, admin, report, api, logs
+    from backend.routes import admin, api, auth, fuel, logs, main, maintenance, report, trips
     auth.register_routes(app)
     main.register_routes(app)
     trips.register_routes(app)
@@ -116,7 +118,10 @@ if __name__ == '__main__':
             print(f'\n  OSP Logbook dziala na https://0.0.0.0:{port}')
             app.run(host='0.0.0.0', port=port, debug=False, ssl_context=(cert_path, key_path))
         else:
-            print('\n  HTTPS wlaczone, ale brak plikow cert.pem/key.pem – uruchamiam certyfikat ad-hoc.')
+            print(
+                '\n  HTTPS wlaczone, ale brak plikow cert.pem/key.pem '
+                '– uruchamiam certyfikat ad-hoc.'
+            )
             app.run(host='0.0.0.0', port=port, debug=False, ssl_context='adhoc')
     else:
         print(f'\n  OSP Logbook dziala na http://0.0.0.0:{port} (DEBUG={debug})')

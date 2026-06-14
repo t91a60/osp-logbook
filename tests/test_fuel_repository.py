@@ -2,8 +2,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from backend.infrastructure.repositories.fuel import FuelRepository
 from backend.domain.exceptions import ForbiddenError, NotFoundError
+from backend.infrastructure.repositories.fuel import FuelRepository
 
 
 class TestFuelRepositoryAdd:

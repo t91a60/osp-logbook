@@ -1,9 +1,10 @@
 """Tests for backend/routes/maintenance.py."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+
+from psycopg2 import IntegrityError
 
 from backend.domain.exceptions import ForbiddenError, NotFoundError
-from psycopg2 import IntegrityError
 
 
 def _csrf(client):
@@ -15,7 +16,9 @@ class TestMaintenanceGetRoute:
     @patch('backend.routes.maintenance.render_template')
     @patch('backend.routes.maintenance.GetMaintenanceUseCase.execute')
     @patch('backend.routes.maintenance.get_vehicles_cached')
-    def test_get_renders_with_entries(self, mock_vehicles, mock_get_page, mock_render, authenticated_client):
+    def test_get_renders_with_entries(
+        self, mock_vehicles, mock_get_page, mock_render, authenticated_client,
+    ):
         mock_vehicles.return_value = [{'id': 1, 'name': 'GBA'}]
         mock_get_page.return_value = ([{'id': 10}], 1, 1, 1)
         mock_render.return_value = 'maintenance-page'
@@ -30,7 +33,9 @@ class TestMaintenanceGetRoute:
     @patch('backend.routes.maintenance.render_template')
     @patch('backend.routes.maintenance.GetMaintenanceUseCase.execute')
     @patch('backend.routes.maintenance.get_vehicles_cached')
-    def test_get_filters_by_status_and_vehicle(self, mock_vehicles, mock_get_page, mock_render, authenticated_client):
+    def test_get_filters_by_status_and_vehicle(
+        self, mock_vehicles, mock_get_page, mock_render, authenticated_client,
+    ):
         mock_vehicles.return_value = [{'id': 1, 'name': 'GBA'}]
         mock_get_page.return_value = ([], 0, 1, 1)
         mock_render.return_value = 'maintenance-page'
@@ -76,7 +81,9 @@ class TestMaintenancePostRoute:
 
     @patch('backend.routes.maintenance.AddMaintenanceUseCase.execute')
     @patch('backend.routes.maintenance.get_vehicles_cached')
-    def test_post_missing_description_returns_400(self, mock_vehicles, mock_execute, authenticated_client):
+    def test_post_missing_description_returns_400(
+        self, mock_vehicles, mock_execute, authenticated_client,
+    ):
         from backend.domain.exceptions import ValidationError
         mock_vehicles.return_value = [{'id': 1, 'name': 'GBA'}]
         mock_execute.side_effect = ValidationError('Opis')
@@ -143,7 +150,9 @@ class TestMaintenanceEditRoute:
     @patch('backend.routes.maintenance.EditMaintenanceUseCase.execute')
     @patch('backend.routes.maintenance.GetMaintenanceByIdUseCase.execute')
     @patch('backend.routes.maintenance.get_vehicles_cached')
-    def test_edit_post_handles_not_found(self, mock_vehicles, mock_get_by_id, mock_edit, authenticated_client):
+    def test_edit_post_handles_not_found(
+        self, mock_vehicles, mock_get_by_id, mock_edit, authenticated_client,
+    ):
         mock_vehicles.return_value = [{'id': 1, 'name': 'GBA'}]
         mock_get_by_id.return_value = {'id': 10, 'added_by': 'testuser'}
         mock_edit.side_effect = NotFoundError('missing')
@@ -160,7 +169,9 @@ class TestMaintenanceEditRoute:
     @patch('backend.routes.maintenance.EditMaintenanceUseCase.execute')
     @patch('backend.routes.maintenance.GetMaintenanceByIdUseCase.execute')
     @patch('backend.routes.maintenance.get_vehicles_cached')
-    def test_edit_post_handles_integrity_error(self, mock_vehicles, mock_get_by_id, mock_edit, authenticated_client):
+    def test_edit_post_handles_integrity_error(
+        self, mock_vehicles, mock_get_by_id, mock_edit, authenticated_client,
+    ):
         mock_vehicles.return_value = [{'id': 1, 'name': 'GBA'}]
         mock_get_by_id.return_value = {'id': 10, 'added_by': 'testuser'}
         mock_edit.side_effect = IntegrityError()
@@ -177,7 +188,9 @@ class TestMaintenanceEditRoute:
     @patch('backend.routes.maintenance.EditMaintenanceUseCase.execute')
     @patch('backend.routes.maintenance.GetMaintenanceByIdUseCase.execute')
     @patch('backend.routes.maintenance.get_vehicles_cached')
-    def test_edit_post_success(self, mock_vehicles, mock_get_by_id, mock_edit, authenticated_client):
+    def test_edit_post_success(
+        self, mock_vehicles, mock_get_by_id, mock_edit, authenticated_client,
+    ):
         mock_vehicles.return_value = [{'id': 1, 'name': 'GBA'}]
         mock_get_by_id.return_value = {'id': 10, 'added_by': 'testuser'}
 
@@ -196,7 +209,10 @@ class TestMaintenanceMutationRoutes:
     @patch('backend.routes.maintenance.CompleteMaintenanceUseCase.execute')
     def test_complete_marks_entry_done(self, mock_complete, authenticated_client):
 
-        response = authenticated_client.post('/serwis/1/complete', data={'_csrf_token': _csrf(authenticated_client)})
+        response = authenticated_client.post(
+            '/serwis/1/complete',
+            data={'_csrf_token': _csrf(authenticated_client)},
+        )
 
         assert response.status_code == 302
         mock_complete.assert_called_once()
@@ -205,7 +221,10 @@ class TestMaintenanceMutationRoutes:
 
     @patch('backend.routes.maintenance.CreateNextMaintenanceUseCase.execute')
     def test_next_creates_followup_entry(self, mock_create_next, authenticated_client):
-        response = authenticated_client.post('/serwis/1/next', data={'_csrf_token': _csrf(authenticated_client)})
+        response = authenticated_client.post(
+            '/serwis/1/next',
+            data={'_csrf_token': _csrf(authenticated_client)},
+        )
 
         assert response.status_code == 302
         mock_create_next.assert_called_once()
@@ -217,7 +236,10 @@ class TestMaintenanceMutationRoutes:
     def test_complete_handles_not_found(self, mock_complete, authenticated_client):
         mock_complete.side_effect = NotFoundError('missing')
 
-        response = authenticated_client.post('/serwis/1/complete', data={'_csrf_token': _csrf(authenticated_client)})
+        response = authenticated_client.post(
+            '/serwis/1/complete',
+            data={'_csrf_token': _csrf(authenticated_client)},
+        )
 
         assert response.status_code == 302
 
@@ -225,7 +247,10 @@ class TestMaintenanceMutationRoutes:
     def test_complete_forbidden_returns_403(self, mock_complete, authenticated_client):
         mock_complete.side_effect = ForbiddenError('forbidden')
 
-        response = authenticated_client.post('/serwis/1/complete', data={'_csrf_token': _csrf(authenticated_client)})
+        response = authenticated_client.post(
+            '/serwis/1/complete',
+            data={'_csrf_token': _csrf(authenticated_client)},
+        )
 
         assert response.status_code == 403
 
@@ -233,7 +258,10 @@ class TestMaintenanceMutationRoutes:
     def test_next_handles_not_found(self, mock_next, authenticated_client):
         mock_next.side_effect = NotFoundError('missing')
 
-        response = authenticated_client.post('/serwis/1/next', data={'_csrf_token': _csrf(authenticated_client)})
+        response = authenticated_client.post(
+            '/serwis/1/next',
+            data={'_csrf_token': _csrf(authenticated_client)},
+        )
 
         assert response.status_code == 302
 
@@ -241,7 +269,10 @@ class TestMaintenanceMutationRoutes:
     def test_next_forbidden_returns_403(self, mock_next, authenticated_client):
         mock_next.side_effect = ForbiddenError('forbidden')
 
-        response = authenticated_client.post('/serwis/1/next', data={'_csrf_token': _csrf(authenticated_client)})
+        response = authenticated_client.post(
+            '/serwis/1/next',
+            data={'_csrf_token': _csrf(authenticated_client)},
+        )
 
         assert response.status_code == 403
 
@@ -249,7 +280,10 @@ class TestMaintenanceMutationRoutes:
     def test_delete_handles_not_found(self, mock_delete, authenticated_client):
         mock_delete.side_effect = NotFoundError('missing')
 
-        response = authenticated_client.post('/serwis/1/usun', data={'_csrf_token': _csrf(authenticated_client)})
+        response = authenticated_client.post(
+            '/serwis/1/usun',
+            data={'_csrf_token': _csrf(authenticated_client)},
+        )
 
         assert response.status_code == 302
 
@@ -257,6 +291,9 @@ class TestMaintenanceMutationRoutes:
     def test_delete_handles_forbidden(self, mock_delete, authenticated_client):
         mock_delete.side_effect = ForbiddenError('forbidden')
 
-        response = authenticated_client.post('/serwis/1/usun', data={'_csrf_token': _csrf(authenticated_client)})
+        response = authenticated_client.post(
+            '/serwis/1/usun',
+            data={'_csrf_token': _csrf(authenticated_client)},
+        )
 
         assert response.status_code == 302

@@ -48,7 +48,7 @@ def register_routes(app):
             except IntegrityError:
                 raise ValidationError(
                     'Nie udało się zapisać tankowania. Sprawdź dane i spróbuj ponownie.'
-                )
+                ) from None
 
             flash('Tankowanie zapisane.', 'success')
             return redirect(url_for(
@@ -122,7 +122,7 @@ def register_routes(app):
             try:
                 EditFuelUseCase.execute(cmd)
             except (NotFoundError, IntegrityError) as exc:
-                raise ValidationError(str(exc))
+                raise ValidationError(str(exc)) from exc
 
             flash('Wpis tankowania zaktualizowany.', 'success')
             return redirect(url_for('fuel', vehicle_id=vehicle_id))

@@ -3,11 +3,10 @@ from __future__ import annotations
 from datetime import date, timedelta
 from threading import Lock
 
-from backend.db import get_db, get_cursor
+from backend.db import get_cursor, get_db
 from backend.domain.exceptions import ForbiddenError, NotFoundError
 from backend.helpers import normalize_iso_date
 from backend.infrastructure.repositories.base import BaseRepository
-from backend.infrastructure.repositories import _to_int
 from backend.infrastructure.repositories.protocols import VehicleRepositoryProtocol
 
 _vehicles_has_active_column: bool | None = None
@@ -175,9 +174,11 @@ class VehicleRepository(BaseRepository, VehicleRepositoryProtocol):
         cur = get_cursor(conn)
         try:
             cur.execute(
-                'SELECT (SELECT COUNT(*) FROM trips WHERE vehicle_id = %s AND deleted_at IS NULL) + '
+                'SELECT (SELECT COUNT(*) FROM trips WHERE vehicle_id = %s '
+                'AND deleted_at IS NULL) + '
                 '       (SELECT COUNT(*) FROM fuel WHERE vehicle_id = %s AND deleted_at IS NULL) + '
-                '       (SELECT COUNT(*) FROM maintenance WHERE vehicle_id = %s AND deleted_at IS NULL) AS count',
+                '       (SELECT COUNT(*) FROM maintenance WHERE vehicle_id = %s '
+                'AND deleted_at IS NULL) AS count',
                 (vid, vid, vid),
             )
             return cur.fetchone()['count'] > 0
